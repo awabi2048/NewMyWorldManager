@@ -1,5 +1,8 @@
 package me.awabi2048.myworldmanager.service
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
 import com.awabi2048.ccsystem.api.gui.MenuReversibleContract
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
@@ -159,7 +162,7 @@ class WorldListMenuService(private val plugin: MyWorldManager) : ApiWorldListMen
             player.sendMessage(
                 plugin.languageManager.getMessage(
                     player,
-                    "messages.warp_success",
+                    MyworldMessagesKeys.MESSAGES_WARP_SUCCESS,
                     mapOf("world" to worldData.name),
                 ),
             )
@@ -183,7 +186,7 @@ class WorldListMenuService(private val plugin: MyWorldManager) : ApiWorldListMen
         isMember: Boolean,
     ): MenuActionResult {
         if (isMember) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "error.member_request_already_member"))
+            player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_MEMBER_REQUEST_ALREADY_MEMBER))
             return MenuActionResult.Rejected()
         }
         plugin.menuEntryRouter.openMemberRequestConfirm(player, worldData)
@@ -199,7 +202,7 @@ class WorldListMenuService(private val plugin: MyWorldManager) : ApiWorldListMen
         if (isMember) return MenuActionResult.Ignored
         return when (plugin.favoriteStateService.toggle(player, worldData, source)) {
             FavoriteStateService.ToggleResult.Added -> {
-                player.sendMessage(plugin.languageManager.getMessage(player, "messages.favorite_added"))
+                player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_FAVORITE_ADDED))
                 plugin.soundManager.playActionSound(
                     player,
                     if (source == MwmFavoriteAddSource.FAVORITE_MENU) "favorite" else "discovery",
@@ -209,7 +212,7 @@ class WorldListMenuService(private val plugin: MyWorldManager) : ApiWorldListMen
             }
 
             FavoriteStateService.ToggleResult.Removed -> {
-                player.sendMessage(plugin.languageManager.getMessage(player, "messages.favorite_removed"))
+                player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_FAVORITE_REMOVED))
                 plugin.soundManager.playActionSound(
                     player,
                     if (source == MwmFavoriteAddSource.FAVORITE_MENU) "favorite" else "discovery",
@@ -222,7 +225,7 @@ class WorldListMenuService(private val plugin: MyWorldManager) : ApiWorldListMen
                 player.sendMessage(
                     plugin.languageManager.getMessage(
                         player,
-                        "error.favorite_limit_reached",
+                        CommonKeys.ERROR_FAVORITE_LIMIT_REACHED,
                         mapOf("limit" to plugin.config.getInt("favorite.max_count", 1000)),
                     ),
                 )

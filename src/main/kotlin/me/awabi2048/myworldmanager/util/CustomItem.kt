@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.util
 
+import com.awabi2048.ccsystem.api.localization.generated.MyworldCustomItemKeys
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
@@ -29,10 +31,10 @@ enum class CustomItem(val id: String) {
             val item = ItemStack(Material.POISONOUS_POTATO)
             val meta = item.itemMeta ?: return item
 
-            meta.displayName(lang.getComponent(player, "custom_item.empty_biome_bottle.name"))
+            meta.displayName(lang.getComponent(player, MyworldCustomItemKeys.CUSTOM_ITEM_EMPTY_BIOME_BOTTLE_NAME))
             meta.lore(com.awabi2048.ccsystem.CCSystem.getAPI().getLoreService().render(
                 com.awabi2048.ccsystem.api.gui.GuiLoreSpec.Rich(
-                    lang.getMessageList(player, "custom_item.empty_biome_bottle.lore")
+                    lang.getMessageList(player, MyworldCustomItemKeys.CUSTOM_ITEM_EMPTY_BIOME_BOTTLE_LORE)
                         .map(com.awabi2048.ccsystem.api.gui.GuiLoreLine::Text),
                     com.awabi2048.ccsystem.api.gui.GuiLoreFrame.BOTH,
                 ),
@@ -62,10 +64,10 @@ enum class CustomItem(val id: String) {
             val item = ItemStack(Material.POISONOUS_POTATO)
             val meta = item.itemMeta ?: return item
 
-            meta.displayName(lang.getComponent(player, "custom_item.moon_stone.name"))
+            meta.displayName(lang.getComponent(player, MyworldCustomItemKeys.CUSTOM_ITEM_MOON_STONE_NAME))
             meta.lore(com.awabi2048.ccsystem.CCSystem.getAPI().getLoreService().render(
                 com.awabi2048.ccsystem.api.gui.GuiLoreSpec.Rich(
-                    lang.getMessageList(player, "custom_item.moon_stone.lore")
+                    lang.getMessageList(player, MyworldCustomItemKeys.CUSTOM_ITEM_MOON_STONE_LORE)
                         .map(com.awabi2048.ccsystem.api.gui.GuiLoreLine::Text),
                     com.awabi2048.ccsystem.api.gui.GuiLoreFrame.BOTH,
                 ),
@@ -88,7 +90,7 @@ enum class CustomItem(val id: String) {
             val item = ItemStack(Material.POISONOUS_POTATO)
             val meta = item.itemMeta ?: return item
 
-            meta.displayName(lang.getComponent(player, "custom_item.world_seed.name"))
+            meta.displayName(lang.getComponent(player, MyworldCustomItemKeys.CUSTOM_ITEM_WORLD_SEED_NAME))
             meta.lore(actionLore(lang, player, "custom_item.world_seed"))
 
             meta.setMaxStackSize(1)
@@ -108,7 +110,7 @@ enum class CustomItem(val id: String) {
             val item = ItemStack(TourSignItemPolicy.baseMaterial)
             val meta = item.itemMeta ?: return item
 
-            meta.displayName(lang.getComponent(player, "custom_item.tour_sign.name"))
+            meta.displayName(lang.getComponent(player, MyworldCustomItemKeys.CUSTOM_ITEM_TOUR_SIGN_NAME))
             meta.lore(actionLore(lang, player, "custom_item.tour_sign"))
 
             meta.setMaxStackSize(16)
@@ -135,10 +137,10 @@ enum class CustomItem(val id: String) {
         val meta = item.itemMeta ?: return item
 
         val biomeName = lang.getMessage(player, "biomes.${biomeId.lowercase()}")
-        meta.displayName(lang.getComponent(player, "custom_item.bottled_biome_air.name", mapOf("biome" to biomeName)))
+        meta.displayName(lang.getComponent(player, MyworldCustomItemKeys.CUSTOM_ITEM_BOTTLED_BIOME_AIR_NAME, mapOf("biome" to biomeName)))
         meta.lore(com.awabi2048.ccsystem.CCSystem.getAPI().getLoreService().render(
             com.awabi2048.ccsystem.api.gui.GuiLoreSpec.Rich(
-                lang.getMessageList(player, "custom_item.bottled_biome_air.lore")
+                lang.getMessageList(player, MyworldCustomItemKeys.CUSTOM_ITEM_BOTTLED_BIOME_AIR_LORE)
                     .map(com.awabi2048.ccsystem.api.gui.GuiLoreLine::Text),
                 com.awabi2048.ccsystem.api.gui.GuiLoreFrame.BOTH,
             ),

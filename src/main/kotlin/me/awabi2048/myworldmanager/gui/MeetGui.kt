@@ -1,5 +1,10 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiMeetKeys
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiInteractionGuidance
@@ -84,7 +89,7 @@ class MeetGui(private val plugin: MyWorldManager) {
         val currentPage = pageLayout.page
         val layout = pageLayout.layout
         session.currentPage = currentPage
-        val title = GuiHelper.inventoryTitle(lang.getMessage(player, "gui.meet.title_list"))
+        val title = GuiHelper.inventoryTitle(lang.getMessage(player, MyworldGuiMeetKeys.GUI_MEET_TITLE_LIST))
         val elements = mutableListOf<MenuElement>()
         val pageTargets = targets.drop(pageLayout.startIndex).take(pageLayout.itemCount)
         pageTargets.forEachIndexed { index, target ->
@@ -104,11 +109,11 @@ class MeetGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = layout.actionSlot,
                 material = Material.PLAYER_HEAD,
-                name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.meet.status_button.display", mapOf("player" to player.name))),
+                name = GuiNameSpec.FixedLabel(lang.getComponent(player, MyworldGuiMeetKeys.GUI_MEET_STATUS_BUTTON_DISPLAY, mapOf("player" to player.name))),
                 role = GuiElementRole.ACTION,
                 description = listOf(lang.getMessage(player, "general.status.description.${currentStatus.lowercase()}")),
-                data = listOf(GuiMenuEntryData(lang.getMessage(player, "gui.meet.status_button.current"), statusName, GuiValueTone.PRIMARY)),
-                actions = listOf(menuGestureAction(ACTION_STATUS, MenuGesture.ANY, lang.getMessage(player, "gui.meet.status_button.action"), safety = MenuActionSafety.REVERSIBLE, reversibleContract = MwmMenuActionSemantics.contract("meet-status"))),
+                data = listOf(GuiMenuEntryData(lang.getMessage(player, MyworldGuiMeetKeys.GUI_MEET_STATUS_BUTTON_CURRENT), statusName, GuiValueTone.PRIMARY)),
+                actions = listOf(menuGestureAction(ACTION_STATUS, MenuGesture.ANY, lang.getMessage(player, MyworldGuiMeetKeys.GUI_MEET_STATUS_BUTTON_ACTION), safety = MenuActionSafety.REVERSIBLE, reversibleContract = MwmMenuActionSemantics.contract("meet-status"))),
                 playerHeadOwner = player.uniqueId,
             ),
         )
@@ -179,7 +184,7 @@ class MeetGui(private val plugin: MyWorldManager) {
             ?.let(Bukkit::getPlayer)
             ?.takeIf { it.isOnline && plugin.playerVisibilityService.isVisibleTo(player, it) }
             ?: run {
-                player.sendMessage(plugin.languageManager.getMessage(player, "error.target_offline"))
+                player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_TARGET_OFFLINE))
                 return MenuActionResult.Rejected()
             }
         return when (val action = resolveTargetAction(player, target)) {
@@ -194,7 +199,7 @@ class MeetGui(private val plugin: MyWorldManager) {
                     player.sendMessage(
                         plugin.languageManager.getMessage(
                             player,
-                            "messages.warp_success",
+                            MyworldMessagesKeys.MESSAGES_WARP_SUCCESS,
                             mapOf("world" to worldData.name),
                         ),
                     )
@@ -202,7 +207,7 @@ class MeetGui(private val plugin: MyWorldManager) {
                         target.sendMessage(
                             plugin.languageManager.getMessage(
                                 target,
-                                "messages.visitor_notified",
+                                MyworldMessagesKeys.MESSAGES_VISITOR_NOTIFIED,
                                 mapOf("player" to player.name, "world" to worldData.name),
                             ),
                         )
@@ -213,7 +218,7 @@ class MeetGui(private val plugin: MyWorldManager) {
             TargetAction.DENY, null -> {
                 val worldData = plugin.worldConfigRepository.findByWorldName(target.world.name)
                 if (worldData == null) {
-                    player.sendMessage(plugin.languageManager.getMessage(player, "error.target_not_in_myworld"))
+                    player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_TARGET_NOT_IN_MYWORLD))
                     return MenuActionResult.Rejected()
                 }
                 val isMember = (
@@ -247,7 +252,7 @@ class MeetGui(private val plugin: MyWorldManager) {
         player.sendMessage(
             plugin.languageManager.getMessage(
                 player,
-                "general.meet_request.sent",
+                CommonKeys.GENERAL_MEET_REQUEST_SENT,
                 mapOf("player" to target.name),
             ),
         )
@@ -266,7 +271,7 @@ class MeetGui(private val plugin: MyWorldManager) {
                 slot = 22,
                 item = GuiItemSpec(
                     material = Material.QUARTZ,
-                    name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(viewer, "gui.meet.empty_message")),
+                    name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(viewer, MyworldGuiMeetKeys.GUI_MEET_EMPTY_MESSAGE)),
                     lore = GuiLoreSpec.None,
                     role = GuiElementRole.CONTENT,
                     amount = 1,
@@ -325,13 +330,13 @@ class MeetGui(private val plugin: MyWorldManager) {
         }
 
         val worldValue = if (isSameWorld) {
-            "$displayWorldName (${lang.getMessage(viewer, "gui.meet.world_item.same_world")})"
+            "$displayWorldName (${lang.getMessage(viewer, MyworldGuiMeetKeys.GUI_MEET_WORLD_ITEM_SAME_WORLD)})"
         } else {
             displayWorldName
         }
         val actionLabel = when (targetAction) {
-            TargetAction.DIRECT -> lang.getMessage(viewer, "gui.meet.world_item.click_visit")
-            TargetAction.REQUEST -> lang.getMessage(viewer, "gui.meet.world_item.click_request")
+            TargetAction.DIRECT -> lang.getMessage(viewer, MyworldGuiMeetKeys.GUI_MEET_WORLD_ITEM_CLICK_VISIT)
+            TargetAction.REQUEST -> lang.getMessage(viewer, MyworldGuiMeetKeys.GUI_MEET_WORLD_ITEM_CLICK_REQUEST)
             TargetAction.DENY, null -> null
         }
         return CCSystem.getAPI().getGuiElementService().menuEntry(
@@ -343,17 +348,17 @@ class MeetGui(private val plugin: MyWorldManager) {
                 role = if (actionLabel == null) GuiElementRole.CONTENT else GuiElementRole.ACTION,
                 data = listOf(
                     GuiMenuEntryData(
-                        lang.getMessage(viewer, "gui.meet.world_item.status"),
+                        lang.getMessage(viewer, MyworldGuiMeetKeys.GUI_MEET_WORLD_ITEM_STATUS),
                         statusName,
                         GuiValueTone.PRIMARY,
                     ),
                     GuiMenuEntryData(
-                        lang.getMessage(viewer, "gui.meet.world_item.online_state"),
-                        lang.getMessage(viewer, if (target.isOnline) "gui.meet.world_item.online" else "gui.meet.world_item.offline"),
+                        lang.getMessage(viewer, MyworldGuiMeetKeys.GUI_MEET_WORLD_ITEM_ONLINE_STATE),
+                        lang.getMessage(viewer, if (target.isOnline) MyworldGuiMeetKeys.GUI_MEET_WORLD_ITEM_ONLINE else MyworldGuiMeetKeys.GUI_MEET_WORLD_ITEM_OFFLINE),
                         if (target.isOnline) GuiValueTone.SUCCESS else GuiValueTone.MUTED,
                     ),
                     GuiMenuEntryData(
-                        lang.getMessage(viewer, "gui.meet.world_item.current_world"),
+                        lang.getMessage(viewer, MyworldGuiMeetKeys.GUI_MEET_WORLD_ITEM_CURRENT_WORLD),
                         worldValue,
                         if (isSameWorld) GuiValueTone.WARNING else GuiValueTone.DEFAULT,
                     ),

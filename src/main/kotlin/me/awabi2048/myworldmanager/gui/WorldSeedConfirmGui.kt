@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiCreationKeys
+
 import me.awabi2048.myworldmanager.util.descriptionLine
 import me.awabi2048.myworldmanager.util.warningLine
 import me.awabi2048.myworldmanager.util.dangerLine
@@ -70,23 +72,23 @@ class WorldSeedConfirmGui(private val plugin: MyWorldManager) {
                 slot = 13,
                 item = GuiItemSpec(
                     material = Material.PAPER,
-                    name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.world_seed_confirm.title")),
+                    name = GuiNameSpec.FixedLabel(lang.getComponent(player, MyworldGuiCreationKeys.GUI_WORLD_SEED_CONFIRM_TITLE)),
                     lore = GuiLoreSpec.Blocks(
                         listOf(
                             GuiLoreBlock(
                                 listOf(
-                                    GuiLoreLine.Warning(lang.getMessage(player, "gui.world_seed_confirm.question")),
+                                    GuiLoreLine.Warning(lang.getMessage(player, MyworldGuiCreationKeys.GUI_WORLD_SEED_CONFIRM_QUESTION)),
                                     GuiLoreLine.Data(
-                                        lang.getMessage(player, "gui.world_seed_confirm.current_label"),
+                                        lang.getMessage(player, MyworldGuiCreationKeys.GUI_WORLD_SEED_CONFIRM_CURRENT_LABEL),
                                         currentSlots,
                                         "§a",
                                     ),
                                     GuiLoreLine.Data(
-                                        lang.getMessage(player, "gui.world_seed_confirm.next_label"),
+                                        lang.getMessage(player, MyworldGuiCreationKeys.GUI_WORLD_SEED_CONFIRM_NEXT_LABEL),
                                         nextSlots,
                                         "§a",
                                     ),
-                                ) + lang.getMessageList(player, "gui.world_seed_confirm.description")
+                                ) + lang.getMessageList(player, MyworldGuiCreationKeys.GUI_WORLD_SEED_CONFIRM_DESCRIPTION)
                                     .map(::descriptionLine),
                             ),
                         ),
@@ -98,7 +100,7 @@ class WorldSeedConfirmGui(private val plugin: MyWorldManager) {
         )
         return InventoryMenuView(
             27,
-            lang.getComponent(player, "gui.world_seed_confirm.title"),
+            lang.getComponent(player, MyworldGuiCreationKeys.GUI_WORLD_SEED_CONFIRM_TITLE),
             listOf(
                 info,
                 button(player, 11, Material.LIME_CONCRETE, "gui.common.confirm", GuiElementRole.CONFIRM, ACTION_CONFIRM),

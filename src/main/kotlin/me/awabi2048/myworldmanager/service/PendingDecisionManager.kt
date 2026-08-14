@@ -1,5 +1,8 @@
 package me.awabi2048.myworldmanager.service
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.PendingInteraction
 import me.awabi2048.myworldmanager.model.PendingInteractionType
@@ -252,7 +255,7 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val interaction = plugin.pendingInteractionRepository.findById(decisionId)
         if (interaction == null || interaction.targetUuid != target.uniqueId) {
-            target.sendMessage(lang.getMessage(target, "messages.myworld_pending_none"))
+            target.sendMessage(lang.getMessage(target, MyworldMessagesKeys.MESSAGES_MYWORLD_PENDING_NONE))
             return false
         }
 
@@ -264,7 +267,7 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
             target.sendMessage(
                 lang.getMessage(
                     target,
-                    "messages.myworld_pending_remaining",
+                    MyworldMessagesKeys.MESSAGES_MYWORLD_PENDING_REMAINING,
                     mapOf("count" to remaining)
                 )
             )
@@ -280,7 +283,7 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
 
         val decision = removeTransientById(target.uniqueId, decisionId)
         if (decision == null) {
-            target.sendMessage(plugin.languageManager.getMessage(target, "messages.myworld_pending_none"))
+            target.sendMessage(plugin.languageManager.getMessage(target, MyworldMessagesKeys.MESSAGES_MYWORLD_PENDING_NONE))
             return false
         }
 
@@ -290,7 +293,7 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
             target.sendMessage(
                 plugin.languageManager.getMessage(
                     target,
-                    "messages.myworld_pending_remaining",
+                    MyworldMessagesKeys.MESSAGES_MYWORLD_PENDING_REMAINING,
                     mapOf("count" to remaining)
                 )
             )
@@ -323,7 +326,7 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
 
     fun resolveLatest(target: Player, accept: Boolean): Boolean {
         val latest = getPendingEntries(target.uniqueId).firstOrNull() ?: run {
-            target.sendMessage(plugin.languageManager.getMessage(target, "messages.myworld_pending_none"))
+            target.sendMessage(plugin.languageManager.getMessage(target, MyworldMessagesKeys.MESSAGES_MYWORLD_PENDING_NONE))
             return false
         }
         return resolveById(target, latest.id, accept)
@@ -380,12 +383,12 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
                         interaction.actorUuid
                     )
                 } else {
-                    target.sendMessage(lang.getMessage(target, "messages.member_invite_declined"))
+                    target.sendMessage(lang.getMessage(target, MyworldMessagesKeys.MESSAGES_MEMBER_INVITE_DECLINED))
                     Bukkit.getPlayer(interaction.actorUuid)?.let { sender ->
                         sender.sendMessage(
                             lang.getMessage(
                                 sender,
-                                "messages.member_invite_declined_sender",
+                                MyworldMessagesKeys.MESSAGES_MEMBER_INVITE_DECLINED_SENDER,
                                 mapOf("player" to target.name)
                             )
                         )
@@ -421,14 +424,14 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
                         !me.awabi2048.myworldmanager.api.MyWorldManagerApi.getWorldAccessPolicy()
                             .canAcceptWorldInvite(target, worldData)
                     ) {
-                        target.sendMessage(plugin.languageManager.getMessage(target, "messages.worldwarp_access_denied"))
+                        target.sendMessage(plugin.languageManager.getMessage(target, MyworldMessagesKeys.MESSAGES_WORLDWARP_ACCESS_DENIED))
                         return
                     }
                     plugin.worldService.teleportToWorld(target, decision.worldUuid) {
-                        target.sendMessage(plugin.languageManager.getMessage(target, "messages.warp_invite_success"))
+                        target.sendMessage(plugin.languageManager.getMessage(target, MyworldMessagesKeys.MESSAGES_WARP_INVITE_SUCCESS))
                     }
                 } else {
-                    target.sendMessage(plugin.languageManager.getMessage(target, "messages.invite_declined"))
+                    target.sendMessage(plugin.languageManager.getMessage(target, MyworldMessagesKeys.MESSAGES_INVITE_DECLINED))
                 }
             }
 
@@ -436,12 +439,12 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
                 if (accept) {
                     handleMeetRequestAccept(target, decision.requesterUuid)
                 } else {
-                    target.sendMessage(plugin.languageManager.getMessage(target, "messages.meet.request_denied"))
+                    target.sendMessage(plugin.languageManager.getMessage(target, MyworldMessagesKeys.MESSAGES_MEET_REQUEST_DENIED))
                     Bukkit.getPlayer(decision.requesterUuid)?.let { requester ->
                         requester.sendMessage(
                             plugin.languageManager.getMessage(
                                 requester,
-                                "messages.meet.request_denied_by_target",
+                                MyworldMessagesKeys.MESSAGES_MEET_REQUEST_DENIED_BY_TARGET,
                                 mapOf("player" to target.name)
                             )
                         )
@@ -457,15 +460,15 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
                     requester?.sendMessage(
                         plugin.languageManager.getMessage(
                             requester,
-                            "messages.visit_request_denied",
+                            MyworldMessagesKeys.MESSAGES_VISIT_REQUEST_DENIED,
                             mapOf("owner" to target.name)
                         )
                     )
                     target.sendMessage(
                         plugin.languageManager.getMessage(
                             target,
-                            "messages.visit_request_denied_by_target",
-                            mapOf("player" to (requester?.name ?: plugin.languageManager.getMessage(target, "general.unknown")))
+                            MyworldMessagesKeys.MESSAGES_VISIT_REQUEST_DENIED_BY_TARGET,
+                            mapOf("player" to (requester?.name ?: plugin.languageManager.getMessage(target, CommonKeys.GENERAL_UNKNOWN)))
                         )
                     )
                 }
@@ -605,13 +608,13 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
     private fun handleMeetRequestAccept(target: Player, requesterUuid: UUID) {
         val requester = Bukkit.getPlayer(requesterUuid)
         if (requester == null || !requester.isOnline) {
-            target.sendMessage(plugin.languageManager.getMessage(target, "messages.meet.requester_offline"))
+            target.sendMessage(plugin.languageManager.getMessage(target, MyworldMessagesKeys.MESSAGES_MEET_REQUESTER_OFFLINE))
             return
         }
 
         val worldData = plugin.worldConfigRepository.findByWorldName(target.world.name)
         if (worldData == null) {
-            target.sendMessage(plugin.languageManager.getMessage(target, "messages.meet.not_in_valid_world"))
+            target.sendMessage(plugin.languageManager.getMessage(target, MyworldMessagesKeys.MESSAGES_MEET_NOT_IN_VALID_WORLD))
             return
         }
 
@@ -619,14 +622,14 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
             target.sendMessage(
                 plugin.languageManager.getMessage(
                     target,
-                    "messages.meet.request_accepted",
+                    MyworldMessagesKeys.MESSAGES_MEET_REQUEST_ACCEPTED,
                     mapOf("player" to requester.name)
                 )
             )
             requester.sendMessage(
                 plugin.languageManager.getMessage(
                     requester,
-                    "messages.meet.request_accepted_by_target",
+                    MyworldMessagesKeys.MESSAGES_MEET_REQUEST_ACCEPTED_BY_TARGET,
                     mapOf("player" to target.name)
                 )
             )
@@ -639,11 +642,11 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
         val requester = Bukkit.getPlayer(requesterUuid)
         val worldData = plugin.worldConfigRepository.findByUuid(worldUuid)
         if (requester == null || !requester.isOnline) {
-            target.sendMessage(plugin.languageManager.getMessage(target, "messages.visit_request_target_offline"))
+            target.sendMessage(plugin.languageManager.getMessage(target, MyworldMessagesKeys.MESSAGES_VISIT_REQUEST_TARGET_OFFLINE))
             return
         }
         if (worldData == null || worldData.isArchived) {
-            target.sendMessage(plugin.languageManager.getMessage(target, "general.world_not_found"))
+            target.sendMessage(plugin.languageManager.getMessage(target, CommonKeys.GENERAL_WORLD_NOT_FOUND))
             return
         }
 
@@ -651,14 +654,14 @@ class PendingDecisionManager(private val plugin: MyWorldManager) {
             requester.sendMessage(
                 plugin.languageManager.getMessage(
                     requester,
-                    "messages.visit_request_accepted",
+                    MyworldMessagesKeys.MESSAGES_VISIT_REQUEST_ACCEPTED,
                     mapOf("owner" to target.name, "world" to worldData.name)
                 )
             )
             target.sendMessage(
                 plugin.languageManager.getMessage(
                     target,
-                    "messages.visit_request_accepted_by_target",
+                    MyworldMessagesKeys.MESSAGES_VISIT_REQUEST_ACCEPTED_BY_TARGET,
                     mapOf("player" to requester.name, "world" to worldData.name)
                 )
             )

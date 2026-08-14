@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.listener
 
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiBedrockKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiCreationKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiCycle
 import com.awabi2048.ccsystem.api.gui.GuiCycleDirection
@@ -109,12 +113,12 @@ class CreationGuiListener(private val plugin: MyWorldManager) {
             MyWorldManagerApi.isWorldPointEconomyEnabled() &&
             stats.worldPoint < cost
         ) {
-            player.sendMessage(lang.getMessage(player, "messages.creation_insufficient_points"))
+            player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_CREATION_INSUFFICIENT_POINTS))
             plugin.creationSessionManager.endSession(player.uniqueId)
             return MenuActionResult.Success(MenuUpdate.Close)
         }
 
-        player.sendMessage(lang.getMessage(player, "messages.world_creation_processing"))
+        player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_CREATION_PROCESSING))
         when (session.creationType) {
             WorldCreationType.TEMPLATE -> {
                 plugin.worldService.createWorld(
@@ -125,7 +129,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) {
                     session.billingMode
                 ).thenAccept { success ->
                     if (!success) {
-                        player.sendMessage(lang.getMessage(player, "messages.creation_failed"))
+                        player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_CREATION_FAILED))
                     }
                 }
             }
@@ -187,12 +191,12 @@ class CreationGuiListener(private val plugin: MyWorldManager) {
 
         val opened = plugin.floodgateFormBridge.sendCustomInputForm(
             player = player,
-            title = lang.getMessage(player, "gui.bedrock.input.creation_seed.title"),
+            title = lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_CREATION_SEED_TITLE),
             label = buildString {
-                append(lang.getMessage(player, "gui.bedrock.input.creation_seed.label"))
+                append(lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_CREATION_SEED_LABEL))
                 if (!errorMessage.isNullOrBlank()) append("\n$errorMessage")
             },
-            placeholder = lang.getMessage(player, "gui.bedrock.input.creation_seed.placeholder"),
+            placeholder = lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_CREATION_SEED_PLACEHOLDER),
             defaultValue = session.inputSeedString ?: "",
             onSubmit = { value ->
                 Bukkit.getScheduler().runTask(plugin, Runnable {
@@ -201,7 +205,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) {
                         openSeedInputByPlatform(
                             player,
                             latest,
-                            lang.getMessage(player, "gui.creation.dialog.seed_required")
+                            lang.getMessage(player, MyworldGuiCreationKeys.GUI_CREATION_DIALOG_SEED_REQUIRED)
                         )
                         return@Runnable
                     }
@@ -250,10 +254,10 @@ class CreationGuiListener(private val plugin: MyWorldManager) {
         val values = listOf(coordinates?.x, coordinates?.y, coordinates?.z)
         val opened = plugin.floodgateFormBridge.sendCustomForm(
             player = player,
-            title = lang.getMessage(player, "gui.bedrock.input.creation_spawn.title"),
+            title = lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_CREATION_SPAWN_TITLE),
             inputs = labels.mapIndexed { index, axis ->
                 val label = buildString {
-                    append(lang.getMessage(player, "gui.bedrock.input.creation_spawn.axis", mapOf("axis" to axis)))
+                    append(lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_CREATION_SPAWN_AXIS, mapOf("axis" to axis)))
                     if (index == 0 && !errorMessage.isNullOrBlank()) {
                         append("\n§c")
                         append(errorMessage)
@@ -261,7 +265,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) {
                 }
                 me.awabi2048.myworldmanager.ui.bedrock.FloodgateFormBridge.CustomFormInput(
                     label = label,
-                    placeholder = lang.getMessage(player, "gui.bedrock.input.creation_spawn.placeholder"),
+                    placeholder = lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_CREATION_SPAWN_PLACEHOLDER),
                     defaultValue = values[index]?.toString() ?: ""
                 )
             },
@@ -279,7 +283,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) {
                             openSpawnInputByPlatform(
                                 player,
                                 latest,
-                                lang.getMessage(player, "gui.creation.confirm.spawn_location.error.number")
+                                lang.getMessage(player, MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_SPAWN_LOCATION_ERROR_NUMBER)
                             )
                             return@Runnable
                         }
@@ -287,7 +291,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) {
                             openSpawnInputByPlatform(
                                 player,
                                 latest,
-                                lang.getMessage(player, "gui.creation.confirm.spawn_location.error.range")
+                                lang.getMessage(player, MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_SPAWN_LOCATION_ERROR_RANGE)
                             )
                             return@Runnable
                         }
@@ -320,7 +324,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val plainSerializer = PlainTextComponentSerializer.plainText()
         val label = buildString {
-            append(lang.getMessage(player, "gui.bedrock.input.creation_name.label"))
+            append(lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_CREATION_NAME_LABEL))
             errorMessage?.let {
                 append("\n")
                 append(plainSerializer.serialize(it))
@@ -333,9 +337,9 @@ class CreationGuiListener(private val plugin: MyWorldManager) {
 
         val opened = plugin.floodgateFormBridge.sendCustomInputForm(
             player = player,
-            title = lang.getMessage(player, "gui.bedrock.input.creation_name.title"),
+            title = lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_CREATION_NAME_TITLE),
             label = label,
-            placeholder = lang.getMessage(player, "gui.bedrock.input.creation_name.placeholder"),
+            placeholder = lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_CREATION_NAME_PLACEHOLDER),
             defaultValue = session.worldName ?: "",
             onSubmit = { value ->
                 Bukkit.getScheduler().runTask(plugin, Runnable {
@@ -353,7 +357,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) {
 
                     val cleanName = me.awabi2048.myworldmanager.gui.CreationDialogManager.cleanWorldName(value)
                     if (plugin.worldConfigRepository.hasDisplayNameConflict(player.uniqueId, cleanName)) {
-                        val errorComponent = plugin.languageManager.getComponent(player, "messages.world_name_duplicate")
+                        val errorComponent = plugin.languageManager.getComponent(player, MyworldMessagesKeys.MESSAGES_WORLD_NAME_DUPLICATE)
                         if (!plugin.playerPlatformResolver.isBedrock(player)) {
                             me.awabi2048.myworldmanager.gui.CreationDialogManager.showNameInputDialog(player, latest, errorComponent)
                         } else {

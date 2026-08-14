@@ -2,6 +2,11 @@
 
 package me.awabi2048.myworldmanager.listener
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiBedrockKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiCreationKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
 import com.awabi2048.ccsystem.api.gui.MenuDialogButton
@@ -36,10 +41,10 @@ class TemplateWizardListener {
             val opened =
                 plugin.floodgateFormBridge.sendCustomInputForm(
                     player = player,
-                    title = lang.getMessage(player, "gui.bedrock.input.template_wizard_name.title"),
-                    label = lang.getMessage(player, "gui.bedrock.input.template_wizard_name.label"),
+                    title = lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_TEMPLATE_WIZARD_NAME_TITLE),
+                    label = lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_TEMPLATE_WIZARD_NAME_LABEL),
                     placeholder =
-                        lang.getMessage(player, "gui.bedrock.input.template_wizard_name.placeholder"),
+                        lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_TEMPLATE_WIZARD_NAME_PLACEHOLDER),
                     defaultValue = session.name,
                     onSubmit = { value ->
                         Bukkit.getScheduler().runTask(plugin, Runnable {
@@ -64,8 +69,8 @@ class TemplateWizardListener {
             plugin = plugin,
             player = player,
             id = "template-wizard-name",
-            title = lang.getMessage(player, "gui.template_wizard.name_input.display"),
-            label = lang.getMessage(player, "gui.bedrock.input.template_wizard_name.label"),
+            title = lang.getMessage(player, MyworldGuiCreationKeys.GUI_TEMPLATE_WIZARD_NAME_INPUT_DISPLAY),
+            label = lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_TEMPLATE_WIZARD_NAME_LABEL),
             inputId = "template_name",
             initial = session.name,
             maxLength = 30,
@@ -90,10 +95,10 @@ class TemplateWizardListener {
             val opened =
                 plugin.floodgateFormBridge.sendCustomInputForm(
                     player = player,
-                    title = lang.getMessage(player, "gui.bedrock.input.template_wizard_desc.title"),
-                    label = lang.getMessage(player, "gui.bedrock.input.template_wizard_desc.label"),
+                    title = lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_TEMPLATE_WIZARD_DESC_TITLE),
+                    label = lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_TEMPLATE_WIZARD_DESC_LABEL),
                     placeholder =
-                        lang.getMessage(player, "gui.bedrock.input.template_wizard_desc.placeholder"),
+                        lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_TEMPLATE_WIZARD_DESC_PLACEHOLDER),
                     defaultValue = session.description.firstOrNull().orEmpty(),
                     onSubmit = { value ->
                         Bukkit.getScheduler().runTask(plugin, Runnable {
@@ -118,8 +123,8 @@ class TemplateWizardListener {
             plugin = plugin,
             player = player,
             id = "template-wizard-description",
-            title = lang.getMessage(player, "gui.template_wizard.desc_input.display"),
-            label = lang.getMessage(player, "gui.bedrock.input.template_wizard_desc.label"),
+            title = lang.getMessage(player, MyworldGuiCreationKeys.GUI_TEMPLATE_WIZARD_DESC_INPUT_DISPLAY),
+            label = lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_TEMPLATE_WIZARD_DESC_LABEL),
             inputId = "template_desc",
             initial = session.description.firstOrNull().orEmpty(),
             maxLength = 120,
@@ -150,14 +155,14 @@ class TemplateWizardListener {
                     MenuDialogInput.Text(inputId, Component.text(label), initial, maxLength = maxLength),
                 ),
                 confirm = MenuDialogButton(
-                    Component.text(lang.getMessage(player, "gui.common.confirm"), NamedTextColor.GREEN),
+                    Component.text(lang.getMessage(player, CommonKeys.GUI_COMMON_CONFIRM), NamedTextColor.GREEN),
                     MenuDialogHandler { _, response ->
                         onSubmit(response.textValue(inputId))
                         MenuActionResult.Success(MenuUpdate.Close)
                     },
                 ),
                 cancel = MenuDialogButton(
-                    Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED),
+                    Component.text(lang.getMessage(player, CommonKeys.GUI_COMMON_CANCEL), NamedTextColor.RED),
                     MenuDialogHandler { target, _ ->
                         MenuActionResult.Success(MenuUpdate.Resume)
                     },
@@ -173,7 +178,7 @@ class TemplateWizardListener {
         input: String
     ) {
         if (input.isEmpty()) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.template_wizard_name_required"))
+            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_TEMPLATE_WIZARD_NAME_REQUIRED))
             openTemplateNameInput(plugin, player, session)
             return
         }
@@ -186,7 +191,7 @@ class TemplateWizardListener {
         player.sendMessage(
             plugin.languageManager.getMessage(
                 player,
-                "messages.template_wizard_name_set",
+                MyworldMessagesKeys.MESSAGES_TEMPLATE_WIZARD_NAME_SET,
                 mapOf("name" to session.name, "id" to session.id)
             )
         )
@@ -200,7 +205,7 @@ class TemplateWizardListener {
         input: String
     ) {
         session.description = if (input.isEmpty()) emptyList() else listOf(input)
-        player.sendMessage(plugin.languageManager.getMessage(player, "messages.template_wizard_description_set"))
+        player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_TEMPLATE_WIZARD_DESCRIPTION_SET))
         CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
     }
 }

@@ -1,5 +1,11 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiCommonKeys
+
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiFavoriteKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiItemSpec
@@ -112,7 +118,7 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
             FavoriteMenuLayout.DETAIL_SIZE,
             GuiHelper.inventoryTitle(plugin.languageManager.getMessage(
                 player,
-                "gui.favorite.actions.title",
+                MyworldGuiFavoriteKeys.GUI_FAVORITE_ACTIONS_TITLE,
                 mapOf("world" to worldData.name),
             )),
             elements,
@@ -132,7 +138,7 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
         plugin.worldService.teleportToWorld(context.player, worldData.uuid) {
             context.player.sendMessage(plugin.languageManager.getMessage(
                 context.player,
-                "messages.warp_success",
+                MyworldMessagesKeys.MESSAGES_WARP_SUCCESS,
                 mapOf("world" to worldData.name),
             ))
         }
@@ -159,17 +165,17 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
         plugin.confirmationMenuGui.open(
             player = player,
             menuId = "favorite-group-invite",
-            title = GuiHelper.inventoryTitle(lang.getMessage(player, "gui.favorite.invite_confirm.title")),
+            title = GuiHelper.inventoryTitle(lang.getMessage(player, MyworldGuiFavoriteKeys.GUI_FAVORITE_INVITE_CONFIRM_TITLE)),
             centerItem = GuiItemSpec(
                 worldData.icon,
                 GuiNameSpec.TargetIdentity(lang.getComponent(
                     player,
-                    "gui.common.world_item_name",
+                    MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_NAME,
                     mapOf("world" to worldData.name),
                 )),
                 GuiLoreSpec.Blocks(listOf(GuiLoreBlock(listOf(
                     GuiLoreLine.Data(
-                        lang.getMessage(player, "gui.favorite.invite_confirm.recipient_count"),
+                        lang.getMessage(player, MyworldGuiFavoriteKeys.GUI_FAVORITE_INVITE_CONFIRM_RECIPIENT_COUNT),
                         recipients.size,
                         "§b",
                     ),
@@ -179,30 +185,30 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
             ),
             confirmItem = GuiItemSpec(
                 Material.LIME_CONCRETE,
-                confirmationButtonName(lang.getMessage(player, "gui.favorite.invite_confirm.confirm")),
+                confirmationButtonName(lang.getMessage(player, MyworldGuiFavoriteKeys.GUI_FAVORITE_INVITE_CONFIRM_CONFIRM)),
                 GuiLoreSpec.None,
                 GuiElementRole.CONFIRM,
                 1,
             ),
             cancelItem = GuiItemSpec(
                 Material.RED_CONCRETE,
-                confirmationButtonName(lang.getMessage(player, "gui.common.cancel")),
+                confirmationButtonName(lang.getMessage(player, CommonKeys.GUI_COMMON_CANCEL)),
                 GuiLoreSpec.None,
                 GuiElementRole.CANCEL,
                 1,
             ),
-            confirmActionText = lang.getMessage(player, "gui.favorite.invite_confirm.confirm"),
-            cancelActionText = lang.getMessage(player, "gui.common.cancel"),
+            confirmActionText = lang.getMessage(player, MyworldGuiFavoriteKeys.GUI_FAVORITE_INVITE_CONFIRM_CONFIRM),
+            cancelActionText = lang.getMessage(player, CommonKeys.GUI_COMMON_CANCEL),
             onConfirm = {
                 when (plugin.favoriteGroupInviteService.send(player, worldData)) {
                     is FavoriteGroupInviteService.SendResult.Sent ->
                         MenuActionResult.Success(MenuUpdate.Close)
                     FavoriteGroupInviteService.SendResult.NoRecipients -> {
-                        player.sendMessage(lang.getMessage(player, "messages.favorite_group_invite.no_recipients"))
+                        player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_FAVORITE_GROUP_INVITE_NO_RECIPIENTS))
                         MenuActionResult.Success(MenuUpdate.Back)
                     }
                     FavoriteGroupInviteService.SendResult.NotAllowed -> {
-                        player.sendMessage(lang.getMessage(player, "messages.favorite_group_invite.not_allowed"))
+                        player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_FAVORITE_GROUP_INVITE_NOT_ALLOWED))
                         MenuActionResult.Success(MenuUpdate.Back)
                     }
                 }
@@ -253,23 +259,23 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = if (allowed) Material.GOAT_HORN else Material.BARRIER,
-                name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.favorite.actions.invite")),
+                name = GuiNameSpec.FixedLabel(lang.getComponent(player, MyworldGuiFavoriteKeys.GUI_FAVORITE_ACTIONS_INVITE)),
                 role = if (enabled) GuiElementRole.ACTION else GuiElementRole.CONTENT,
-                description = lang.getMessageList(player, "gui.favorite.actions.invite_description"),
+                description = lang.getMessageList(player, MyworldGuiFavoriteKeys.GUI_FAVORITE_ACTIONS_INVITE_DESCRIPTION),
                 data = if (allowed) listOf(GuiMenuEntryData(
-                    lang.getMessage(player, "gui.favorite.actions.invite_recipient_count"),
+                    lang.getMessage(player, MyworldGuiFavoriteKeys.GUI_FAVORITE_ACTIONS_INVITE_RECIPIENT_COUNT),
                     recipientCount,
                     GuiValueTone.PRIMARY,
                 )) else emptyList(),
                 warnings = when {
-                    !allowed -> listOf(lang.getMessage(player, "gui.favorite.actions.invite_unavailable"))
-                    recipientCount == 0 -> listOf(lang.getMessage(player, "gui.favorite.actions.invite_no_recipients"))
+                    !allowed -> listOf(lang.getMessage(player, MyworldGuiFavoriteKeys.GUI_FAVORITE_ACTIONS_INVITE_UNAVAILABLE))
+                    recipientCount == 0 -> listOf(lang.getMessage(player, MyworldGuiFavoriteKeys.GUI_FAVORITE_ACTIONS_INVITE_NO_RECIPIENTS))
                     else -> emptyList()
                 },
                 actions = if (enabled) listOf(menuGestureAction(
                     ACTION_INVITE,
                     MenuGesture.ANY,
-                    lang.getMessage(player, "gui.favorite.actions.invite"),
+                    lang.getMessage(player, MyworldGuiFavoriteKeys.GUI_FAVORITE_ACTIONS_INVITE),
                     safety = MenuActionSafety.CONFIRM_ENTRY,
                 )) else emptyList(),
             ),

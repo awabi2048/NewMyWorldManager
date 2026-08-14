@@ -1,5 +1,8 @@
 package me.awabi2048.myworldmanager.command
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.event.MwmMemberRemoveSource
 import me.awabi2048.myworldmanager.api.event.MwmMemberRemovedEvent
@@ -49,12 +52,12 @@ class PlayerWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, 
         val sub = args[0].lowercase()
         if (sub == "pending_open") {
             if (args.size < 2) {
-                sender.sendMessage(plugin.languageManager.getMessage(sender, "messages.myworld_pending_none"))
+                sender.sendMessage(plugin.languageManager.getMessage(sender, MyworldMessagesKeys.MESSAGES_MYWORLD_PENDING_NONE))
                 return true
             }
             val decisionId = runCatching { UUID.fromString(args[1]) }.getOrNull()
             if (decisionId == null) {
-                sender.sendMessage(plugin.languageManager.getMessage(sender, "messages.myworld_pending_none"))
+                sender.sendMessage(plugin.languageManager.getMessage(sender, MyworldMessagesKeys.MESSAGES_MYWORLD_PENDING_NONE))
                 return true
             }
             plugin.soundManager.playChatClickSound(sender)
@@ -76,11 +79,11 @@ class PlayerWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, 
             when (result) {
                 me.awabi2048.myworldmanager.service.PendingDecisionManager.ResolveCodeResult.RESOLVED -> Unit
                 me.awabi2048.myworldmanager.service.PendingDecisionManager.ResolveCodeResult.INVALID_FORMAT ->
-                    sender.sendMessage(plugin.languageManager.getMessage(sender, "messages.myworld_pending_code_invalid"))
+                    sender.sendMessage(plugin.languageManager.getMessage(sender, MyworldMessagesKeys.MESSAGES_MYWORLD_PENDING_CODE_INVALID))
                 me.awabi2048.myworldmanager.service.PendingDecisionManager.ResolveCodeResult.NOT_FOUND ->
-                    sender.sendMessage(plugin.languageManager.getMessage(sender, "messages.myworld_pending_code_not_found"))
+                    sender.sendMessage(plugin.languageManager.getMessage(sender, MyworldMessagesKeys.MESSAGES_MYWORLD_PENDING_CODE_NOT_FOUND))
                 me.awabi2048.myworldmanager.service.PendingDecisionManager.ResolveCodeResult.EXPIRED ->
-                    sender.sendMessage(plugin.languageManager.getMessage(sender, "messages.myworld_pending_code_expired"))
+                    sender.sendMessage(plugin.languageManager.getMessage(sender, MyworldMessagesKeys.MESSAGES_MYWORLD_PENDING_CODE_EXPIRED))
             }
             return true
         }
@@ -88,7 +91,7 @@ class PlayerWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, 
         if (args.size == 1 && PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MYWORLD_OTHER)) {
             val target = PlayerNameUtil.resolveOfflinePlayer(plugin, args[0])
             if (target == null) {
-                sender.sendMessage(plugin.languageManager.getMessage(sender, "general.player_not_found"))
+                sender.sendMessage(plugin.languageManager.getMessage(sender, CommonKeys.GENERAL_PLAYER_NOT_FOUND))
                 return true
             }
             // 管理者の代理表示では、対象プレイヤーのワールド一覧だけを開き、本人専用操作はGUI側で抑止する。
@@ -97,28 +100,28 @@ class PlayerWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, 
         }
 
         if (!plugin.playerPlatformResolver.isBedrock(sender)) {
-            sender.sendMessage(plugin.languageManager.getMessage(sender, "messages.myworld_command_bedrock_only"))
+            sender.sendMessage(plugin.languageManager.getMessage(sender, MyworldMessagesKeys.MESSAGES_MYWORLD_COMMAND_BEDROCK_ONLY))
             return true
         }
 
         if (sub != "transfer" && sub != "remove_member") {
-            sender.sendMessage(plugin.languageManager.getMessage(sender, "messages.myworld_command_usage"))
+            sender.sendMessage(plugin.languageManager.getMessage(sender, MyworldMessagesKeys.MESSAGES_MYWORLD_COMMAND_USAGE))
             return true
         }
 
         if (args.size < 2) {
-            sender.sendMessage(plugin.languageManager.getMessage(sender, "messages.myworld_command_usage"))
+            sender.sendMessage(plugin.languageManager.getMessage(sender, MyworldMessagesKeys.MESSAGES_MYWORLD_COMMAND_USAGE))
             return true
         }
 
         val worldData = plugin.worldConfigRepository.findByWorldName(sender.world.name)
         if (worldData == null) {
-            sender.sendMessage(plugin.languageManager.getMessage(sender, "messages.no_in_myworld"))
+            sender.sendMessage(plugin.languageManager.getMessage(sender, MyworldMessagesKeys.MESSAGES_NO_IN_MYWORLD))
             return true
         }
 
         if (worldData.owner != sender.uniqueId) {
-            sender.sendMessage(plugin.languageManager.getMessage(sender, "general.no_permission"))
+            sender.sendMessage(plugin.languageManager.getMessage(sender, CommonKeys.GENERAL_NO_PERMISSION))
             return true
         }
 
@@ -127,7 +130,7 @@ class PlayerWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, 
             sender.sendMessage(
                 plugin.languageManager.getMessage(
                     sender,
-                    "messages.invite_target_offline",
+                    MyworldMessagesKeys.MESSAGES_INVITE_TARGET_OFFLINE,
                     mapOf("player" to args[1])
                 )
             )
@@ -197,14 +200,14 @@ class PlayerWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, 
 
     private fun handleBedrockTransfer(player: Player, worldData: WorldData, target: Player) {
         if (target.uniqueId == player.uniqueId) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.invite_self_error"))
+            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_INVITE_SELF_ERROR))
             return
         }
 
         val targetId = target.uniqueId
         val isMember = worldData.members.contains(targetId) || worldData.moderators.contains(targetId)
         if (!isMember) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.myworld_target_not_member"))
+            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_MYWORLD_TARGET_NOT_MEMBER))
             return
         }
 
@@ -247,7 +250,7 @@ class PlayerWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, 
         player.sendMessage(
             plugin.languageManager.getMessage(
                 player,
-                "messages.owner_transferred",
+                MyworldMessagesKeys.MESSAGES_OWNER_TRANSFERRED,
                 mapOf("old_owner" to newOwnerName)
             )
         )
@@ -256,13 +259,13 @@ class PlayerWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, 
     private fun handleBedrockRemoveMember(player: Player, worldData: WorldData, target: Player) {
         val targetId = target.uniqueId
         if (targetId == worldData.owner) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.myworld_owner_remove_forbidden"))
+            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_MYWORLD_OWNER_REMOVE_FORBIDDEN))
             return
         }
 
         val isMember = worldData.members.contains(targetId) || worldData.moderators.contains(targetId)
         if (!isMember) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.myworld_target_not_member"))
+            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_MYWORLD_TARGET_NOT_MEMBER))
             return
         }
 
@@ -288,7 +291,7 @@ class PlayerWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, 
             )
         )
 
-        player.sendMessage(plugin.languageManager.getMessage(player, "messages.member_deleted"))
+        player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_MEMBER_DELETED))
     }
 
     private fun eligibleTransferTargets(worldData: WorldData): List<String> {

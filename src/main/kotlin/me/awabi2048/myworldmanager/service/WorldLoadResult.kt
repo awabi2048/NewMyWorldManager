@@ -1,5 +1,8 @@
 package me.awabi2048.myworldmanager.service
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.migration.WorldDirectoryState
 import org.bukkit.World
@@ -41,13 +44,13 @@ enum class WorldLoadFailure {
     BUKKIT_LOAD_FAILED;
 
     fun message(plugin: MyWorldManager, player: Player): String = when (this) {
-        INVALID_KEY -> plugin.languageManager.getMessage(player, "error.world_directory_unsafe")
-        OPERATION_LOCKED -> plugin.languageManager.getMessage(player, "messages.world_operation_locked")
-        MIGRATION_REQUIRED -> plugin.languageManager.getMessage(player, "error.world_migration_required")
-        DIRECTORY_CONFLICT -> plugin.languageManager.getMessage(player, "error.world_directory_conflict")
-        DIRECTORY_MISSING -> plugin.languageManager.getMessage(player, "error.world_directory_missing")
-        DIRECTORY_UNSAFE -> plugin.languageManager.getMessage(player, "error.world_directory_unsafe")
-        BUKKIT_LOAD_FAILED -> plugin.languageManager.getMessage(player, "error.world_load_failed")
+        INVALID_KEY -> plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_DIRECTORY_UNSAFE)
+        OPERATION_LOCKED -> plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_OPERATION_LOCKED)
+        MIGRATION_REQUIRED -> plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_MIGRATION_REQUIRED)
+        DIRECTORY_CONFLICT -> plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_DIRECTORY_CONFLICT)
+        DIRECTORY_MISSING -> plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_DIRECTORY_MISSING)
+        DIRECTORY_UNSAFE -> plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_DIRECTORY_UNSAFE)
+        BUKKIT_LOAD_FAILED -> plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_LOAD_FAILED)
     }
 }
 

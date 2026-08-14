@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiDiscoveryKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import me.awabi2048.myworldmanager.util.descriptionLine
 import me.awabi2048.myworldmanager.util.warningLine
 import me.awabi2048.myworldmanager.util.dangerLine
@@ -22,19 +26,19 @@ class SpotlightRemoveConfirmGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val info = GuiSpecFactory.spec(
             Material.PAPER,
-            lang.getComponent(player, "gui.discovery.spotlight_remove_confirm.title"),
+            lang.getComponent(player, MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SPOTLIGHT_REMOVE_CONFIRM_TITLE),
             me.awabi2048.myworldmanager.util.semanticLore(
-                lang.getMessageList(player, "gui.discovery.spotlight_remove_confirm.lore", mapOf("world" to worldData.name))
+                lang.getMessageList(player, MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SPOTLIGHT_REMOVE_CONFIRM_LORE, mapOf("world" to worldData.name))
                     .map(::dangerLine),
                 GuiLoreFrame.BOTH,
             ),
         )
-        val confirmLabel = lang.getMessage(player, "gui.common.confirm")
-        val cancelLabel = lang.getMessage(player, "gui.common.cancel")
+        val confirmLabel = lang.getMessage(player, CommonKeys.GUI_COMMON_CONFIRM)
+        val cancelLabel = lang.getMessage(player, CommonKeys.GUI_COMMON_CANCEL)
         plugin.confirmationMenuGui.open(
             player,
             "spotlight_remove_confirm",
-            GuiHelper.inventoryTitle(lang.getComponent(player, "gui.discovery.spotlight_remove_confirm.title")),
+            GuiHelper.inventoryTitle(lang.getComponent(player, MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SPOTLIGHT_REMOVE_CONFIRM_TITLE)),
             info,
             GuiSpecFactory.spec(Material.LIME_CONCRETE, confirmLabel, GuiLoreSpec.None, GuiElementRole.CONFIRM),
             GuiSpecFactory.spec(Material.RED_CONCRETE, cancelLabel, GuiLoreSpec.None, GuiElementRole.CANCEL),
@@ -42,7 +46,7 @@ class SpotlightRemoveConfirmGui(private val plugin: MyWorldManager) {
             cancelLabel,
             onConfirm = {
                 plugin.spotlightRepository.remove(worldData.uuid)
-                player.sendMessage(lang.getMessage(player, "messages.spotlight_removed", mapOf("world" to worldData.name)))
+                player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_SPOTLIGHT_REMOVED, mapOf("world" to worldData.name)))
                 MenuActionResult.Success(MenuUpdate.Back)
             },
         )

@@ -1,5 +1,8 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiSettingsKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiCycle
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
@@ -78,7 +81,7 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
         val entries = mutableListOf<(Int) -> MenuElement>()
-        val notifyStatus = if (stats.visitorNotificationEnabled) lang.getMessage(player, "messages.status_on") else lang.getMessage(player, "messages.status_off")
+        val notifyStatus = if (stats.visitorNotificationEnabled) lang.getMessage(player, MyworldMessagesKeys.MESSAGES_STATUS_ON) else lang.getMessage(player, MyworldMessagesKeys.MESSAGES_STATUS_OFF)
         entries.add { slot -> settingEntry(
             player,
             slot,
@@ -107,9 +110,9 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
         ) }
 
         val criticalStatus = if (stats.criticalSettingsEnabled) {
-            lang.getMessage(player, "messages.status_visible")
+            lang.getMessage(player, MyworldMessagesKeys.MESSAGES_STATUS_VISIBLE)
         } else {
-            lang.getMessage(player, "messages.status_hidden")
+            lang.getMessage(player, MyworldMessagesKeys.MESSAGES_STATUS_HIDDEN)
         }
         entries.add { slot -> settingEntry(
             player,
@@ -125,9 +128,9 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
 
         entries.add { slot -> tourNavigationEntry(player, stats.tourNavigationMode, slot) }
         val groupInviteStatus = if (stats.favoriteGroupInvitesEnabled) {
-            lang.getMessage(player, "messages.status_on")
+            lang.getMessage(player, MyworldMessagesKeys.MESSAGES_STATUS_ON)
         } else {
-            lang.getMessage(player, "messages.status_off")
+            lang.getMessage(player, MyworldMessagesKeys.MESSAGES_STATUS_OFF)
         }
         entries.add { slot -> settingEntry(
             player,
@@ -159,7 +162,7 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
         return InventoryMenuView(
             size = totalRows * 9,
             title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(
-                lang.getMessage(player, "gui.user_settings.title"),
+                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_USER_SETTINGS_TITLE),
             ),
             elements = elements,
         )
@@ -278,12 +281,12 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
                 slot = slot,
                 material = Material.COMPASS,
                 name = me.awabi2048.myworldmanager.util.fixedLabelName(
-                    lang.getMessage(player, "gui.user_settings.tour_navigation.display"),
+                    lang.getMessage(player, MyworldGuiSettingsKeys.GUI_USER_SETTINGS_TOUR_NAVIGATION_DISPLAY),
                     GuiNameStyle.DEFAULT
                 ),
                 role = GuiElementRole.CONTENT,
                 amount = 1,
-                description = lang.getMessageList(player, "gui.user_settings.tour_navigation.blocks.description"),
+                description = lang.getMessageList(player, MyworldGuiSettingsKeys.GUI_USER_SETTINGS_TOUR_NAVIGATION_BLOCKS_DESCRIPTION),
                 data = emptyList(),
                 options = options,
                 warnings = emptyList(),
@@ -292,7 +295,7 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
                     menuGestureAction(
                         ACTION_TOUR_NAVIGATION,
                         MenuGesture.PLAIN_LEFT_RIGHT,
-                        lang.getMessage(player, "gui.user_settings.cycle_action.toggle"),
+                        lang.getMessage(player, MyworldGuiSettingsKeys.GUI_USER_SETTINGS_CYCLE_ACTION_TOGGLE),
                         safety = MenuActionSafety.REVERSIBLE,
                         reversibleContract = MwmMenuActionSemantics.contract("user-tour"),
                     ),

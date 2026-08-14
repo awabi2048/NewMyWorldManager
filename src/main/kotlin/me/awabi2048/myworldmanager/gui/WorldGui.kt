@@ -1,5 +1,11 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiAdminKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiCommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldPublishLevelKeys
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiCycle
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
@@ -169,7 +175,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                 if (currentWorldData != null) {
                         inventory.setEntry(createAdminWorldEntry(
                                 player, currentWorldData, 4,
-                                lang.getMessage(player, "gui.admin_menu.current_world.display"),
+                                lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_CURRENT_WORLD_DISPLAY),
                                 ACTION_CURRENT_WORLD,
                                 includeWarpAction = false,
                                 includeWorldName = true,
@@ -183,7 +189,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                 pageWorlds.forEachIndexed { index, worldData ->
                         inventory.setEntry(createAdminWorldEntry(
                                 player, worldData, layout.itemSlots[index],
-                                lang.getMessage(player, "gui.common.world_item_name_simple", mapOf("world" to worldData.name)),
+                                lang.getMessage(player, MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_NAME_SIMPLE, mapOf("world" to worldData.name)),
                                 ACTION_WORLD,
                                 includeWarpAction = true,
                                 includeWorldName = false,
@@ -343,7 +349,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 context.player.sendMessage(
                                         plugin.languageManager.getMessage(
                                                 context.player,
-                                                "messages.admin_warp_archived_error",
+                                                MyworldMessagesKeys.MESSAGES_ADMIN_WARP_ARCHIVED_ERROR,
                                         ),
                                 )
                                 MenuActionResult.Rejected()
@@ -367,7 +373,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 val worldKey = org.bukkit.NamespacedKey.fromString(worldData.worldKey)
                                 if (!worldData.isArchived && (worldKey == null || Bukkit.getWorld(worldKey) == null)) {
                                         player.sendMessage(
-                                                plugin.languageManager.getMessage(player, "messages.world_loading"),
+                                                plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_LOADING),
                                         )
                                         val loadResult = plugin.worldService.loadWorldDetailed(worldData.uuid)
                                         if (!loadResult.isSuccess) {
@@ -386,14 +392,14 @@ class WorldGui(private val plugin: MyWorldManager) {
                 val folderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
                 if (Bukkit.getWorld(folderName) == null) {
                         player.sendMessage(
-                                plugin.languageManager.getMessage(player, "messages.world_loading"),
+                                plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_LOADING),
                         )
                 }
                 plugin.worldService.teleportToWorld(player, worldData.uuid, runMacro = false) {
                         player.sendMessage(
                                 plugin.languageManager.getMessage(
                                         player,
-                                        "messages.admin_warp_success",
+                                        MyworldMessagesKeys.MESSAGES_ADMIN_WARP_SUCCESS,
                                         mapOf("world" to worldData.name),
                                 ),
                         )
@@ -577,13 +583,13 @@ class WorldGui(private val plugin: MyWorldManager) {
         ): MenuElement {
                 val lang = plugin.languageManager
                 val lore = buildList {
-                        add(GuiLoreLine.Data(lang.getMessage(player, "gui.admin.info.total_count_label"), totalCount, "§b"))
-                        add(GuiLoreLine.Data(lang.getMessage(player, "gui.admin.info.page_label"), "$current/$total", "§a"))
+                        add(GuiLoreLine.Data(lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_INFO_TOTAL_COUNT_LABEL), totalCount, "§b"))
+                        add(GuiLoreLine.Data(lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_INFO_PAGE_LABEL), "$current/$total", "§a"))
                         if (me.awabi2048.myworldmanager.util.ChiyogamiUtil.isChiyogamiActive()) {
                                 val mspt = plugin.msptMonitorTask.currentServerMspt
                                 add(
                                         GuiLoreLine.Data(
-                                                lang.getMessage(player, "gui.admin.info.mspt_label"),
+                                                lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_INFO_MSPT_LABEL),
                                                 "${me.awabi2048.myworldmanager.util.ChiyogamiUtil.getMsptColoredString(mspt)} ms",
                                                 "",
                                         ),
@@ -595,7 +601,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 slot,
                                 GuiItemSpec(
                                         Material.PAPER,
-                                        GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.admin.info.display")),
+                                        GuiNameSpec.FixedLabel(lang.getComponent(player, MyworldGuiAdminKeys.GUI_ADMIN_INFO_DISPLAY)),
                                         GuiLoreSpec.Blocks(listOf(GuiLoreBlock(lore))),
                                         GuiElementRole.CONTENT,
                                         1,
@@ -618,18 +624,18 @@ class WorldGui(private val plugin: MyWorldManager) {
                 val ownerName =
                         PlayerNameUtil.getNameOrDefault(
                                 data.owner,
-                                lang.getMessage(player, "general.unknown")
+                                lang.getMessage(player, CommonKeys.GENERAL_UNKNOWN)
                         )
                 val statusVal =
                         if (data.isArchived)
-                                lang.getMessage(player, "gui.admin.world_item.status_archived")
-                        else lang.getMessage(player, "gui.admin.world_item.status_active")
+                                lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_STATUS_ARCHIVED)
+                        else lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_STATUS_ACTIVE)
                 val publishColor =
                         when (data.publishLevel.name) {
-                                "PUBLIC" -> lang.getMessage(player, "publish_level.color.public")
-                                "FRIEND" -> lang.getMessage(player, "publish_level.color.friend")
-                                "PRIVATE" -> lang.getMessage(player, "publish_level.color.private")
-                                else -> lang.getMessage(player, "publish_level.color.locked")
+                                "PUBLIC" -> lang.getMessage(player, MyworldPublishLevelKeys.PUBLISH_LEVEL_COLOR_PUBLIC)
+                                "FRIEND" -> lang.getMessage(player, MyworldPublishLevelKeys.PUBLISH_LEVEL_COLOR_FRIEND)
+                                "PRIVATE" -> lang.getMessage(player, MyworldPublishLevelKeys.PUBLISH_LEVEL_COLOR_PRIVATE)
+                                else -> lang.getMessage(player, MyworldPublishLevelKeys.PUBLISH_LEVEL_COLOR_LOCKED)
                         }
                 val publishName =
                         lang.getMessage(player, "publish_level.${data.publishLevel.name.lowercase()}")
@@ -652,17 +658,17 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 if (daysSince == 0L)
                                         lang.getMessage(
                                                 player,
-                                                "gui.admin.world_item.created_info_today"
+                                                MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_CREATED_INFO_TODAY
                                         )
                                 else
                                         lang.getMessage(
                                                 player,
-                                                "gui.admin.world_item.created_info_days",
+                                                MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_CREATED_INFO_DAYS,
                                                 mapOf("days" to daysSince)
                                         )
                         createdValue = lang.getMessage(
                                 player,
-                                "gui.admin.world_item.created_value",
+                                MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_CREATED_VALUE,
                                 mapOf("date" to createdAtDateStr, "days_ago" to createdInfoStr)
                         )
                 } catch (_: Exception) {
@@ -683,7 +689,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                         expireLabelKey = "gui.admin.world_item.archived_at"
                                         expireValue = lang.getMessage(
                                                 player,
-                                                "gui.admin.world_item.archived_value",
+                                                MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_ARCHIVED_VALUE,
                                                 mapOf(
                                                         "date" to formatDateForPlayer(player, archiveDate),
                                                         "mode" to archiveMode
@@ -699,13 +705,13 @@ class WorldGui(private val plugin: MyWorldManager) {
                                                 if (daysBetween >= 0) {
                                                         lang.getMessage(
                                                                 player,
-                                                                "gui.admin.world_item.expire_info_remaining",
+                                                                MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_EXPIRE_INFO_REMAINING,
                                                                 mapOf("days" to daysBetween)
                                                         )
                                                 } else {
                                                         lang.getMessage(
                                                                 player,
-                                                                "gui.admin.world_item.expire_info_overdue",
+                                                                MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_EXPIRE_INFO_OVERDUE,
                                                                 mapOf(
                                                                         "days" to
                                                                                 kotlin.math.abs(daysBetween)
@@ -714,7 +720,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                                 }
                                         expireValue = lang.getMessage(
                                                 player,
-                                                "gui.admin.world_item.expires_value",
+                                                MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_EXPIRES_VALUE,
                                                 mapOf("date" to localizedExpireDate, "days_remain" to expireInfo)
                                         )
                                 }
@@ -724,7 +730,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                         expireLabelKey = "gui.admin.world_item.archived_at"
                                         expireValue = lang.getMessage(
                                                 player,
-                                                "gui.admin.world_item.archived_value",
+                                                MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_ARCHIVED_VALUE,
                                                 mapOf("date" to (data.archivedAt ?: data.expireDate), "mode" to archiveMode)
                                         )
                                 } else {
@@ -736,13 +742,13 @@ class WorldGui(private val plugin: MyWorldManager) {
                 val msptValue = buildMsptValue(player, data)
                 val actionWarp =
                         if (includeWarpAction)
-                                lang.getMessage(player, "gui.admin.world_item.action_warp")
+                                lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_ACTION_WARP)
                         else ""
-                val actionSettings = lang.getMessage(player, "gui.admin.world_item.action_settings")
-                val actionArchive = lang.getMessage(player, "gui.admin.world_item.action_archive")
+                val actionSettings = lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_ACTION_SETTINGS)
+                val actionArchive = lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_ACTION_ARCHIVE)
                 val uuidCopyHint =
                         if (player.gameMode == org.bukkit.GameMode.CREATIVE)
-                                lang.getMessage(player, "gui.admin.world_item.uuid_copy_hint")
+                                lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_UUID_COPY_HINT)
                         else ""
                 val worldSizeValue = buildWorldSizeValue(player, data)
 
@@ -763,16 +769,16 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 name = me.awabi2048.myworldmanager.util.targetIdentityName(name, com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT),
                                 role = GuiElementRole.ACTION,
                                 data = buildList {
-                                        add(GuiMenuEntryData(lang.getMessage(player, "gui.admin.world_item.uuid"), worldDirectory))
-                                        if (includeWorldName) add(GuiMenuEntryData(lang.getMessage(player, "gui.admin.world_item.world_name_line"), data.name, GuiValueTone.SUCCESS))
-                                        add(GuiMenuEntryData(lang.getMessage(player, "gui.admin.world_item.owner"), ownerName))
-                                        add(GuiMenuEntryData(lang.getMessage(player, "gui.admin.world_item.status"), statusVal, if (data.isArchived) GuiValueTone.DANGER else GuiValueTone.INFO))
-                                        add(GuiMenuEntryData(lang.getMessage(player, "gui.admin.world_item.publish"), publishName, toneFor(publishColor)))
-                                        add(GuiMenuEntryData(lang.getMessage(player, "gui.admin.world_item.generation"), generationMethod, GuiValueTone.PRIMARY))
-                                        if (createdValue != null) add(GuiMenuEntryData(lang.getMessage(player, "gui.admin.world_item.created_at"), createdValue, GuiValueTone.PRIMARY))
+                                        add(GuiMenuEntryData(lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_UUID), worldDirectory))
+                                        if (includeWorldName) add(GuiMenuEntryData(lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_WORLD_NAME_LINE), data.name, GuiValueTone.SUCCESS))
+                                        add(GuiMenuEntryData(lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_OWNER), ownerName))
+                                        add(GuiMenuEntryData(lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_STATUS), statusVal, if (data.isArchived) GuiValueTone.DANGER else GuiValueTone.INFO))
+                                        add(GuiMenuEntryData(lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_PUBLISH), publishName, toneFor(publishColor)))
+                                        add(GuiMenuEntryData(lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_GENERATION), generationMethod, GuiValueTone.PRIMARY))
+                                        if (createdValue != null) add(GuiMenuEntryData(lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_CREATED_AT), createdValue, GuiValueTone.PRIMARY))
                                         if (expireValue != null) add(GuiMenuEntryData(lang.getMessage(player, expireLabelKey), expireValue, GuiValueTone.PRIMARY))
-                                        add(GuiMenuEntryData(lang.getMessage(player, "gui.admin.world_item.mspt"), msptValue.value, toneFor(msptValue.color)))
-                                        add(GuiMenuEntryData(lang.getMessage(player, "gui.admin.world_item.world_size_line"), worldSizeValue.value, toneFor(worldSizeValue.color)))
+                                        add(GuiMenuEntryData(lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_MSPT), msptValue.value, toneFor(msptValue.color)))
+                                        add(GuiMenuEntryData(lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_WORLD_SIZE_LINE), worldSizeValue.value, toneFor(worldSizeValue.color)))
                                 },
                                 actions = buildList {
                                         if (actionWarp.isNotBlank()) add(menuGestureAction(actionId, MenuGesture.PLAIN_LEFT, actionWarp, payload, safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT))
@@ -793,30 +799,30 @@ class WorldGui(private val plugin: MyWorldManager) {
                 val normalized = sourceWorld.uppercase()
                 return when {
                         normalized == "CONVERT" ->
-                                lang.getMessage(player, "gui.admin.world_item.generation_type.convert")
+                                lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_GENERATION_TYPE_CONVERT)
                         normalized.startsWith("TEMPLATE") -> {
                                 val templateId = sourceWorld.substringAfter(':', "").trim()
                                 if (templateId.isNotEmpty()) {
                                         lang.getMessage(
                                                 player,
-                                                "gui.admin.world_item.generation_type.template_with_id",
+                                                MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_GENERATION_TYPE_TEMPLATE_WITH_ID,
                                                 mapOf("template_id" to templateId)
                                         )
                                 } else {
                                         lang.getMessage(
                                                 player,
-                                                "gui.admin.world_item.generation_type.template"
+                                                MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_GENERATION_TYPE_TEMPLATE
                                         )
                                 }
                         }
                         normalized == "SEED" ->
-                                lang.getMessage(player, "gui.admin.world_item.generation_type.seed")
+                                lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_GENERATION_TYPE_SEED)
                         normalized == "RANDOM" || normalized == "DEFAULT" ->
-                                lang.getMessage(player, "gui.admin.world_item.generation_type.random")
+                                lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_GENERATION_TYPE_RANDOM)
                         else ->
                                 lang.getMessage(
                                         player,
-                                        "gui.admin.world_item.generation_type.unknown",
+                                        MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_GENERATION_TYPE_UNKNOWN,
                                         mapOf("source" to sourceWorld)
                                 )
                 }
@@ -832,7 +838,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                 val entry = worldSizeCache[cacheKey]
                 val suffix =
                         if (data.isArchived)
-                                lang.getMessage(player, "gui.admin.world_item.world_size_archived_suffix")
+                                lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_WORLD_SIZE_ARCHIVED_SUFFIX)
                         else ""
 
                 if (entry != null) {
@@ -845,12 +851,12 @@ class WorldGui(private val plugin: MyWorldManager) {
                         }
 
                         if (isFresh && entry.failed) {
-                                return DisplayValue(lang.getMessage(player, "gui.admin.world_item.world_size_unavailable"), "§c")
+                                return DisplayValue(lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_WORLD_SIZE_UNAVAILABLE), "§c")
                         }
                 }
 
                 scheduleWorldSizeRefresh(data)
-                return DisplayValue(lang.getMessage(player, "gui.admin.world_item.world_size_measuring"), "§8")
+                return DisplayValue(lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_WORLD_SIZE_MEASURING), "§8")
         }
 
         private fun worldSizeCacheTtlMillis(): Long {
@@ -1012,16 +1018,16 @@ class WorldGui(private val plugin: MyWorldManager) {
                 val lang = plugin.languageManager
                 val transition = data.archiveTransitionType?.uppercase(Locale.ROOT)
                 if (transition == "AUTO") {
-                        return lang.getMessage(player, "gui.admin.world_item.archive_mode_auto")
+                        return lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_ARCHIVE_MODE_AUTO)
                 }
                 if (transition == "MANUAL") {
-                        return lang.getMessage(player, "gui.admin.world_item.archive_mode_manual")
+                        return lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_ARCHIVE_MODE_MANUAL)
                 }
 
                 if (expireDate != null && expireDate.isBefore(java.time.LocalDate.now())) {
-                        return lang.getMessage(player, "gui.admin.world_item.archive_mode_auto")
+                        return lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_ARCHIVE_MODE_AUTO)
                 }
-                return lang.getMessage(player, "gui.admin.world_item.archive_mode_manual")
+                return lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_ARCHIVE_MODE_MANUAL)
         }
 
         private fun createPageEntry(
@@ -1039,15 +1045,15 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 slot = slot,
                                 material = Material.ARROW,
                                 name = me.awabi2048.myworldmanager.util.fixedLabelName(
-                                        lang.getMessage(player, if (isNext) "gui.common.next_page" else "gui.common.prev_page"),
+                                        lang.getMessage(player, if (isNext) CommonKeys.GUI_COMMON_NEXT_PAGE else CommonKeys.GUI_COMMON_PREV_PAGE),
                                         com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT,
                                 ),
                                 role = GuiElementRole.NAVIGATION,
-                                data = listOf(GuiMenuEntryData(lang.getMessage(player, "gui.common.page_info_label"), "$currentPage/$totalPages", GuiValueTone.SUCCESS)),
+                                data = listOf(GuiMenuEntryData(lang.getMessage(player, CommonKeys.GUI_COMMON_PAGE_INFO_LABEL), "$currentPage/$totalPages", GuiValueTone.SUCCESS)),
                                 actions = listOf(menuGestureAction(
                                         ACTION_PAGE,
                                         MenuGesture.LEFT_RIGHT,
-                                        lang.getMessage(player, if (isNext) "gui.common.page_shift_next" else "gui.common.page_shift_prev"),
+                                        lang.getMessage(player, if (isNext) CommonKeys.GUI_COMMON_PAGE_SHIFT_NEXT else CommonKeys.GUI_COMMON_PAGE_SHIFT_PREV),
                                         mapOf(PAGE to targetPage.toString()),
                                         safety = MenuActionSafety.NAVIGATION_ONLY,
                                 )),
@@ -1067,8 +1073,8 @@ class WorldGui(private val plugin: MyWorldManager) {
                         return DisplayValue(
                                 lang.getMessage(
                                         player,
-                                        "gui.admin.world_item.mspt_error_with_reason",
-                                        mapOf("reason" to lang.getMessage(player, "gui.admin.world_item.mspt_reason_chiyogami_inactive"))
+                                        MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_MSPT_ERROR_WITH_REASON,
+                                        mapOf("reason" to lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_MSPT_REASON_CHIYOGAMI_INACTIVE))
                                 ),
                                 "§c"
                         )
@@ -1086,16 +1092,16 @@ class WorldGui(private val plugin: MyWorldManager) {
                 val status =
                         when {
                                 data.isArchived ->
-                                        lang.getMessage(player, "gui.admin.world_item.status_archived")
+                                        lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_STATUS_ARCHIVED)
                                 world == null && worldFolder.exists() ->
-                                        lang.getMessage(player, "gui.admin.world_item.mspt_status_unloaded")
+                                        lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_MSPT_STATUS_UNLOADED)
                                 else -> null
                         }
 
                 if (mspt != null) {
                         val msptDisplay =
                                 if (mspt < 0.1) {
-                                        DisplayValue(lang.getMessage(player, "gui.admin.world_item.mspt_value_low"), "§a")
+                                        DisplayValue(lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_MSPT_VALUE_LOW), "§a")
                                 } else {
                                         DisplayValue(
                                                 "${String.format("%.1f", mspt)} ms",
@@ -1105,7 +1111,7 @@ class WorldGui(private val plugin: MyWorldManager) {
 
                         return if (status != null) {
                                 DisplayValue(
-                                        lang.getMessage(player, "gui.admin.world_item.mspt_with_status", mapOf("mspt" to msptDisplay.value, "status" to status)),
+                                        lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_MSPT_WITH_STATUS, mapOf("mspt" to msptDisplay.value, "status" to status)),
                                         msptDisplay.color
                                 )
                         } else msptDisplay
@@ -1116,17 +1122,17 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 world == null && !worldFolder.exists() ->
                                         lang.getMessage(
                                                 player,
-                                                "gui.admin.world_item.mspt_reason_directory_not_found"
+                                                MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_MSPT_REASON_DIRECTORY_NOT_FOUND
                                         )
                                 else ->
                                         lang.getMessage(
                                                 player,
-                                                "gui.admin.world_item.mspt_reason_metrics_not_found"
+                                                MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_MSPT_REASON_METRICS_NOT_FOUND
                                         )
                         }
 
                 return DisplayValue(
-                        lang.getMessage(player, "gui.admin.world_item.mspt_error_with_reason", mapOf("reason" to reason)),
+                        lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_MSPT_ERROR_WITH_REASON, mapOf("reason" to reason)),
                         "§c"
                 )
         }
@@ -1141,10 +1147,10 @@ class WorldGui(private val plugin: MyWorldManager) {
                         player,
                         GuiMenuEntrySpec(
                                 slot, Material.CHEST,
-                                GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.admin.filter.archive.display")),
+                                GuiNameSpec.FixedLabel(lang.getComponent(player, MyworldGuiAdminKeys.GUI_ADMIN_FILTER_ARCHIVE_DISPLAY)),
                                 GuiElementRole.ACTION,
                                 data = listOf(GuiMenuEntryData(
-                                        lang.getMessage(player, "gui.admin.filter.archive.label"),
+                                        lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_FILTER_ARCHIVE_LABEL),
                                         options.first { it.first == session.archiveFilter }.second,
                                         GuiValueTone.PRIMARY,
                                 )),
@@ -1154,7 +1160,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 actions = listOf(menuGestureAction(
                                         ACTION_ARCHIVE_FILTER,
                                         MenuGesture.LEFT_RIGHT,
-                                        lang.getMessage(player, "gui.common.action.cycle"),
+                                        lang.getMessage(player, MyworldGuiCommonKeys.GUI_COMMON_ACTION_CYCLE),
                                         safety = MenuActionSafety.REVERSIBLE,
                                         reversibleContract = MwmMenuActionSemantics.contract("admin-archive-filter"),
                                 )),
@@ -1173,10 +1179,10 @@ class WorldGui(private val plugin: MyWorldManager) {
                         player,
                         GuiMenuEntrySpec(
                                 slot, Material.ENDER_EYE,
-                                GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.admin.filter.publish.display")),
+                                GuiNameSpec.FixedLabel(lang.getComponent(player, MyworldGuiAdminKeys.GUI_ADMIN_FILTER_PUBLISH_DISPLAY)),
                                 GuiElementRole.ACTION,
                                 data = listOf(GuiMenuEntryData(
-                                        lang.getMessage(player, "gui.admin.filter.publish.label"),
+                                        lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_FILTER_PUBLISH_LABEL),
                                         options.first { it.first == session.publishFilter }.second,
                                         GuiValueTone.PRIMARY,
                                 )),
@@ -1186,7 +1192,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 actions = listOf(menuGestureAction(
                                         ACTION_PUBLISH_FILTER,
                                         MenuGesture.LEFT_RIGHT,
-                                        lang.getMessage(player, "gui.common.action.cycle"),
+                                        lang.getMessage(player, MyworldGuiCommonKeys.GUI_COMMON_ACTION_CYCLE),
                                         safety = MenuActionSafety.REVERSIBLE,
                                         reversibleContract = MwmMenuActionSemantics.contract("admin-publish-filter"),
                                 )),
@@ -1202,7 +1208,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                         add(menuGestureAction(
                                 ACTION_PLAYER_FILTER,
                                 MenuGesture.LEFT,
-                                lang.getMessage(player, "gui.admin.filter.player.click_left"),
+                                lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_FILTER_PLAYER_CLICK_LEFT),
                                 safety = MenuActionSafety.REVERSIBLE,
                                 reversibleContract = MwmMenuActionSemantics.contract("admin-player-filter-left"),
                         ))
@@ -1210,7 +1216,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 add(menuGestureAction(
                                         ACTION_PLAYER_FILTER,
                                         MenuGesture.RIGHT,
-                                        lang.getMessage(player, "gui.admin.filter.player.click_right"),
+                                        lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_FILTER_PLAYER_CLICK_RIGHT),
                                         safety = MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE,
                                 ))
                         }
@@ -1219,16 +1225,16 @@ class WorldGui(private val plugin: MyWorldManager) {
                         player,
                         GuiMenuEntrySpec(
                                 slot, Material.PLAYER_HEAD,
-                                GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.admin.filter.player.display")),
+                                GuiNameSpec.FixedLabel(lang.getComponent(player, MyworldGuiAdminKeys.GUI_ADMIN_FILTER_PLAYER_DISPLAY)),
                                 GuiElementRole.ACTION,
                                 data = buildList {
                                         add(GuiMenuEntryData(
-                                                lang.getMessage(player, "gui.admin.filter.player.current_type"),
+                                                lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_FILTER_PLAYER_CURRENT_TYPE),
                                                 lang.getMessage(player, session.playerFilterType.displayKey),
                                         ))
                                         session.playerFilter?.let {
                                                 add(GuiMenuEntryData(
-                                                        lang.getMessage(player, "gui.admin.filter.player.current_player"),
+                                                        lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_FILTER_PLAYER_CURRENT_PLAYER),
                                                         PlayerNameUtil.getNameOrDefault(it, "Unknown"),
                                                         GuiValueTone.INFO,
                                                 ))
@@ -1258,10 +1264,10 @@ class WorldGui(private val plugin: MyWorldManager) {
                         player,
                         GuiMenuEntrySpec(
                                 slot, Material.HOPPER,
-                                GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.admin.sort.display")),
+                                GuiNameSpec.FixedLabel(lang.getComponent(player, MyworldGuiAdminKeys.GUI_ADMIN_SORT_DISPLAY)),
                                 GuiElementRole.ACTION,
                                 data = listOf(GuiMenuEntryData(
-                                        lang.getMessage(player, "gui.admin.sort.label"),
+                                        lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_SORT_LABEL),
                                         options.first { it.first == session.sortBy }.second,
                                         GuiValueTone.PRIMARY,
                                 )),
@@ -1271,7 +1277,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 actions = listOf(menuGestureAction(
                                         ACTION_SORT,
                                         MenuGesture.LEFT_RIGHT,
-                                        lang.getMessage(player, "gui.common.action.cycle"),
+                                        lang.getMessage(player, MyworldGuiCommonKeys.GUI_COMMON_ACTION_CYCLE),
                                         safety = MenuActionSafety.REVERSIBLE,
                                         reversibleContract = MwmMenuActionSemantics.contract("admin-sort"),
                                 )),

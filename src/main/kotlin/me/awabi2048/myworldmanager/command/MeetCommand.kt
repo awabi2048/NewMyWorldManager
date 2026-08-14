@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.command
 
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.util.PermissionManager
 import org.bukkit.command.Command
@@ -44,7 +46,7 @@ class MeetCommand(private val plugin: MyWorldManager) : CommandExecutor, TabComp
                         it.actorUuid == requesterUuid
                 }
             if (pendingRequest == null) {
-                sender.sendMessage(plugin.languageManager.getMessage(sender, "messages.meet.no_pending_request"))
+                sender.sendMessage(plugin.languageManager.getMessage(sender, MyworldMessagesKeys.MESSAGES_MEET_NO_PENDING_REQUEST))
                 return true
             }
 

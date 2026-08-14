@@ -1,5 +1,8 @@
 package me.awabi2048.myworldmanager.session
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import com.awabi2048.ccsystem.CCSystem
 
 import me.awabi2048.myworldmanager.MyWorldManager
@@ -68,11 +71,11 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
             is PreviewTarget.Template -> {
                 val template = plugin.templateRepository.findById(target.templateId)
                 if (template == null) {
-                    player.sendMessage(plugin.languageManager.getMessage(player, "error.preview_template_not_found"))
+                    player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_PREVIEW_TEMPLATE_NOT_FOUND))
                     return false
                 }
                 if (!plugin.templateRepository.isUsable(template)) {
-                    player.sendMessage(plugin.languageManager.getMessage(player, "error.preview_template_invalid"))
+                    player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_PREVIEW_TEMPLATE_INVALID))
                     return false
                 }
 
@@ -99,7 +102,7 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
                 val worldData = target.worldData
                 // アーカイブ済みチェック
                 if (worldData.isArchived) {
-                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.preview_archived"))
+                    player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_PREVIEW_ARCHIVED))
                     plugin.soundManager.playActionSound(player, "discovery", "access_denied")
                     return false
                 }
@@ -175,7 +178,7 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
             if (runtimeSuspended) {
                 CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
             }
-            player.sendMessage(plugin.languageManager.getMessage(player, "error.preview_world_load_failed"))
+            player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_PREVIEW_WORLD_LOAD_FAILED))
             return false
         }
 
@@ -184,7 +187,7 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
         player.gameMode = GameMode.SPECTATOR
 
         // メッセージ送信
-        player.sendMessage(plugin.languageManager.getMessage(player, "messages.preview_start", mapOf("template" to templateName)))
+        player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_PREVIEW_START, mapOf("template" to templateName)))
 
         // 回転アニメーションの開始 (遅延なし)
         startRotationTask(player, durationSeconds)
@@ -280,9 +283,9 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
         // メッセージ送信
         val lang = plugin.languageManager
         if (cancelled) {
-            player.sendMessage(lang.getMessage(player, "messages.preview_cancel"))
+            player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_PREVIEW_CANCEL))
         } else {
-            player.sendMessage(lang.getMessage(player, "messages.preview_end"))
+            player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_PREVIEW_END))
         }
 
         // テンプレート選択画面を再表示（少し遅延させる）
@@ -380,7 +383,7 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
             plugin.logger.warning("復元データの削除に失敗しました: ${e.message}")
         }
         
-        player.sendMessage(plugin.languageManager.getMessage(player, "messages.preview_restored"))
+        player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_PREVIEW_RESTORED))
     }
 
     /**

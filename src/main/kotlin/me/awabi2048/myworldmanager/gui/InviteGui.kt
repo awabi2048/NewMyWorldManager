@@ -1,5 +1,12 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiCommonKeys
+
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiMeetKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiPortalKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldPublishLevelKeys
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiInteractionGuidance
@@ -62,7 +69,7 @@ class InviteGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val currentWorldData = plugin.worldConfigRepository.findByWorldName(player.world.name)
         if (currentWorldData == null) {
-            player.sendMessage(lang.getMessage(player, "messages.invite_not_in_myworld"))
+            player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_INVITE_NOT_IN_MYWORLD))
             return false
         }
         if (!MyWorldManagerApi.getWorldAccessPolicy().canInviteToWorld(player, currentWorldData)) {
@@ -72,7 +79,7 @@ class InviteGui(private val plugin: MyWorldManager) {
 
         val targets = InviteTargetResolver.collectAvailableTargets(plugin, player, currentWorldData)
         if (targets.isEmpty()) {
-            player.sendMessage(lang.getMessage(player, "messages.invite_no_available_targets"))
+            player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_INVITE_NO_AVAILABLE_TARGETS))
             return false
         }
         val route = MenuRoute(
@@ -92,7 +99,7 @@ class InviteGui(private val plugin: MyWorldManager) {
         val currentWorldData = route.uuid(WORLD_UUID)?.let(plugin.worldConfigRepository::findByUuid)
             ?: error("招待元ワールドが見つかりません。")
         val targets = InviteTargetResolver.collectAvailableTargets(plugin, player, currentWorldData)
-        val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, "gui.meet.title_list"))
+        val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getMessage(player, MyworldGuiMeetKeys.GUI_MEET_TITLE_LIST))
         val pageLayout = CCSystem.getAPI().getGuiLayoutService()
             .sevenColumnPage(targets.size, route.payload[PAGE]?.toIntOrNull() ?: 0)
         val page = pageLayout.page
@@ -108,7 +115,7 @@ class InviteGui(private val plugin: MyWorldManager) {
                 GuiLoreBlock(
                     listOf(
                         GuiLoreLine.Data(
-                            lang.getMessage(player, "gui.meet.world_item.current_world"),
+                            lang.getMessage(player, MyworldGuiMeetKeys.GUI_MEET_WORLD_ITEM_CURRENT_WORLD),
                             currentWorldData.name,
                             "§f"
                         )
@@ -124,7 +131,7 @@ class InviteGui(private val plugin: MyWorldManager) {
                     name = GuiNameSpec.TargetIdentity(
                         lang.getComponent(
                             player,
-                            "gui.common.world_item_name",
+                            MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_NAME,
                             mapOf(
                                 "world" to (lang.getMessageStrict(player, currentWorldData.name)
                                     ?: currentWorldData.name),
@@ -172,7 +179,7 @@ class InviteGui(private val plugin: MyWorldManager) {
             context.player.sendMessage(
                 plugin.languageManager.getMessage(
                     context.player,
-                    "messages.invite_target_offline",
+                    MyworldMessagesKeys.MESSAGES_INVITE_TARGET_OFFLINE,
                     mapOf("player" to targetName),
                 ),
             )
@@ -184,7 +191,7 @@ class InviteGui(private val plugin: MyWorldManager) {
 
     private fun createTargetEntry(target: Player, viewer: Player, slot: Int): MenuElement {
         val lang = plugin.languageManager
-        val colorCode = lang.getMessage(viewer, "publish_level.color.online")
+        val colorCode = lang.getMessage(viewer, MyworldPublishLevelKeys.PUBLISH_LEVEL_COLOR_ONLINE)
         val status = plugin.playerStatsRepository.findByUuid(target.uniqueId).meetStatus
         val statusKey = "general.status.${status.lowercase()}"
         val statusName = if (lang.hasKey(viewer, statusKey)) lang.getMessage(viewer, statusKey) else status
@@ -200,7 +207,7 @@ class InviteGui(private val plugin: MyWorldManager) {
                 role = GuiElementRole.ACTION,
                 data = listOf(
                     GuiMenuEntryData(
-                        lang.getMessage(viewer, "gui.meet.world_item.status"),
+                        lang.getMessage(viewer, MyworldGuiMeetKeys.GUI_MEET_WORLD_ITEM_STATUS),
                         statusName,
                         GuiValueTone.PRIMARY,
                     ),
@@ -209,7 +216,7 @@ class InviteGui(private val plugin: MyWorldManager) {
                     menuGestureAction(
                         ACTION_INVITE,
                         MenuGesture.ANY,
-                        lang.getMessage(viewer, "gui.invite.target_head.click_invite"),
+                        lang.getMessage(viewer, MyworldGuiPortalKeys.GUI_INVITE_TARGET_HEAD_CLICK_INVITE),
                         mapOf(
                             TARGET_UUID to target.uniqueId.toString(),
                             TARGET_NAME to target.name,

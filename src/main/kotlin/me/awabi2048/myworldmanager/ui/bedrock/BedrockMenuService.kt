@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.ui.bedrock
 
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiBedrockKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiCommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiSettingsKeys
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
@@ -545,7 +549,7 @@ class BedrockMenuService(
                 material = Material.WRITABLE_BOOK,
                 name = GuiNameSpec.Text(tr(player, "gui.user_settings.button.display"), GuiNameStyle.DEFAULT),
                 role = GuiElementRole.ACTION,
-                description = plugin.languageManager.getMessageList(player, "gui.user_settings.button.description"),
+                description = plugin.languageManager.getMessageList(player, MyworldGuiSettingsKeys.GUI_USER_SETTINGS_BUTTON_DESCRIPTION),
                 actions = listOf(menuGestureAction(
                     "open_settings",
                     MenuGesture.ANY,
@@ -1170,7 +1174,7 @@ class BedrockMenuService(
             GuiMenuEntrySpec(
                 slot = slot,
                 material = worldData.icon,
-                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.common.world_item_name", mapOf("world" to worldData.name))),
+                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_NAME, mapOf("world" to worldData.name))),
                 role = GuiElementRole.ACTION,
                 description = if (worldData.description.isBlank()) emptyList() else listOf(worldData.description),
                 data = buildList {
@@ -1204,9 +1208,9 @@ class BedrockMenuService(
             GuiMenuEntrySpec(
                 slot = slot,
                 material = Material.NETHER_STAR,
-                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.player_world.creation_button.display")),
+                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_CREATION_BUTTON_DISPLAY)),
                 role = GuiElementRole.ACTION,
-                description = plugin.languageManager.getMessageList(player, "gui.player_world.creation_button.description"),
+                description = plugin.languageManager.getMessageList(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_CREATION_BUTTON_DESCRIPTION),
                 actions = listOf(menuGestureAction(
                     "start_creation",
                     MenuGesture.ANY,
@@ -1264,7 +1268,7 @@ class BedrockMenuService(
             GuiMenuEntrySpec(
                 slot = slot,
                 material = Material.PLAYER_HEAD,
-                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.player_world.stats_button.display", mapOf("player" to playerName))),
+                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_STATS_BUTTON_DISPLAY, mapOf("player" to playerName))),
                 role = GuiElementRole.CONTENT,
                 description = if (MyWorldManagerApi.isWorldSlotSystemEnabled()) {
                     listOf(tr(player, if (bypassLimits) "gui.player_world.stats_button.slots_bypass_description" else "gui.player_world.stats_button.slots_description"))
@@ -1299,9 +1303,9 @@ class BedrockMenuService(
             GuiMenuEntrySpec(
                 slot = slot,
                 material = Material.WRITABLE_BOOK,
-                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, "gui.player_world.pending_button.display")),
+                name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_PENDING_BUTTON_DISPLAY)),
                 role = GuiElementRole.ACTION,
-                description = plugin.languageManager.getMessageList(player, "gui.player_world.pending_button.description"),
+                description = plugin.languageManager.getMessageList(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_PENDING_BUTTON_DESCRIPTION),
                 data = listOf(
                     GuiMenuEntryData(
                         tr(player, "gui.player_world.pending_button.count_label"),

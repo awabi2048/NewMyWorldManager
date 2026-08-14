@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.listener
 
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.event.MwmVisitSource
@@ -28,7 +30,7 @@ class AccessControlListener(private val plugin: MyWorldManager) : Listener {
         if (plugin.previewSessionManager.isInPreview(player)) return
 
         if (worldData.isArchived) {
-            player.sendMessage(lang.getMessage(player, "messages.archive_access_denied"))
+            player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_ARCHIVE_ACCESS_DENIED))
             event.isCancelled = true
             return
         }
@@ -58,7 +60,7 @@ class AccessControlListener(private val plugin: MyWorldManager) : Listener {
 
         if (worldData.isArchived && !player.hasPermission("myworldmanager.admin")) {
             player.teleport(plugin.worldService.getEvacuationLocation())
-            player.sendMessage(lang.getMessage(player, "messages.archive_access_denied"))
+            player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_ARCHIVE_ACCESS_DENIED))
             return
         }
 
@@ -106,7 +108,7 @@ class AccessControlListener(private val plugin: MyWorldManager) : Listener {
             owner.sendMessage(
                 lang.getMessage(
                     owner,
-                    "messages.visitor_notified",
+                    MyworldMessagesKeys.MESSAGES_VISITOR_NOTIFIED,
                     mapOf("player" to player.name, "world" to worldData.name)
                 )
             )

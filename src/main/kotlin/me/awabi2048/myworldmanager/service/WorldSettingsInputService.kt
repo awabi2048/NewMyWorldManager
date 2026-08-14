@@ -1,5 +1,10 @@
 package me.awabi2048.myworldmanager.service
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiBedrockKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiSettingsKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
 import com.awabi2048.ccsystem.api.gui.MenuDialogButton
@@ -36,7 +41,7 @@ internal class WorldSettingsInputService(private val plugin: MyWorldManager) {
         if (rightClick) {
             worldData.announcementMessages.clear()
             plugin.worldConfigRepository.save(worldData)
-            player.sendMessage(plugin.languageManager.getMessage("messages.announcement_reset"))
+            player.sendMessage(plugin.languageManager.getMessage(MyworldMessagesKeys.MESSAGES_ANNOUNCEMENT_RESET))
             return MenuActionResult.Success(MenuUpdate.Refresh)
         }
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.SET_ANNOUNCEMENT)
@@ -51,15 +56,15 @@ internal class WorldSettingsInputService(private val plugin: MyWorldManager) {
         CCSystem.getAPI().getMenuRuntimeService().suspendForExternal(player)
         return plugin.floodgateFormBridge.sendCustomForm(
             player,
-            lang.getMessage(player, "gui.bedrock.input.info_form.title"),
+            lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_INFO_FORM_TITLE),
             listOf(
                 me.awabi2048.myworldmanager.ui.bedrock.FloodgateFormBridge.CustomFormInput(
-                    lang.getMessage(player, "gui.bedrock.input.rename.label"),
-                    lang.getMessage(player, "gui.bedrock.input.rename.placeholder"), worldData.name,
+                    lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_RENAME_LABEL),
+                    lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_RENAME_PLACEHOLDER), worldData.name,
                 ),
                 me.awabi2048.myworldmanager.ui.bedrock.FloodgateFormBridge.CustomFormInput(
-                    lang.getMessage(player, "gui.bedrock.input.description.label"),
-                    lang.getMessage(player, "gui.bedrock.input.description.placeholder"), worldData.description,
+                    lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_DESCRIPTION_LABEL),
+                    lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_DESCRIPTION_PLACEHOLDER), worldData.description,
                 ),
             ),
             onSubmit = { values -> plugin.worldConfigRepository.findByUuid(uuid)?.let { applyInfo(player, it, values.getOrNull(0).orEmpty().trim(), values.getOrNull(1).orEmpty().trim()) } },
@@ -74,14 +79,14 @@ internal class WorldSettingsInputService(private val plugin: MyWorldManager) {
         CCSystem.getAPI().getMenuRuntimeService().suspendForExternal(player)
         return plugin.floodgateFormBridge.sendSimpleForm(
             player = player,
-            title = lang.getMessage(player, "gui.bedrock.input.announcement_menu.title"),
-            content = lang.getMessage(player, "gui.bedrock.input.announcement_menu.content"),
-            buttons = listOf(lang.getMessage(player, "gui.bedrock.input.announcement_menu.edit"), lang.getMessage(player, "gui.bedrock.input.announcement_menu.reset")),
+            title = lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_ANNOUNCEMENT_MENU_TITLE),
+            content = lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_ANNOUNCEMENT_MENU_CONTENT),
+            buttons = listOf(lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_ANNOUNCEMENT_MENU_EDIT), lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_ANNOUNCEMENT_MENU_RESET)),
             onSelect = { index ->
                 val latest = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return@sendSimpleForm
                 if (index == 1) {
                     latest.announcementMessages.clear(); plugin.worldConfigRepository.save(latest)
-                    player.sendMessage(lang.getMessage(player, "messages.announcement_reset"))
+                    player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_ANNOUNCEMENT_RESET))
                     CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
                     return@sendSimpleForm
                 }
@@ -102,15 +107,15 @@ internal class WorldSettingsInputService(private val plugin: MyWorldManager) {
         val inputs = (0 until maxLines).map { index ->
             val current = worldData.announcementMessages.getOrNull(index).orEmpty()
             me.awabi2048.myworldmanager.ui.bedrock.FloodgateFormBridge.CustomFormInput(
-                label = lang.getMessage(player, "gui.bedrock.input.announcement_edit.label", mapOf("line" to index + 1)),
-                placeholder = lang.getMessage(player, "gui.bedrock.input.announcement_edit.placeholder", mapOf("max" to maxLength)),
+                label = lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_ANNOUNCEMENT_EDIT_LABEL, mapOf("line" to index + 1)),
+                placeholder = lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_ANNOUNCEMENT_EDIT_PLACEHOLDER, mapOf("max" to maxLength)),
                 defaultValue = current.removePrefix("ﾂｧf").replace("ﾂｧ", "&"),
             )
         }
         CCSystem.getAPI().getMenuRuntimeService().suspendForExternal(player)
         return plugin.floodgateFormBridge.sendCustomForm(
             player = player,
-            title = lang.getMessage(player, "gui.bedrock.input.announcement_edit.title", mapOf("max_lines" to maxLines, "max_length" to maxLength)),
+            title = lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_ANNOUNCEMENT_EDIT_TITLE, mapOf("max_lines" to maxLines, "max_length" to maxLength)),
             inputs = inputs,
             onSubmit = { values -> plugin.worldConfigRepository.findByUuid(worldUuid)?.let { applyAnnouncementUpdateFromForm(player, it, values) } },
             onClosed = { if (player.isOnline && plugin.worldConfigRepository.findByUuid(worldUuid) != null) CCSystem.getAPI().getMenuRuntimeService().finishExternal(player) },
@@ -135,7 +140,7 @@ internal class WorldSettingsInputService(private val plugin: MyWorldManager) {
         worldData.announcementMessages.clear()
         trimmed.forEach { worldData.announcementMessages.add("ﾂｧf${it.replace("&", "ﾂｧ")}") }
         plugin.worldConfigRepository.save(worldData)
-        player.sendMessage(lang.getMessage(player, "messages.announcement_set"))
+        player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_ANNOUNCEMENT_SET))
         plugin.worldSettingsGui.open(player, worldData)
     }
 
@@ -143,16 +148,16 @@ internal class WorldSettingsInputService(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         CCSystem.getAPI().getMenuDialogService().show(player, MenuDialogRequest(
             owner = "myworldmanager", id = "settings-world-info",
-            title = Component.text(lang.getMessage(player, "gui.bedrock.input.info_form.title"), NamedTextColor.YELLOW),
-            body = listOf(Component.text(lang.getMessage(player, "gui.settings.info.dialog.body"))),
+            title = Component.text(lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_INFO_FORM_TITLE), NamedTextColor.YELLOW),
+            body = listOf(Component.text(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_INFO_DIALOG_BODY))),
             inputs = listOf(
-                MenuDialogInput.Text("world_name", Component.text(lang.getMessage(player, "gui.bedrock.input.rename.label")), worldData.name.take(16), maxLength = 16),
-                MenuDialogInput.Text("world_desc", Component.text(lang.getMessage(player, "gui.bedrock.input.description.label")), worldData.description.take(100), maxLength = 100),
+                MenuDialogInput.Text("world_name", Component.text(lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_RENAME_LABEL)), worldData.name.take(16), maxLength = 16),
+                MenuDialogInput.Text("world_desc", Component.text(lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_DESCRIPTION_LABEL)), worldData.description.take(100), maxLength = 100),
             ),
-            confirm = MenuDialogButton(Component.text(lang.getMessage(player, "gui.common.confirm"), NamedTextColor.GREEN), MenuDialogHandler { target, response ->
+            confirm = MenuDialogButton(Component.text(lang.getMessage(player, CommonKeys.GUI_COMMON_CONFIRM), NamedTextColor.GREEN), MenuDialogHandler { target, response ->
                 applyInfo(target, worldData, response.textValue("world_name").trim(), response.textValue("world_desc").trim()); MenuActionResult.Success(MenuUpdate.None)
             }),
-            cancel = MenuDialogButton(Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.GRAY), MenuDialogHandler { _, _ -> MenuActionResult.Success(MenuUpdate.Resume) }),
+            cancel = MenuDialogButton(Component.text(lang.getMessage(player, CommonKeys.GUI_COMMON_CANCEL), NamedTextColor.GRAY), MenuDialogHandler { _, _ -> MenuActionResult.Success(MenuUpdate.Resume) }),
         ))
     }
 
@@ -160,9 +165,9 @@ internal class WorldSettingsInputService(private val plugin: MyWorldManager) {
         var updated = false
         if (name.isNotBlank()) when (val result = plugin.worldValidator.validateName(name)) {
             is WorldNameValidation.Failure -> player.sendMessage(plugin.languageManager.getComponent(player, result.messageKey, result.placeholders))
-            else -> if (plugin.worldConfigRepository.hasDisplayNameConflict(worldData.owner, name, worldData.uuid)) player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_name_duplicate")) else if (worldData.name != name) { worldData.name = name; updated = true; player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_name_change")) }
+            else -> if (plugin.worldConfigRepository.hasDisplayNameConflict(worldData.owner, name, worldData.uuid)) player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_NAME_DUPLICATE)) else if (worldData.name != name) { worldData.name = name; updated = true; player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_NAME_CHANGE)) }
         }
-        if (worldData.description != description) { worldData.description = description; updated = true; player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_desc_change")) }
+        if (worldData.description != description) { worldData.description = description; updated = true; player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_DESC_CHANGE)) }
         if (updated) plugin.worldConfigRepository.save(worldData)
         CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
     }

@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
@@ -35,8 +37,8 @@ object DialogConfirmManager {
         onCancel: () -> MenuActionResult,
     ) {
         val lang = plugin.languageManager
-        val confirmLabel = confirmText ?: lang.getMessage(player, "gui.common.confirm")
-        val cancelLabel = cancelText ?: lang.getMessage(player, "gui.common.cancel")
+        val confirmLabel = confirmText ?: lang.getMessage(player, CommonKeys.GUI_COMMON_CONFIRM)
+        val cancelLabel = cancelText ?: lang.getMessage(player, CommonKeys.GUI_COMMON_CANCEL)
 
         plugin.confirmationMenuGui.openSimple(
             player = player,

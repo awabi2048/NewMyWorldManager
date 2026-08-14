@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiPortalKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiCycle
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
@@ -67,9 +71,9 @@ class PortalGui(private val plugin: MyWorldManager) {
     private fun render(player: Player, portal: PortalData): InventoryMenuView {
         val lang = plugin.languageManager
         val textStatus = if (portal.showText) {
-            lang.getMessage(player, "messages.status_on")
+            lang.getMessage(player, MyworldMessagesKeys.MESSAGES_STATUS_ON)
         } else {
-            lang.getMessage(player, "messages.status_off")
+            lang.getMessage(player, MyworldMessagesKeys.MESSAGES_STATUS_OFF)
         }
         val currentIndex = colors.indexOf(portal.particleColor).coerceAtLeast(0)
         val nextColor = colors[(currentIndex + 1) % colors.size]
@@ -78,7 +82,7 @@ class PortalGui(private val plugin: MyWorldManager) {
         return InventoryMenuView(
             size = 27,
             title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(
-                lang.getMessage(player, "gui.portal.title"),
+                lang.getMessage(player, MyworldGuiPortalKeys.GUI_PORTAL_TITLE),
             ),
             elements = listOf(
                 menuEntry(
@@ -87,7 +91,7 @@ class PortalGui(private val plugin: MyWorldManager) {
                     Material.OAK_SIGN,
                     "gui.portal.toggle_text",
                     data = listOf(GuiMenuEntryData(
-                        lang.getMessage(player, "gui.portal.toggle_text.current_label"),
+                        lang.getMessage(player, MyworldGuiPortalKeys.GUI_PORTAL_TOGGLE_TEXT_CURRENT_LABEL),
                         textStatus,
                         GuiValueTone.PRIMARY,
                     )),
@@ -99,11 +103,11 @@ class PortalGui(private val plugin: MyWorldManager) {
                     getWoolColor(portal.particleColor),
                     "gui.portal.color",
                     description = listOf(
-                        lang.getMessage(player, "gui.portal.color.previous", mapOf("color" to lang.getMessage(player, "colors.${getColorKey(previousColor)}"))),
-                        lang.getMessage(player, "gui.portal.color.next", mapOf("color" to lang.getMessage(player, "colors.${getColorKey(nextColor)}"))),
+                        lang.getMessage(player, MyworldGuiPortalKeys.GUI_PORTAL_COLOR_PREVIOUS, mapOf("color" to lang.getMessage(player, "colors.${getColorKey(previousColor)}"))),
+                        lang.getMessage(player, MyworldGuiPortalKeys.GUI_PORTAL_COLOR_NEXT, mapOf("color" to lang.getMessage(player, "colors.${getColorKey(nextColor)}"))),
                     ),
                     data = listOf(GuiMenuEntryData(
-                        lang.getMessage(player, "gui.portal.color.current_label"),
+                        lang.getMessage(player, MyworldGuiPortalKeys.GUI_PORTAL_COLOR_CURRENT_LABEL),
                         lang.getMessage(player, "colors.${getColorKey(portal.particleColor)}"),
                         GuiValueTone.PRIMARY,
                     )),
@@ -116,7 +120,7 @@ class PortalGui(private val plugin: MyWorldManager) {
                     15,
                     Material.LAVA_BUCKET,
                     "gui.portal.remove",
-                    dangers = listOf(lang.getMessage(player, "gui.portal.remove.description")),
+                    dangers = listOf(lang.getMessage(player, MyworldGuiPortalKeys.GUI_PORTAL_REMOVE_DESCRIPTION)),
                     actionId = ACTION_REMOVE,
                 ),
             ),
@@ -149,7 +153,7 @@ class PortalGui(private val plugin: MyWorldManager) {
             plugin.portalManager.removePortalAndRefund(portal)
         }.getOrElse { error ->
             plugin.logger.warning("Portal removal was rejected for ${portal.id}: ${error.message}")
-            player.sendMessage(lang.getMessage(player, "messages.migration.required"))
+            player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_MIGRATION_REQUIRED))
             return MenuActionResult.Rejected()
         }
         plugin.portalManager.removePortalVisuals(portal.id)
@@ -172,7 +176,7 @@ class PortalGui(private val plugin: MyWorldManager) {
             player.sendMessage(
                 lang.getMessage(
                     player,
-                    "messages.world_gate_removed_refund",
+                    MyworldMessagesKeys.MESSAGES_WORLD_GATE_REMOVED_REFUND,
                     mapOf(
                         "points" to (refundResult?.points ?: 0),
                         "percent" to (refundResult?.percent ?: 0),
@@ -181,7 +185,7 @@ class PortalGui(private val plugin: MyWorldManager) {
                 ),
             )
         } else {
-            player.sendMessage(lang.getMessage(player, "messages.portal_removed"))
+            player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_PORTAL_REMOVED))
         }
         return MenuActionResult.Success(MenuUpdate.Close)
     }
@@ -190,7 +194,7 @@ class PortalGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         portal.worldUuid?.let { worldUuid ->
             val worldName = plugin.worldConfigRepository.findByUuid(worldUuid)?.name
-                ?: lang.getMessage(player, "general.unknown")
+                ?: lang.getMessage(player, CommonKeys.GENERAL_UNKNOWN)
             if (portal.isGate()) {
                 WorldGateItemUtil.bindWorld(item, worldUuid, worldName = worldName, lang, player)
             } else {

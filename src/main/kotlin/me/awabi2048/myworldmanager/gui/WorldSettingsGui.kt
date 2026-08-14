@@ -1,5 +1,15 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiAdminKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiBedrockKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiCommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiPortalKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiSettingsKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldPublishLevelKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldRoleKeys
+
 import me.awabi2048.myworldmanager.util.descriptionLine
 import me.awabi2048.myworldmanager.util.warningLine
 import me.awabi2048.myworldmanager.util.dangerLine
@@ -473,25 +483,25 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 private fun runtimeActionLabel(operation: WorldSettingsRuntimeOperation): String =
                         when (operation) {
-                                WorldSettingsRuntimeOperation.BACK -> plugin.languageManager.getMessage(viewer, "gui.common.return")
-                                WorldSettingsRuntimeOperation.CONFIRM -> plugin.languageManager.getMessage(viewer, "gui.common.confirm")
-                                WorldSettingsRuntimeOperation.CANCEL -> plugin.languageManager.getMessage(viewer, "gui.common.cancel")
-                                WorldSettingsRuntimeOperation.PAGE -> plugin.languageManager.getMessage(viewer, "gui.common.action.page")
-                                WorldSettingsRuntimeOperation.TOUR -> plugin.languageManager.getMessage(viewer, "gui.tour.worldmenu.action.open")
-                                WorldSettingsRuntimeOperation.EDIT_INFO -> plugin.languageManager.getMessage(viewer, "gui.settings.info.action.open_editor")
-                                WorldSettingsRuntimeOperation.SELECT_ICON -> plugin.languageManager.getMessage(viewer, "gui.settings.icon.action.start_selection")
-                                WorldSettingsRuntimeOperation.SET_SPAWN -> plugin.languageManager.getMessage(viewer, "gui.settings.spawn.action.set_both")
-                                WorldSettingsRuntimeOperation.EXPAND -> plugin.languageManager.getMessage(viewer, "gui.settings.expand.action.open_menu")
-                                WorldSettingsRuntimeOperation.CYCLE_PUBLISH -> plugin.languageManager.getMessage(viewer, "gui.common.action.cycle")
-                                WorldSettingsRuntimeOperation.MANAGE_MEMBERS -> plugin.languageManager.getMessage(viewer, "gui.settings.member.action.open_list")
-                                WorldSettingsRuntimeOperation.EDIT_TAGS -> plugin.languageManager.getMessage(viewer, "gui.settings.tags.action.edit")
-                                WorldSettingsRuntimeOperation.EDIT_ANNOUNCEMENT -> plugin.languageManager.getMessage(viewer, "gui.settings.announcement.action.set_message")
-                                WorldSettingsRuntimeOperation.TOGGLE_NOTIFICATION -> plugin.languageManager.getMessage(viewer, "gui.settings.notification.action.toggle")
-                                WorldSettingsRuntimeOperation.OPEN_ENVIRONMENT -> plugin.languageManager.getMessage(viewer, "gui.settings.environment.action.open")
-                                WorldSettingsRuntimeOperation.OPEN_CRITICAL -> plugin.languageManager.getMessage(viewer, "gui.settings.critical.action.open")
-                                WorldSettingsRuntimeOperation.MANAGE_VISITORS -> plugin.languageManager.getMessage(viewer, "gui.settings.visitors.action.open")
-                                WorldSettingsRuntimeOperation.MANAGE_PORTALS -> plugin.languageManager.getMessage(viewer, "gui.settings.portals.action.open")
-                                else -> plugin.languageManager.getMessage(viewer, "gui.common.action.open")
+                                WorldSettingsRuntimeOperation.BACK -> plugin.languageManager.getMessage(viewer, CommonKeys.GUI_COMMON_RETURN)
+                                WorldSettingsRuntimeOperation.CONFIRM -> plugin.languageManager.getMessage(viewer, CommonKeys.GUI_COMMON_CONFIRM)
+                                WorldSettingsRuntimeOperation.CANCEL -> plugin.languageManager.getMessage(viewer, CommonKeys.GUI_COMMON_CANCEL)
+                                WorldSettingsRuntimeOperation.PAGE -> plugin.languageManager.getMessage(viewer, CommonKeys.GUI_COMMON_ACTION_PAGE)
+                                WorldSettingsRuntimeOperation.TOUR -> plugin.languageManager.getMessage(viewer, MyworldGuiCommonKeys.GUI_TOUR_WORLDMENU_ACTION_OPEN)
+                                WorldSettingsRuntimeOperation.EDIT_INFO -> plugin.languageManager.getMessage(viewer, MyworldGuiSettingsKeys.GUI_SETTINGS_INFO_ACTION_OPEN_EDITOR)
+                                WorldSettingsRuntimeOperation.SELECT_ICON -> plugin.languageManager.getMessage(viewer, MyworldGuiSettingsKeys.GUI_SETTINGS_ICON_ACTION_START_SELECTION)
+                                WorldSettingsRuntimeOperation.SET_SPAWN -> plugin.languageManager.getMessage(viewer, MyworldGuiSettingsKeys.GUI_SETTINGS_SPAWN_ACTION_SET_BOTH)
+                                WorldSettingsRuntimeOperation.EXPAND -> plugin.languageManager.getMessage(viewer, MyworldGuiSettingsKeys.GUI_SETTINGS_EXPAND_ACTION_OPEN_MENU)
+                                WorldSettingsRuntimeOperation.CYCLE_PUBLISH -> plugin.languageManager.getMessage(viewer, MyworldGuiCommonKeys.GUI_COMMON_ACTION_CYCLE)
+                                WorldSettingsRuntimeOperation.MANAGE_MEMBERS -> plugin.languageManager.getMessage(viewer, MyworldGuiSettingsKeys.GUI_SETTINGS_MEMBER_ACTION_OPEN_LIST)
+                                WorldSettingsRuntimeOperation.EDIT_TAGS -> plugin.languageManager.getMessage(viewer, MyworldGuiSettingsKeys.GUI_SETTINGS_TAGS_ACTION_EDIT)
+                                WorldSettingsRuntimeOperation.EDIT_ANNOUNCEMENT -> plugin.languageManager.getMessage(viewer, MyworldGuiSettingsKeys.GUI_SETTINGS_ANNOUNCEMENT_ACTION_SET_MESSAGE)
+                                WorldSettingsRuntimeOperation.TOGGLE_NOTIFICATION -> plugin.languageManager.getMessage(viewer, MyworldGuiSettingsKeys.GUI_SETTINGS_NOTIFICATION_ACTION_TOGGLE)
+                                WorldSettingsRuntimeOperation.OPEN_ENVIRONMENT -> plugin.languageManager.getMessage(viewer, MyworldGuiSettingsKeys.GUI_SETTINGS_ENVIRONMENT_ACTION_OPEN)
+                                WorldSettingsRuntimeOperation.OPEN_CRITICAL -> plugin.languageManager.getMessage(viewer, MyworldGuiSettingsKeys.GUI_SETTINGS_CRITICAL_ACTION_OPEN)
+                                WorldSettingsRuntimeOperation.MANAGE_VISITORS -> plugin.languageManager.getMessage(viewer, MyworldGuiSettingsKeys.GUI_SETTINGS_VISITORS_ACTION_OPEN)
+                                WorldSettingsRuntimeOperation.MANAGE_PORTALS -> plugin.languageManager.getMessage(viewer, MyworldGuiSettingsKeys.GUI_SETTINGS_PORTALS_ACTION_OPEN)
+                                else -> plugin.languageManager.getMessage(viewer, CommonKeys.GUI_COMMON_ACTION_OPEN)
                         }
 
                         private fun decorationSpec(material: Material): GuiItemSpec =
@@ -606,7 +616,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         GuiHelper.inventoryTitle(
                                 lang.getComponent(
                                         player,
-                                        "gui.settings.title",
+                                        MyworldGuiSettingsKeys.GUI_SETTINGS_TITLE,
                                         mapOf("world" to worldData.name)
                                 )
                         )
@@ -698,17 +708,17 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         slot = tourSettingSlot,
                                         material = Material.PALE_OAK_BOAT,
                                         name = me.awabi2048.myworldmanager.util.fixedLabelName(
-                                                lang.getMessage(player, "gui.tour.worldmenu.display"),
+                                                lang.getMessage(player, MyworldGuiCommonKeys.GUI_TOUR_WORLDMENU_DISPLAY),
                                                 GuiNameStyle.DEFAULT,
                                         ),
                                         role = GuiElementRole.ACTION,
-                                        description = lang.getMessageList(player, "gui.tour.worldmenu.blocks.description"),
+                                        description = lang.getMessageList(player, MyworldGuiCommonKeys.GUI_TOUR_WORLDMENU_BLOCKS_DESCRIPTION),
                                         actions = contractMenuActions(
                                                 player,
                                                 worldData,
                                                 WorldSettingsAction.MANAGE_TOUR,
                                                 WorldSettingsRuntimeOperation.TOUR,
-                                                listOf(lang.getMessage(player, "gui.tour.worldmenu.action.open")),
+                                                listOf(lang.getMessage(player, MyworldGuiCommonKeys.GUI_TOUR_WORLDMENU_ACTION_OPEN)),
                                         ),
                                         sounds = plugin.worldSettingsActionService
                                                 .contract(player, worldData, WorldSettingsAction.MANAGE_TOUR).sounds,
@@ -728,17 +738,17 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 Material.NAME_TAG,
                                         ),
                                         name = me.awabi2048.myworldmanager.util.fixedLabelName(
-                                                lang.getMessage(player, "gui.settings.info.display"),
+                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_INFO_DISPLAY),
                                                 GuiNameStyle.DEFAULT,
                                         ),
                                         role = GuiElementRole.ACTION,
-                                        description = lang.getMessageList(player, "gui.settings.info.blocks.summary"),
+                                        description = lang.getMessageList(player, MyworldGuiSettingsKeys.GUI_SETTINGS_INFO_BLOCKS_SUMMARY),
                                         actions = contractMenuActions(
                                                 player,
                                                 worldData,
                                                 WorldSettingsAction.EDIT_INFO,
                                                 WorldSettingsRuntimeOperation.EDIT_INFO,
-                                                listOf(lang.getMessage(player, "gui.settings.info.action.open_editor")),
+                                                listOf(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_INFO_ACTION_OPEN_EDITOR)),
                                         ),
                                         sounds = plugin.worldSettingsActionService
                                                 .contract(player, worldData, WorldSettingsAction.EDIT_INFO).sounds,
@@ -752,7 +762,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         MyWorldManagerApi.getWorldService()?.isPlayerInWorld(player, worldData) == true
                 val warningLore =
                         if (!isInWorld)
-                                lang.getMessage(player, "gui.settings.common.must_be_in_world")
+                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_COMMON_MUST_BE_IN_WORLD)
                         else null
 
                 // アイコン変更
@@ -767,17 +777,17 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 Material.ANVIL,
                                         ),
                                         name = me.awabi2048.myworldmanager.util.fixedLabelName(
-                                                lang.getMessage(player, "gui.settings.icon.display"),
+                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_ICON_DISPLAY),
                                                 GuiNameStyle.DEFAULT,
                                         ),
                                         role = GuiElementRole.ACTION,
-                                        description = lang.getMessageList(player, "gui.settings.icon.blocks.description"),
+                                        description = lang.getMessageList(player, MyworldGuiSettingsKeys.GUI_SETTINGS_ICON_BLOCKS_DESCRIPTION),
                                         actions = contractMenuActions(
                                                 player,
                                                 worldData,
                                                 WorldSettingsAction.SELECT_ICON,
                                                 WorldSettingsRuntimeOperation.SELECT_ICON,
-                                                listOf(lang.getMessage(player, "gui.settings.icon.action.start_selection")),
+                                                listOf(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_ICON_ACTION_START_SELECTION)),
                                         ),
                                         sounds = plugin.worldSettingsActionService
                                                 .contract(player, worldData, WorldSettingsAction.SELECT_ICON).sounds,
@@ -788,11 +798,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 // スポーン位置変更
                 if (hasManagePermission) {
                         val spawnActions = if (isBedrock) {
-                                listOf(lang.getMessage(player, "gui.settings.spawn.action.set_both"))
+                                listOf(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_SPAWN_ACTION_SET_BOTH))
                         } else {
                                 listOf(
-                                        lang.getMessage(player, "gui.settings.spawn.action.set_guest"),
-                                        lang.getMessage(player, "gui.settings.spawn.action.set_member"),
+                                        lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_SPAWN_ACTION_SET_GUEST),
+                                        lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_SPAWN_ACTION_SET_MEMBER),
                                 )
                         }
                         inventory.setMenuEntry(
@@ -805,11 +815,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 Material.COMPASS,
                                         ),
                                         name = me.awabi2048.myworldmanager.util.fixedLabelName(
-                                                lang.getMessage(player, "gui.settings.spawn.display"),
+                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_SPAWN_DISPLAY),
                                                 GuiNameStyle.DEFAULT,
                                         ),
                                         role = if (isInWorld) GuiElementRole.ACTION else GuiElementRole.CONTENT,
-                                        description = lang.getMessageList(player, "gui.settings.spawn.blocks.description"),
+                                        description = lang.getMessageList(player, MyworldGuiSettingsKeys.GUI_SETTINGS_SPAWN_BLOCKS_DESCRIPTION),
                                         warnings = if (!isInWorld && warningLore != null) listOf(warningLore) else emptyList(),
                                         actions = contractMenuActions(
                                                 player,
@@ -839,36 +849,36 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         val expansionData = buildList {
                                 if (currentLevel != WorldData.EXPANSION_LEVEL_SPECIAL) {
                                         add(GuiMenuEntryData(
-                                                lang.getMessage(player, "gui.settings.expand.blocks.current_level"),
+                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_EXPAND_BLOCKS_CURRENT_LEVEL),
                                                 "$currentLevel/$maxLevel",
                                                 GuiValueTone.PRIMARY,
                                         ))
                                         if (currentLevel < maxLevel) {
                                                 add(GuiMenuEntryData(
-                                                        lang.getMessage(player, "gui.settings.expand.blocks.next_level"),
+                                                        lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_EXPAND_BLOCKS_NEXT_LEVEL),
                                                         currentLevel + 1,
                                                         GuiValueTone.PRIMARY,
                                                 ))
                                                 if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
                                                         add(GuiMenuEntryData(
-                                                                lang.getMessage(player, "gui.settings.expand.blocks.cost"),
+                                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_EXPAND_BLOCKS_COST),
                                                                 cost,
                                                                 if (stats.worldPoint < cost) GuiValueTone.DANGER else GuiValueTone.PRIMARY,
                                                         ))
                                                         add(GuiMenuEntryData(
-                                                                lang.getMessage(player, "gui.settings.expand.blocks.owned_points"),
+                                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_EXPAND_BLOCKS_OWNED_POINTS),
                                                                 stats.worldPoint,
                                                                 GuiValueTone.PRIMARY,
                                                         ))
                                                 }
                                         }
                                         add(GuiMenuEntryData(
-                                                lang.getMessage(player, "gui.settings.expand.blocks.border_center"),
+                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_EXPAND_BLOCKS_BORDER_CENTER),
                                                 "X: ${formatDecimal(borderInfo.centerX)} / Z: ${formatDecimal(borderInfo.centerZ)}",
                                                 GuiValueTone.PRIMARY,
                                         ))
                                         add(GuiMenuEntryData(
-                                                lang.getMessage(player, "gui.settings.expand.blocks.border_size"),
+                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_EXPAND_BLOCKS_BORDER_SIZE),
                                                 formatDecimal(borderInfo.size),
                                                 GuiValueTone.PRIMARY,
                                         ))
@@ -876,14 +886,14 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         }
                         val expansionWarnings = buildList {
                                 if (currentLevel == WorldData.EXPANSION_LEVEL_SPECIAL) {
-                                        add(lang.getMessage(player, "gui.settings.expand.blocks.no_border"))
+                                        add(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_EXPAND_BLOCKS_NO_BORDER))
                                 } else {
                                         if (currentLevel >= maxLevel) {
-                                                add(lang.getMessage(player, "gui.settings.expand.blocks.max_reached"))
+                                                add(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_EXPAND_BLOCKS_MAX_REACHED))
                                         } else if (MyWorldManagerApi.isWorldPointEconomyEnabled() && stats.worldPoint < cost) {
                                                 add(lang.getMessage(
                                                         player,
-                                                        "gui.settings.expand.blocks.shortage",
+                                                        MyworldGuiSettingsKeys.GUI_SETTINGS_EXPAND_BLOCKS_SHORTAGE,
                                                         mapOf("shortage" to cost - stats.worldPoint),
                                                 ))
                                         }
@@ -895,7 +905,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         add(menuGestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
                                                 MenuGesture.LEFT,
-                                                lang.getMessage(player, "gui.settings.expand.action.open_menu"),
+                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_EXPAND_ACTION_OPEN_MENU),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.EXPAND.name),
                                                 safety = MenuActionSafety.NAVIGATION_ONLY,
                                         ))
@@ -904,7 +914,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         add(menuGestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
                                                 MenuGesture.RIGHT,
-                                                lang.getMessage(player, "gui.settings.expand.action.teleport_center"),
+                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_EXPAND_ACTION_TELEPORT_CENTER),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.EXPAND.name),
                                                 safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT,
                                         ))
@@ -920,11 +930,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 Material.FILLED_MAP,
                                         ),
                                         name = me.awabi2048.myworldmanager.util.fixedLabelName(
-                                                lang.getMessage(player, "gui.settings.expand.display"),
+                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_EXPAND_DISPLAY),
                                                 GuiNameStyle.DEFAULT,
                                         ),
                                         role = if (expansionActions.isEmpty()) GuiElementRole.CONTENT else GuiElementRole.ACTION,
-                                        description = lang.getMessageList(player, "gui.settings.expand.blocks.description"),
+                                        description = lang.getMessageList(player, MyworldGuiSettingsKeys.GUI_SETTINGS_EXPAND_BLOCKS_DESCRIPTION),
                                         data = expansionData,
                                         warnings = expansionWarnings,
                                         actions = expansionActions,
@@ -938,34 +948,34 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 listOf(
                                         Triple(
                                                 PublishLevel.PUBLIC,
-                                                lang.getMessage(player, "publish_level.public"),
+                                                lang.getMessage(player, MyworldPublishLevelKeys.PUBLISH_LEVEL_PUBLIC),
                                                 lang.getMessage(
                                                         player,
-                                                        "publish_level.color.public"
+                                                        MyworldPublishLevelKeys.PUBLISH_LEVEL_COLOR_PUBLIC
                                                 )
                                         ),
                                         Triple(
                                                 PublishLevel.FRIEND,
-                                                lang.getMessage(player, "publish_level.friend"),
+                                                lang.getMessage(player, MyworldPublishLevelKeys.PUBLISH_LEVEL_FRIEND),
                                                 lang.getMessage(
                                                         player,
-                                                        "publish_level.color.friend"
+                                                        MyworldPublishLevelKeys.PUBLISH_LEVEL_COLOR_FRIEND
                                                 )
                                         ),
                                         Triple(
                                                 PublishLevel.PRIVATE,
-                                                lang.getMessage(player, "publish_level.private"),
+                                                lang.getMessage(player, MyworldPublishLevelKeys.PUBLISH_LEVEL_PRIVATE),
                                                 lang.getMessage(
                                                         player,
-                                                        "publish_level.color.private"
+                                                        MyworldPublishLevelKeys.PUBLISH_LEVEL_COLOR_PRIVATE
                                                 )
                                         ),
                                         Triple(
                                                 PublishLevel.LOCKED,
-                                                lang.getMessage(player, "publish_level.locked"),
+                                                lang.getMessage(player, MyworldPublishLevelKeys.PUBLISH_LEVEL_LOCKED),
                                                 lang.getMessage(
                                                         player,
-                                                        "publish_level.color.locked"
+                                                        MyworldPublishLevelKeys.PUBLISH_LEVEL_COLOR_LOCKED
                                                 )
                                         )
                                 )
@@ -980,7 +990,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 Material.OAK_DOOR,
                                         ),
                                         name = me.awabi2048.myworldmanager.util.fixedLabelName(
-                                                lang.getMessage(player, "gui.settings.publish.display"),
+                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_PUBLISH_DISPLAY),
                                                 GuiNameStyle.DEFAULT,
                                         ),
                                         role = GuiElementRole.ACTION,
@@ -994,7 +1004,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         actions = listOf(menuGestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
                                                 MenuGesture.ANY,
-                                                lang.getMessage(player, "gui.common.action.cycle"),
+                                                lang.getMessage(player, MyworldGuiCommonKeys.GUI_COMMON_ACTION_CYCLE),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.CYCLE_PUBLISH.name),
                                                 safety = MenuActionSafety.REVERSIBLE,
                                                 reversibleContract = MwmMenuActionSemantics.contract("world-publish"),
@@ -1010,15 +1020,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                         // メンバーリストの作成 (Owner > Moderator > Member)
                         val allMemberData = mutableListOf<Triple<UUID, String, String>>()
-                        val ownerRoleColor = lang.getMessage(player, "publish_level.color.owner")
+                        val ownerRoleColor = lang.getMessage(player, MyworldPublishLevelKeys.PUBLISH_LEVEL_COLOR_OWNER)
                         val moderatorRoleColor =
-                                lang.getMessage(player, "publish_level.color.moderator")
-                        val memberRoleColor = lang.getMessage(player, "publish_level.color.member")
+                                lang.getMessage(player, MyworldPublishLevelKeys.PUBLISH_LEVEL_COLOR_MODERATOR)
+                        val memberRoleColor = lang.getMessage(player, MyworldPublishLevelKeys.PUBLISH_LEVEL_COLOR_MEMBER)
 
                         allMemberData.add(
                                 Triple(
                                         worldData.owner,
-                                        lang.getMessage(player, "gui.settings.member.role_owner"),
+                                        lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_MEMBER_ROLE_OWNER),
                                         ownerRoleColor
                                 )
                         )
@@ -1028,7 +1038,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 it,
                                                 lang.getMessage(
                                                         player,
-                                                        "gui.settings.member.role_moderator"
+                                                        MyworldGuiSettingsKeys.GUI_SETTINGS_MEMBER_ROLE_MODERATOR
                                                 ),
                                                 moderatorRoleColor
                                         )
@@ -1040,7 +1050,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 it,
                                                 lang.getMessage(
                                                         player,
-                                                        "gui.settings.member.role_member"
+                                                        MyworldGuiSettingsKeys.GUI_SETTINGS_MEMBER_ROLE_MEMBER
                                                 ),
                                                 memberRoleColor
                                         )
@@ -1049,23 +1059,23 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                         val maxDisplay = 10
                         val displayList = allMemberData.take(maxDisplay).joinToString("\n") { (uuid, role, color) ->
-                                val playerName = PlayerNameUtil.getNameOrDefault(uuid, lang.getMessage(player, "general.unknown"))
+                                val playerName = PlayerNameUtil.getNameOrDefault(uuid, lang.getMessage(player, CommonKeys.GENERAL_UNKNOWN))
 
                                 val isOnline = Bukkit.getOfflinePlayer(uuid).isOnline
                                 val nameColor = if (isOnline) "§a" else "§7"
                                 val debugColor = "§8"
 
-                                if (role == lang.getMessage(player, "gui.settings.member.role_member")) {
-                                    lang.getMessage(player, "gui.settings.member.list_item_member", mapOf("name_color" to nameColor, "player" to playerName))
+                                if (role == lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_MEMBER_ROLE_MEMBER)) {
+                                    lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_MEMBER_LIST_ITEM_MEMBER, mapOf("name_color" to nameColor, "player" to playerName))
                                 } else {
-                                    lang.getMessage(player, "gui.settings.member.list_item", mapOf("debug_color" to debugColor, "role_color" to color, "role" to role, "name_color" to nameColor, "player" to playerName))
+                                    lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_MEMBER_LIST_ITEM, mapOf("debug_color" to debugColor, "role_color" to color, "role" to role, "name_color" to nameColor, "player" to playerName))
                                 }
                         }
 
                         val memberListString = if (allMemberData.size > maxDisplay) {
                                 val remaining = allMemberData.size - maxDisplay
                                 val onlineCount = allMemberData.drop(maxDisplay).count { Bukkit.getOfflinePlayer(it.first).isOnline }
-                                displayList + "\n" + lang.getMessage(player, "gui.settings.member.more_members", mapOf("remaining" to remaining, "online" to onlineCount))
+                                displayList + "\n" + lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_MEMBER_MORE_MEMBERS, mapOf("remaining" to remaining, "online" to onlineCount))
                         } else {
                                 displayList
                         }
@@ -1084,20 +1094,20 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 GuiMenuEntrySpec(
                                         slot = 25,
                                         material = plugin.menuConfigManager.getIconMaterial("world_settings", "members", Material.PLAYER_HEAD),
-                                        name = me.awabi2048.myworldmanager.util.fixedLabelName(lang.getMessage(player, "gui.settings.member.display"), GuiNameStyle.DEFAULT),
+                                        name = me.awabi2048.myworldmanager.util.fixedLabelName(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_MEMBER_DISPLAY), GuiNameStyle.DEFAULT),
                                         role = GuiElementRole.ACTION,
-                                        description = lang.getMessageList(player, "gui.settings.member.blocks.description") +
-                                                lang.getMessage(player, "gui.settings.member.blocks.list_header") +
+                                        description = lang.getMessageList(player, MyworldGuiSettingsKeys.GUI_SETTINGS_MEMBER_BLOCKS_DESCRIPTION) +
+                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_MEMBER_BLOCKS_LIST_HEADER) +
                                                 memberListString.lines().filter(String::isNotBlank).map(String::trim),
                                         data = listOf(
-                                                GuiMenuEntryData(lang.getMessage(player, "gui.settings.member.blocks.count"), totalCount, GuiValueTone.INFO),
-                                                GuiMenuEntryData(lang.getMessage(player, "gui.settings.member.blocks.pending_requests"), pendingRequestCount, GuiValueTone.PRIMARY),
-                                                GuiMenuEntryData(lang.getMessage(player, "gui.settings.member.blocks.pending_invites"), pendingInviteCount, GuiValueTone.PRIMARY),
+                                                GuiMenuEntryData(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_MEMBER_BLOCKS_COUNT), totalCount, GuiValueTone.INFO),
+                                                GuiMenuEntryData(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_MEMBER_BLOCKS_PENDING_REQUESTS), pendingRequestCount, GuiValueTone.PRIMARY),
+                                                GuiMenuEntryData(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_MEMBER_BLOCKS_PENDING_INVITES), pendingInviteCount, GuiValueTone.PRIMARY),
                                         ),
                                         actions = contractMenuActions(
                                                 player, worldData, WorldSettingsAction.MANAGE_MEMBERS,
                                                 WorldSettingsRuntimeOperation.MANAGE_MEMBERS,
-                                                listOf(lang.getMessage(player, "gui.settings.member.action.open_list")),
+                                                listOf(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_MEMBER_ACTION_OPEN_LIST)),
                                         ),
                                         sounds = plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.MANAGE_MEMBERS).sounds,
                                 ),
@@ -1108,7 +1118,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 // タグ設定
                 if (hasManagePermission) {
                         val tagsList = if (worldData.tags.isEmpty()) {
-                                lang.getMessage(player, "gui.settings.tags.lore_empty")
+                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_TAGS_LORE_EMPTY)
                         } else {
                                 worldData.tags.joinToString(", ") { plugin.worldTagManager.getDisplayName(player, it) }
                         }
@@ -1123,23 +1133,23 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 Material.BOOK,
                                         ),
                                         name = me.awabi2048.myworldmanager.util.fixedLabelName(
-                                                lang.getMessage(player, "gui.settings.tags.display"),
+                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_TAGS_DISPLAY),
                                                 GuiNameStyle.DEFAULT,
                                         ),
                                         role = GuiElementRole.ACTION,
                                         description = lang.getMessageList(
                                                 player,
-                                                "gui.settings.tags.blocks.description",
+                                                MyworldGuiSettingsKeys.GUI_SETTINGS_TAGS_BLOCKS_DESCRIPTION,
                                         ),
                                         data = listOf(GuiMenuEntryData(
-                                                lang.getMessage(player, "gui.settings.tags.blocks.current_label"),
+                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_TAGS_BLOCKS_CURRENT_LABEL),
                                                 tagsList,
                                                 GuiValueTone.WARNING,
                                         )),
                                         actions = listOf(menuGestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
                                                 MenuGesture.ANY,
-                                                lang.getMessage(player, "gui.settings.tags.action.edit"),
+                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_TAGS_ACTION_EDIT),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.EDIT_TAGS.name),
                                                 safety = MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE,
                                         )),
@@ -1156,17 +1166,17 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 GuiMenuEntrySpec(
                                         slot = announcementSettingSlot,
                                         material = plugin.menuConfigManager.getIconMaterial("world_settings", "announcement", Material.OAK_SIGN),
-                                        name = me.awabi2048.myworldmanager.util.fixedLabelName(lang.getMessage(player, "gui.settings.announcement.display"), GuiNameStyle.DEFAULT),
+                                        name = me.awabi2048.myworldmanager.util.fixedLabelName(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_ANNOUNCEMENT_DISPLAY), GuiNameStyle.DEFAULT),
                                         role = GuiElementRole.ACTION,
-                                        description = lang.getMessageList(player, "gui.settings.announcement.blocks.description") +
+                                        description = lang.getMessageList(player, MyworldGuiSettingsKeys.GUI_SETTINGS_ANNOUNCEMENT_BLOCKS_DESCRIPTION) +
                                                 if (messagePreview.isEmpty()) emptyList() else
-                                                        listOf(lang.getMessage(player, "gui.settings.announcement.preview_header")) + messagePreview,
+                                                        listOf(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_ANNOUNCEMENT_PREVIEW_HEADER)) + messagePreview,
                                         actions = contractMenuActions(
                                                 player, worldData, WorldSettingsAction.EDIT_ANNOUNCEMENT,
                                                 WorldSettingsRuntimeOperation.EDIT_ANNOUNCEMENT,
                                                 listOf(
-                                                        lang.getMessage(player, "gui.settings.announcement.action.set_message"),
-                                                        lang.getMessage(player, "gui.settings.announcement.action.reset_message"),
+                                                        lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_ANNOUNCEMENT_ACTION_SET_MESSAGE),
+                                                        lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_ANNOUNCEMENT_ACTION_RESET_MESSAGE),
                                                 ),
                                         ),
                                         sounds = plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.EDIT_ANNOUNCEMENT).sounds,
@@ -1176,14 +1186,14 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 // 通知設定
                 if (hasManagePermission) {
-                        val onlineColor = lang.getMessage(player, "publish_level.color.online")
-                        val offlineColor = lang.getMessage(player, "publish_level.color.offline")
+                        val onlineColor = lang.getMessage(player, MyworldPublishLevelKeys.PUBLISH_LEVEL_COLOR_ONLINE)
+                        val offlineColor = lang.getMessage(player, MyworldPublishLevelKeys.PUBLISH_LEVEL_COLOR_OFFLINE)
                         val statusColor =
                                 if (worldData.notificationEnabled) onlineColor else offlineColor
                         val statusText =
                                 if (worldData.notificationEnabled)
-                                        lang.getMessage(player, "gui.settings.notification.on")
-                                else lang.getMessage(player, "gui.settings.notification.off")
+                                        lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_NOTIFICATION_ON)
+                                else lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_NOTIFICATION_OFF)
 
                         inventory.setMenuEntry(
                                 player,
@@ -1191,23 +1201,23 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         slot = notificationSettingSlot,
                                         material = Material.BELL,
                                         name = me.awabi2048.myworldmanager.util.fixedLabelName(
-                                                lang.getMessage(player, "gui.settings.notification.display"),
+                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_NOTIFICATION_DISPLAY),
                                                 GuiNameStyle.DEFAULT,
                                         ),
                                         role = GuiElementRole.ACTION,
                                         description = lang.getMessageList(
                                                 player,
-                                                "gui.settings.notification.blocks.description",
+                                                MyworldGuiSettingsKeys.GUI_SETTINGS_NOTIFICATION_BLOCKS_DESCRIPTION,
                                         ),
                                         data = listOf(GuiMenuEntryData(
-                                                lang.getMessage(player, "gui.settings.notification.blocks.current_label"),
+                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_NOTIFICATION_BLOCKS_CURRENT_LABEL),
                                                 statusText,
                                                 if (worldData.notificationEnabled) GuiValueTone.SUCCESS else GuiValueTone.MUTED,
                                         )),
                                         actions = listOf(menuGestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
                                                 MenuGesture.ANY,
-                                                lang.getMessage(player, "gui.settings.notification.action.toggle"),
+                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_NOTIFICATION_ACTION_TOGGLE),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.TOGGLE_NOTIFICATION.name),
                                                 safety = MenuActionSafety.REVERSIBLE,
                                                 reversibleContract = MwmMenuActionSemantics.contract("world-notification"),
@@ -1229,19 +1239,19 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 Material.GRASS_BLOCK,
                                         ),
                                         name = me.awabi2048.myworldmanager.util.fixedLabelName(
-                                                lang.getMessage(player, "gui.settings.environment.display"),
+                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_ENVIRONMENT_DISPLAY),
                                                 GuiNameStyle.DEFAULT,
                                         ),
                                         role = if (isInWorld) GuiElementRole.ACTION else GuiElementRole.CONTENT,
                                         description = lang.getMessageList(
                                                 player,
-                                                "gui.settings.environment.blocks.summary",
+                                                MyworldGuiSettingsKeys.GUI_SETTINGS_ENVIRONMENT_BLOCKS_SUMMARY,
                                         ),
                                         warnings = if (!isInWorld && warningLore != null) listOf(warningLore) else emptyList(),
                                         actions = if (isInWorld) listOf(menuGestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
                                                 MenuGesture.ANY,
-                                                lang.getMessage(player, "gui.settings.environment.action.open"),
+                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_ENVIRONMENT_ACTION_OPEN),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.OPEN_ENVIRONMENT.name),
                                                 safety = MenuActionSafety.NAVIGATION_ONLY,
                                         )) else emptyList(),
@@ -1263,19 +1273,19 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 Material.TNT,
                                         ),
                                         name = me.awabi2048.myworldmanager.util.fixedLabelName(
-                                                lang.getMessage(player, "gui.settings.critical.display"),
+                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_CRITICAL_DISPLAY),
                                                 GuiNameStyle.DEFAULT,
                                         ),
                                         role = if (isInWorld) GuiElementRole.ACTION else GuiElementRole.CONTENT,
                                         description = lang.getMessageList(
                                                 player,
-                                                "gui.settings.critical.blocks.summary",
+                                                MyworldGuiSettingsKeys.GUI_SETTINGS_CRITICAL_BLOCKS_SUMMARY,
                                         ),
                                         warnings = if (!isInWorld && warningLore != null) listOf(warningLore) else emptyList(),
                                         actions = if (isInWorld) listOf(menuGestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
                                                 MenuGesture.ANY,
-                                                lang.getMessage(player, "gui.settings.critical.action.open"),
+                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_CRITICAL_ACTION_OPEN),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.OPEN_CRITICAL.name),
                                                 safety = MenuActionSafety.NAVIGATION_ONLY,
                                         )) else emptyList(),
@@ -1297,13 +1307,13 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val publishLevelColor =
                         when (worldData.publishLevel) {
                                 PublishLevel.PUBLIC ->
-                                        lang.getMessage(player, "publish_level.color.public")
+                                        lang.getMessage(player, MyworldPublishLevelKeys.PUBLISH_LEVEL_COLOR_PUBLIC)
                                 PublishLevel.FRIEND ->
-                                        lang.getMessage(player, "publish_level.color.friend")
+                                        lang.getMessage(player, MyworldPublishLevelKeys.PUBLISH_LEVEL_COLOR_FRIEND)
                                 PublishLevel.PRIVATE ->
-                                        lang.getMessage(player, "publish_level.color.private")
+                                        lang.getMessage(player, MyworldPublishLevelKeys.PUBLISH_LEVEL_COLOR_PRIVATE)
                                 PublishLevel.LOCKED ->
-                                        lang.getMessage(player, "publish_level.color.locked")
+                                        lang.getMessage(player, MyworldPublishLevelKeys.PUBLISH_LEVEL_COLOR_LOCKED)
                         }
                 val publishLevelName =
                         lang.getMessage(
@@ -1346,11 +1356,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 val createdInfo =
                         if (daysSinceCreation == 0L) {
-                                lang.getMessage(player, "gui.admin.world_item.created_info_today")
+                                lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_CREATED_INFO_TODAY)
                         } else {
                                 lang.getMessage(
                                         player,
-                                        "gui.admin.world_item.created_info_days",
+                                        MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_CREATED_INFO_DAYS,
                                         mapOf("days" to daysSinceCreation)
                                 )
                         }
@@ -1367,7 +1377,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 name = me.awabi2048.myworldmanager.util.fixedLabelName(
                                         lang.getMessage(
                                                 player,
-                                                "gui.settings.main_info.name",
+                                                MyworldGuiSettingsKeys.GUI_SETTINGS_MAIN_INFO_NAME,
                                                 mapOf("world" to worldData.name),
                                         ),
                                         GuiNameStyle.DEFAULT,
@@ -1376,36 +1386,36 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 description = if (worldData.description.isEmpty()) emptyList() else listOf(worldData.description),
                                 data = buildList {
                                         add(GuiMenuEntryData(
-                                                lang.getMessage(player, "gui.settings.main_info.owner_label"),
-                                                PlayerNameUtil.getNameOrDefault(worldData.owner, lang.getMessage(player, "general.unknown")),
+                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_MAIN_INFO_OWNER_LABEL),
+                                                PlayerNameUtil.getNameOrDefault(worldData.owner, lang.getMessage(player, CommonKeys.GENERAL_UNKNOWN)),
                                                 GuiValueTone.INFO,
                                         ))
                                         if (!isSpecialExpansion) {
                                                 add(GuiMenuEntryData(
-                                                        lang.getMessage(player, "gui.settings.main_info.expansion_label"),
+                                                        lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_MAIN_INFO_EXPANSION_LABEL),
                                                         "$currentLevel/$maxLevel",
                                                         GuiValueTone.PRIMARY,
                                                 ))
                                         }
                                         add(GuiMenuEntryData(
-                                                lang.getMessage(player, "gui.settings.main_info.created_label"),
+                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_MAIN_INFO_CREATED_LABEL),
                                                 "${displayFormatter.format(createdAtDate)} ($createdInfo)",
                                                 GuiValueTone.PRIMARY,
                                         ))
                                         if (!isSpecialExpansion) {
                                                 add(GuiMenuEntryData(
-                                                        lang.getMessage(player, "gui.settings.main_info.archive_label"),
-                                                        lang.getMessage(player, "gui.settings.main_info.archive_value", mapOf("days" to daysRemaining, "date" to dateStr)),
+                                                        lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_MAIN_INFO_ARCHIVE_LABEL),
+                                                        lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_MAIN_INFO_ARCHIVE_VALUE, mapOf("days" to daysRemaining, "date" to dateStr)),
                                                         GuiValueTone.WARNING,
                                                 ))
                                         }
                                         add(GuiMenuEntryData(
-                                                lang.getMessage(player, "gui.settings.main_info.members_label"),
-                                                lang.getMessage(player, "gui.settings.main_info.members_value", mapOf("members" to totalCount, "online" to onlineCount)),
+                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_MAIN_INFO_MEMBERS_LABEL),
+                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_MAIN_INFO_MEMBERS_VALUE, mapOf("members" to totalCount, "online" to onlineCount)),
                                         ))
-                                        add(GuiMenuEntryData(lang.getMessage(player, "gui.settings.main_info.publish_label"), publishLevelName))
-                                        add(GuiMenuEntryData(lang.getMessage(player, "gui.settings.main_info.favorites_label"), worldData.favorite, GuiValueTone.DANGER))
-                                        add(GuiMenuEntryData(lang.getMessage(player, "gui.settings.main_info.visitors_label"), worldData.recentVisitors.sum(), GuiValueTone.INFO))
+                                        add(GuiMenuEntryData(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_MAIN_INFO_PUBLISH_LABEL), publishLevelName))
+                                        add(GuiMenuEntryData(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_MAIN_INFO_FAVORITES_LABEL), worldData.favorite, GuiValueTone.DANGER))
+                                        add(GuiMenuEntryData(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_MAIN_INFO_VISITORS_LABEL), worldData.recentVisitors.sum(), GuiValueTone.INFO))
                                         add(GuiMenuEntryData("UUID", worldData.uuid, GuiValueTone.MUTED))
                                 },
                                 actions = contractMenuActions(
@@ -1413,7 +1423,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         worldData,
                                         WorldSettingsAction.WARP,
                                         WorldSettingsRuntimeOperation.WARP,
-                                        listOf(lang.getMessage(player, "gui.player_world.world_item.warp")),
+                                        listOf(lang.getMessage(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_WORLD_ITEM_WARP)),
                                 ),
                                 sounds = warpContract.sounds,
                         ),
@@ -1433,13 +1443,13 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 GuiMenuEntrySpec(
                                         slot = 51,
                                         material = plugin.menuConfigManager.getIconMaterial("world_settings", "visitor", Material.SPYGLASS),
-                                        name = me.awabi2048.myworldmanager.util.fixedLabelName(lang.getMessage(player, "gui.settings.visitors.display"), GuiNameStyle.DEFAULT),
+                                        name = me.awabi2048.myworldmanager.util.fixedLabelName(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_VISITORS_DISPLAY), GuiNameStyle.DEFAULT),
                                         role = GuiElementRole.ACTION,
-                                        data = listOf(GuiMenuEntryData(lang.getMessage(player, "gui.settings.visitors.blocks.count_label"), visitors.size, GuiValueTone.PRIMARY)),
+                                        data = listOf(GuiMenuEntryData(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_VISITORS_BLOCKS_COUNT_LABEL), visitors.size, GuiValueTone.PRIMARY)),
                                         actions = listOf(menuGestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
                                                 MenuGesture.ANY,
-                                                lang.getMessage(player, "gui.settings.visitors.action.open"),
+                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_VISITORS_ACTION_OPEN),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.MANAGE_VISITORS.name),
                                                 safety = MenuActionSafety.NAVIGATION_ONLY,
                                         )),
@@ -1460,13 +1470,13 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 GuiMenuEntrySpec(
                                         slot = 52,
                                         material = plugin.menuConfigManager.getIconMaterial("world_settings", "portals", Material.END_PORTAL_FRAME),
-                                        name = me.awabi2048.myworldmanager.util.fixedLabelName(lang.getMessage(player, "gui.settings.portals.display"), GuiNameStyle.DEFAULT),
+                                        name = me.awabi2048.myworldmanager.util.fixedLabelName(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_PORTALS_DISPLAY), GuiNameStyle.DEFAULT),
                                         role = GuiElementRole.ACTION,
-                                        description = lang.getMessageList(player, "gui.settings.portals.blocks.summary"),
+                                        description = lang.getMessageList(player, MyworldGuiSettingsKeys.GUI_SETTINGS_PORTALS_BLOCKS_SUMMARY),
                                         actions = contractMenuActions(
                                                 player, worldData, WorldSettingsAction.MANAGE_PORTALS,
                                                 WorldSettingsRuntimeOperation.MANAGE_PORTALS,
-                                                listOf(lang.getMessage(player, "gui.settings.portals.action.open")),
+                                                listOf(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_PORTALS_ACTION_OPEN)),
                                         ),
                                         sounds = plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.MANAGE_PORTALS).sounds,
                                 ),
@@ -1629,15 +1639,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 worldData: WorldData,
         ): InventoryMenuView {
                 val lang = plugin.languageManager
-                val title = lang.getMessage(player, "gui.archive_confirm.title")
+                val title = lang.getMessage(player, MyworldGuiAdminKeys.GUI_ARCHIVE_CONFIRM_TITLE)
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size, player)
                 inventory.applyStandardFrame()
 
                 val infoItem =
                         createItem(
                                 Material.PAPER,
-                                lang.getMessage(player, "gui.archive.question"),
-                                me.awabi2048.myworldmanager.util.semanticLore(lang.getMessageList(player, "gui.archive.warning").map(GuiLoreLine::Warning), GuiLoreFrame.BOTH),
+                                lang.getMessage(player, MyworldGuiCommonKeys.GUI_ARCHIVE_QUESTION),
+                                me.awabi2048.myworldmanager.util.semanticLore(lang.getMessageList(player, MyworldGuiCommonKeys.GUI_ARCHIVE_WARNING).map(GuiLoreLine::Warning), GuiLoreFrame.BOTH),
                                 ItemTag.TYPE_GUI_INFO
                         )
                 inventory.setItem(22, infoItem)
@@ -1646,8 +1656,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         20,
                         createItem(
                                 Material.LIME_WOOL,
-                                lang.getMessage(player, "gui.archive.confirm"),
-                                me.awabi2048.myworldmanager.util.semanticLore(listOf(GuiLoreLine.Text(lang.getMessage(player, "gui.archive.confirm_desc"))), GuiLoreFrame.NONE),
+                                lang.getMessage(player, MyworldGuiCommonKeys.GUI_ARCHIVE_CONFIRM),
+                                me.awabi2048.myworldmanager.util.semanticLore(listOf(GuiLoreLine.Text(lang.getMessage(player, MyworldGuiCommonKeys.GUI_ARCHIVE_CONFIRM_DESC))), GuiLoreFrame.NONE),
                                 ItemTag.TYPE_GUI_CONFIRM
                         )
                 )
@@ -1655,8 +1665,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         24,
                         createItem(
                                 Material.RED_WOOL,
-                                lang.getMessage(player, "gui.archive.cancel"),
-                                me.awabi2048.myworldmanager.util.semanticLore(listOf(GuiLoreLine.Text(lang.getMessage(player, "gui.archive.cancel_desc"))), GuiLoreFrame.NONE),
+                                lang.getMessage(player, MyworldGuiCommonKeys.GUI_ARCHIVE_CANCEL),
+                                me.awabi2048.myworldmanager.util.semanticLore(listOf(GuiLoreLine.Text(lang.getMessage(player, MyworldGuiCommonKeys.GUI_ARCHIVE_CANCEL_DESC))), GuiLoreFrame.NONE),
                                 ItemTag.TYPE_GUI_CANCEL
                         )
                 )
@@ -1683,16 +1693,16 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 worldData: WorldData,
         ): InventoryMenuView {
                 val lang = plugin.languageManager
-                val title = lang.getMessage(player, "gui.unarchive_confirm.title")
+                val title = lang.getMessage(player, MyworldGuiAdminKeys.GUI_UNARCHIVE_CONFIRM_TITLE)
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size, player)
                 inventory.applyStandardFrame()
 
                 val infoItem =
                         createItem(
                                 Material.PAPER,
-                                lang.getMessage(player, "gui.unarchive_confirm.title"),
+                                lang.getMessage(player, MyworldGuiAdminKeys.GUI_UNARCHIVE_CONFIRM_TITLE),
                                 me.awabi2048.myworldmanager.util.semanticLore(
-                                        lang.getMessageList(player, "gui.unarchive_confirm.description").map(::warningLine),
+                                        lang.getMessageList(player, MyworldGuiAdminKeys.GUI_UNARCHIVE_CONFIRM_DESCRIPTION).map(::warningLine),
                                         GuiLoreFrame.BOTH,
                                 ),
                                 ItemTag.TYPE_GUI_INFO
@@ -1703,7 +1713,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         20,
                         createItem(
                                 Material.LIME_CONCRETE,
-                                lang.getMessage(player, "gui.common.confirm"),
+                                lang.getMessage(player, CommonKeys.GUI_COMMON_CONFIRM),
                                 GuiLoreSpec.None,
                                 ItemTag.TYPE_GUI_CONFIRM
                         )
@@ -1713,7 +1723,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         24,
                         createItem(
                                 Material.RED_CONCRETE,
-                                lang.getMessage(player, "gui.common.cancel"),
+                                lang.getMessage(player, CommonKeys.GUI_COMMON_CANCEL),
                                 GuiLoreSpec.None,
                                 ItemTag.TYPE_GUI_CANCEL
                         )
@@ -1747,7 +1757,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 worldData: WorldData,
         ): InventoryMenuView {
                 val lang = plugin.languageManager
-                val title = lang.getMessage(player, "gui.expansion.method_title")
+                val title = lang.getMessage(player, MyworldGuiCommonKeys.GUI_EXPANSION_METHOD_TITLE)
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size, player)
                 // ヘッダー・フッター
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
@@ -1757,8 +1767,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         20,
                         createItem(
                                 Material.MAP,
-                                lang.getMessage(player, "gui.expansion.center_expand.name"),
-                                me.awabi2048.myworldmanager.util.semanticLore(lang.getMessageList(player, "gui.expansion.center_expand.lore").map(::descriptionLine), GuiLoreFrame.BOTH),
+                                lang.getMessage(player, MyworldGuiCommonKeys.GUI_EXPANSION_CENTER_EXPAND_NAME),
+                                me.awabi2048.myworldmanager.util.semanticLore(lang.getMessageList(player, MyworldGuiCommonKeys.GUI_EXPANSION_CENTER_EXPAND_LORE).map(::descriptionLine), GuiLoreFrame.BOTH),
                                 null
                         )
                 )
@@ -1771,8 +1781,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         24,
                         createItem(
                                 Material.COMPASS,
-                                lang.getMessage(player, "gui.expansion.direction_expand.name"),
-                                me.awabi2048.myworldmanager.util.semanticLore(lang.getMessageList(player, "gui.expansion.direction_expand.lore").map(::descriptionLine), GuiLoreFrame.BOTH),
+                                lang.getMessage(player, MyworldGuiCommonKeys.GUI_EXPANSION_DIRECTION_EXPAND_NAME),
+                                me.awabi2048.myworldmanager.util.semanticLore(lang.getMessageList(player, MyworldGuiCommonKeys.GUI_EXPANSION_DIRECTION_EXPAND_LORE).map(::descriptionLine), GuiLoreFrame.BOTH),
                                 null
                         )
                 )
@@ -1796,8 +1806,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 42,
                                 createItem(
                                         Material.RECOVERY_COMPASS,
-                                        lang.getMessage(player, "gui.expansion.step_back.name"),
-                                        me.awabi2048.myworldmanager.util.semanticLore(lang.getMessageList(player, "gui.expansion.step_back.lore").map(::descriptionLine), GuiLoreFrame.BOTH),
+                                        lang.getMessage(player, MyworldGuiCommonKeys.GUI_EXPANSION_STEP_BACK_NAME),
+                                        me.awabi2048.myworldmanager.util.semanticLore(lang.getMessageList(player, MyworldGuiCommonKeys.GUI_EXPANSION_STEP_BACK_LORE).map(::descriptionLine), GuiLoreFrame.BOTH),
                                         null
                                 )
                         )
@@ -1836,22 +1846,22 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 worldData: WorldData,
         ): InventoryMenuView {
                 val lang = plugin.languageManager
-                val title = lang.getMessage(player, "gui.confirm.step_back_expansion.title")
+                val title = lang.getMessage(player, MyworldGuiCommonKeys.GUI_CONFIRM_STEP_BACK_EXPANSION_TITLE)
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size, player)
                 inventory.applyStandardFrame()
 
                 val loreLines = mutableListOf<GuiLoreLine>(
-                        GuiLoreLine.Warning(lang.getMessage(player, "gui.confirm.step_back_expansion.question"))
+                        GuiLoreLine.Warning(lang.getMessage(player, MyworldGuiCommonKeys.GUI_CONFIRM_STEP_BACK_EXPANSION_QUESTION))
                 )
-                loreLines += lang.getMessageList(player, "gui.confirm.step_back_expansion.description").map(::warningLine)
+                loreLines += lang.getMessageList(player, MyworldGuiCommonKeys.GUI_CONFIRM_STEP_BACK_EXPANSION_DESCRIPTION).map(::warningLine)
                 if (worldData.latestBorderExpansionRecord()?.modified == true) {
-                        loreLines += lang.getMessageList(player, "gui.confirm.step_back_expansion.modified_warning").map(GuiLoreLine::Warning)
+                        loreLines += lang.getMessageList(player, MyworldGuiCommonKeys.GUI_CONFIRM_STEP_BACK_EXPANSION_MODIFIED_WARNING).map(GuiLoreLine::Warning)
                 }
                 loreLines += getSpawnAdjustmentWarning(player, worldData, borderResetTargetForStepBack(worldData))
                 val infoItem =
                         createItem(
                                 Material.RECOVERY_COMPASS,
-                                lang.getMessage(player, "gui.confirm.step_back_expansion.display"),
+                                lang.getMessage(player, MyworldGuiCommonKeys.GUI_CONFIRM_STEP_BACK_EXPANSION_DISPLAY),
                                 me.awabi2048.myworldmanager.util.semanticLore(loreLines, GuiLoreFrame.BOTH),
                                 ItemTag.TYPE_GUI_INFO
                         )
@@ -1861,7 +1871,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         20,
                         createItem(
                                 Material.LIME_WOOL,
-                                lang.getMessage(player, "gui.common.cancel"),
+                                lang.getMessage(player, CommonKeys.GUI_COMMON_CANCEL),
                                 GuiLoreSpec.None,
                                 ItemTag.TYPE_GUI_CANCEL
                         )
@@ -1870,7 +1880,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         24,
                         createItem(
                                 Material.RED_WOOL,
-                                lang.getMessage(player, "gui.common.confirm"),
+                                lang.getMessage(player, CommonKeys.GUI_COMMON_CONFIRM),
                                 GuiLoreSpec.None,
                                 ItemTag.TYPE_GUI_CONFIRM
                         )
@@ -1904,7 +1914,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 cost: Int,
         ): InventoryMenuView {
                 val lang = plugin.languageManager
-                val title = lang.getMessage(player, "gui.expansion.confirm_title")
+                val title = lang.getMessage(player, MyworldGuiCommonKeys.GUI_EXPANSION_CONFIRM_TITLE)
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size, player)
                 // ヘッダー・フッター
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
@@ -1925,23 +1935,23 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val directionName = lang.getMessage(player, directionKey)
                 val methodText =
                         if (direction == null)
-                                lang.getMessage(player, "gui.expansion.method_center")
+                                lang.getMessage(player, MyworldGuiCommonKeys.GUI_EXPANSION_METHOD_CENTER)
                         else
                                 lang.getMessage(
                                         player,
-                                        "gui.expansion.method_direction",
+                                        MyworldGuiCommonKeys.GUI_EXPANSION_METHOD_DIRECTION,
                                         mapOf("direction" to directionName)
                                 )
                 inventory.setItem(
                         22,
                         createItem(
                                 Material.BOOK,
-                                lang.getMessage(player, "gui.expansion.confirm_info"),
+                                lang.getMessage(player, MyworldGuiCommonKeys.GUI_EXPANSION_CONFIRM_INFO),
                                 me.awabi2048.myworldmanager.util.semanticLore(listOf(
-                                        GuiLoreLine.Data(lang.getMessage(player, "gui.expansion.method_label"), methodText, "§f"),
-                                        GuiLoreLine.Data(lang.getMessage(player, "gui.expansion.cost_label"), cost, "§e"),
+                                        GuiLoreLine.Data(lang.getMessage(player, MyworldGuiCommonKeys.GUI_EXPANSION_METHOD_LABEL), methodText, "§f"),
+                                        GuiLoreLine.Data(lang.getMessage(player, MyworldGuiCommonKeys.GUI_EXPANSION_COST_LABEL), cost, "§e"),
                                         GuiLoreLine.Spacer,
-                                        GuiLoreLine.Warning(lang.getMessage(player, "gui.expansion.warning"))
+                                        GuiLoreLine.Warning(lang.getMessage(player, MyworldGuiCommonKeys.GUI_EXPANSION_WARNING))
                                 ), GuiLoreFrame.BOTH),
                                 ItemTag.TYPE_GUI_INFO
                         )
@@ -1951,8 +1961,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         20,
                         createItem(
                                 Material.LIME_WOOL,
-                                lang.getMessage(player, "gui.expansion.execute"),
-                                me.awabi2048.myworldmanager.util.semanticLore(listOf(GuiLoreLine.Text(lang.getMessage(player, "gui.expansion.execute_desc"))), GuiLoreFrame.NONE),
+                                lang.getMessage(player, MyworldGuiCommonKeys.GUI_EXPANSION_EXECUTE),
+                                me.awabi2048.myworldmanager.util.semanticLore(listOf(GuiLoreLine.Text(lang.getMessage(player, MyworldGuiCommonKeys.GUI_EXPANSION_EXECUTE_DESC))), GuiLoreFrame.NONE),
                                 ItemTag.TYPE_GUI_CONFIRM
                         )
                 )
@@ -1960,8 +1970,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         24,
                         createItem(
                                 Material.RED_WOOL,
-                                lang.getMessage(player, "gui.expansion.cancel"),
-                                me.awabi2048.myworldmanager.util.semanticLore(listOf(GuiLoreLine.Text(lang.getMessage(player, "gui.expansion.cancel_desc"))), GuiLoreFrame.NONE),
+                                lang.getMessage(player, MyworldGuiCommonKeys.GUI_EXPANSION_CANCEL),
+                                me.awabi2048.myworldmanager.util.semanticLore(listOf(GuiLoreLine.Text(lang.getMessage(player, MyworldGuiCommonKeys.GUI_EXPANSION_CANCEL_DESC))), GuiLoreFrame.NONE),
                                 ItemTag.TYPE_GUI_CANCEL
                         )
                 )
@@ -2002,20 +2012,20 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 page: Int,
         ): InventoryMenuView {
                 val lang = plugin.languageManager
-                val title = lang.getMessage(player, "gui.member_management.title")
+                val title = lang.getMessage(player, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_TITLE)
 
                 val allEntries = mutableListOf<MemberManagementEntry>()
                 allEntries.add(
                         MemberManagementEntry(
                                 playerUuid = worldData.owner,
-                                role = lang.getMessage(player, "role.owner")
+                                role = lang.getMessage(player, MyworldRoleKeys.ROLE_OWNER)
                         )
                 )
                 worldData.moderators.forEach {
                         allEntries.add(
                                 MemberManagementEntry(
                                         playerUuid = it,
-                                        role = lang.getMessage(player, "role.moderator")
+                                        role = lang.getMessage(player, MyworldRoleKeys.ROLE_MODERATOR)
                                 )
                         )
                 }
@@ -2023,7 +2033,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         allEntries.add(
                                 MemberManagementEntry(
                                         playerUuid = it,
-                                        role = lang.getMessage(player, "role.member")
+                                        role = lang.getMessage(player, MyworldRoleKeys.ROLE_MEMBER)
                                 )
                         )
                 }
@@ -2124,7 +2134,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 inventory.setElement(
                                         createMemberEntrySpec(
                                                 player, slot, entry.playerUuid,
-                                                entry.role ?: lang.getMessage(player, "role.member"),
+                                                entry.role ?: lang.getMessage(player, MyworldRoleKeys.ROLE_MEMBER),
                                                 canManageRoles, capabilityView, capabilityArguments,
                                         ),
                                 )
@@ -2171,21 +2181,21 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         GuiMenuEntrySpec(
                                 slot = footerStart + 6,
                                 material = Material.PAPER,
-                                name = me.awabi2048.myworldmanager.util.fixedLabelName(lang.getMessage(player, "gui.member_management.invite.name"), GuiNameStyle.DEFAULT),
+                                name = me.awabi2048.myworldmanager.util.fixedLabelName(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_INVITE_NAME), GuiNameStyle.DEFAULT),
                                 role = GuiElementRole.ACTION,
-                                description = listOf(lang.getMessage(player, "gui.member_management.invite.desc")),
+                                description = listOf(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_INVITE_DESC)),
                                 actions = buildList {
                                         add(menuGestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
                                                 MenuGesture.PLAIN_LEFT_RIGHT,
-                                                lang.getMessage(player, "gui.member_management.invite.action.normal"),
+                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_INVITE_ACTION_NORMAL),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.INVITE_MEMBER.name),
                                                 safety = MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE,
                                         ))
                                         if (canForceAddMember) add(menuGestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
                                                 MenuGesture.SHIFT_LEFT_RIGHT,
-                                                lang.getMessage(player, "gui.member_management.invite.action.force"),
+                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_INVITE_ACTION_FORCE),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.INVITE_MEMBER.name),
                                                 safety = MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE,
                                         ))
@@ -2199,24 +2209,24 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         val ownerName =
                                 PlayerNameUtil.getNameOrDefault(
                                         worldData.owner,
-                                        lang.getMessage(player, "general.unknown")
+                                        lang.getMessage(player, CommonKeys.GENERAL_UNKNOWN)
                                 )
                         inventory.setMenuEntry(
                                 player,
                                 GuiMenuEntrySpec(
                                         slot = footerStart + 2,
                                         material = Material.NAME_TAG,
-                                        name = me.awabi2048.myworldmanager.util.fixedLabelName(lang.getMessage(player, "gui.member_management.admin_owner_reset.name"), GuiNameStyle.DEFAULT),
+                                        name = me.awabi2048.myworldmanager.util.fixedLabelName(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_ADMIN_OWNER_RESET_NAME), GuiNameStyle.DEFAULT),
                                         role = GuiElementRole.ACTION,
                                         data = listOf(GuiMenuEntryData(
-                                                lang.getMessage(player, "gui.member_management.admin_owner_reset.current_owner"),
+                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_ADMIN_OWNER_RESET_CURRENT_OWNER),
                                                 ownerName,
                                                 GuiValueTone.PRIMARY,
                                         )),
                                         actions = listOf(menuGestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
                                                 MenuGesture.ANY,
-                                                lang.getMessage(player, "gui.member_management.admin_owner_reset.action"),
+                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_ADMIN_OWNER_RESET_ACTION),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.MEMBER_OWNER_RESET.name),
                                                 safety = MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE,
                                         )),
@@ -2267,8 +2277,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 targetUuid: UUID,
         ): InventoryMenuView {
                 val lang = plugin.languageManager
-                val targetName = PlayerNameUtil.getNameOrDefault(targetUuid, lang.getMessage(player, "general.unknown"))
-                val title = lang.getMessage(player, "gui.member_management.pending_cancel_confirm.title")
+                val targetName = PlayerNameUtil.getNameOrDefault(targetUuid, lang.getMessage(player, CommonKeys.GENERAL_UNKNOWN))
+                val title = lang.getMessage(player, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_PENDING_CANCEL_CONFIRM_TITLE)
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size, player)
                 inventory.applyStandardFrame()
 
@@ -2280,7 +2290,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         name = me.awabi2048.myworldmanager.util.fixedLabelName(
                                                 lang.getMessage(
                                                         player,
-                                                        "gui.member_management.pending_item.name",
+                                                        MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_PENDING_ITEM_NAME,
                                                         mapOf("player" to targetName),
                                                 ),
                                                 GuiNameStyle.DEFAULT,
@@ -2290,7 +2300,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                         GuiLoreLine.Warning(
                                                                 lang.getMessage(
                                                                         player,
-                                                                        "gui.member_management.pending_cancel_confirm.body",
+                                                                        MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_PENDING_CANCEL_CONFIRM_BODY,
                                                                         mapOf("player" to targetName),
                                                                 ),
                                                         ),
@@ -2308,7 +2318,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         20,
                         createItem(
                                 Material.LIME_WOOL,
-                                lang.getMessage(player, "gui.member_management.pending_cancel_confirm.cancel"),
+                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_PENDING_CANCEL_CONFIRM_CANCEL),
                                 GuiLoreSpec.None,
                                 ItemTag.TYPE_GUI_CANCEL
                         )
@@ -2317,7 +2327,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         24,
                         createItem(
                                 Material.RED_WOOL,
-                                lang.getMessage(player, "gui.member_management.pending_cancel_confirm.confirm"),
+                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_PENDING_CANCEL_CONFIRM_CONFIRM),
                                 GuiLoreSpec.None,
                                 ItemTag.TYPE_GUI_CONFIRM
                         )
@@ -2354,21 +2364,21 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 targetUuid: UUID,
         ): InventoryMenuView {
                 val lang = plugin.languageManager
-                val targetName = PlayerNameUtil.getNameOrDefault(targetUuid, lang.getMessage(player, "general.unknown"))
+                val targetName = PlayerNameUtil.getNameOrDefault(targetUuid, lang.getMessage(player, CommonKeys.GENERAL_UNKNOWN))
                 val title =
                         lang.getMessage(
                                 player,
-                                "gui.member_management.remove_confirm.title",
+                                MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_REMOVE_CONFIRM_TITLE,
                                 mapOf("player" to targetName)
                         )
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size, player)
                 inventory.applyStandardFrame()
 
                 val lore = me.awabi2048.myworldmanager.util.semanticLore(listOf(
-                        GuiLoreLine.Warning(lang.getMessage(player, "gui.member_management.remove_confirm.question")),
-                        GuiLoreLine.Data(lang.getMessage(player, "gui.member_management.remove_confirm.player_label"), targetName, "§f"),
-                        GuiLoreLine.Data(lang.getMessage(player, "gui.member_management.remove_confirm.world_label"), worldData.name, "§f"),
-                        GuiLoreLine.Danger(lang.getMessage(player, "gui.member_management.remove_confirm.access_warning"))
+                        GuiLoreLine.Warning(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_REMOVE_CONFIRM_QUESTION)),
+                        GuiLoreLine.Data(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_REMOVE_CONFIRM_PLAYER_LABEL), targetName, "§f"),
+                        GuiLoreLine.Data(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_REMOVE_CONFIRM_WORLD_LABEL), worldData.name, "§f"),
+                        GuiLoreLine.Danger(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_REMOVE_CONFIRM_ACCESS_WARNING))
                 ), GuiLoreFrame.BOTH)
 
                 val infoItem =
@@ -2376,9 +2386,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 Material.PLAYER_HEAD,
                                 lang.getMessage(
                                         player,
-                                        "gui.member_management.remove_confirm.title",
+                                        MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_REMOVE_CONFIRM_TITLE,
                                         mapOf(
-                                                "player" to PlayerNameUtil.getNameOrDefault(targetUuid, lang.getMessage(player, "general.unknown"))
+                                                "player" to PlayerNameUtil.getNameOrDefault(targetUuid, lang.getMessage(player, CommonKeys.GENERAL_UNKNOWN))
 
                                         )
                                 ),
@@ -2393,12 +2403,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 Material.LIME_WOOL,
                                 lang.getMessage(
                                         player,
-                                        "gui.member_management.remove_confirm.cancel"
+                                        MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_REMOVE_CONFIRM_CANCEL
                                 ),
                                 me.awabi2048.myworldmanager.util.semanticLore(listOf(GuiLoreLine.Text(
                                         lang.getMessage(
                                                 player,
-                                                "gui.member_management.remove_confirm.cancel_desc"
+                                                MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_REMOVE_CONFIRM_CANCEL_DESC
                                         )
                                 )), GuiLoreFrame.NONE),
                                 ItemTag.TYPE_GUI_CANCEL
@@ -2410,12 +2420,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 Material.RED_WOOL,
                                 lang.getMessage(
                                         player,
-                                        "gui.member_management.remove_confirm.confirm"
+                                        MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_REMOVE_CONFIRM_CONFIRM
                                 ),
                                 me.awabi2048.myworldmanager.util.semanticLore(listOf(GuiLoreLine.Warning(
                                         lang.getMessage(
                                                 player,
-                                                "gui.member_management.remove_confirm.confirm_desc"
+                                                MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_REMOVE_CONFIRM_CONFIRM_DESC
                                         )
                                 )), GuiLoreFrame.NONE),
                                 ItemTag.TYPE_GUI_CONFIRM
@@ -2454,21 +2464,21 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 targetUuid: UUID,
         ): InventoryMenuView {
                 val lang = plugin.languageManager
-                val targetName = PlayerNameUtil.getNameOrDefault(targetUuid, lang.getMessage(player, "general.unknown"))
+                val targetName = PlayerNameUtil.getNameOrDefault(targetUuid, lang.getMessage(player, CommonKeys.GENERAL_UNKNOWN))
                 val title =
                         lang.getMessage(
                                 player,
-                                "gui.member_management.transfer_confirm.title",
+                                MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_TRANSFER_CONFIRM_TITLE,
                                 mapOf("player" to targetName)
                         )
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size, player)
                 inventory.applyStandardFrame()
 
                 val lore = me.awabi2048.myworldmanager.util.semanticLore(listOf(
-                        GuiLoreLine.Warning(lang.getMessage(player, "gui.member_management.transfer_confirm.question")),
-                        GuiLoreLine.Data(lang.getMessage(player, "gui.member_management.transfer_confirm.player_label"), targetName, "§f"),
-                        GuiLoreLine.Data(lang.getMessage(player, "gui.member_management.transfer_confirm.world_label"), worldData.name, "§f"),
-                        GuiLoreLine.Danger(lang.getMessage(player, "gui.member_management.transfer_confirm.owner_warning"))
+                        GuiLoreLine.Warning(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_TRANSFER_CONFIRM_QUESTION)),
+                        GuiLoreLine.Data(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_TRANSFER_CONFIRM_PLAYER_LABEL), targetName, "§f"),
+                        GuiLoreLine.Data(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_TRANSFER_CONFIRM_WORLD_LABEL), worldData.name, "§f"),
+                        GuiLoreLine.Danger(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_TRANSFER_CONFIRM_OWNER_WARNING))
                 ), GuiLoreFrame.BOTH)
 
                 val infoItem =
@@ -2476,7 +2486,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 Material.PLAYER_HEAD,
                                 lang.getMessage(
                                         player,
-                                        "gui.member_management.transfer_confirm.title",
+                                        MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_TRANSFER_CONFIRM_TITLE,
                                         mapOf("player" to targetName)
                                 ),
                                 lore,
@@ -2490,12 +2500,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 Material.LIME_WOOL,
                                 lang.getMessage(
                                         player,
-                                        "gui.member_management.transfer_confirm.cancel"
+                                        MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_TRANSFER_CONFIRM_CANCEL
                                 ),
                                 me.awabi2048.myworldmanager.util.semanticLore(listOf(GuiLoreLine.Text(
                                         lang.getMessage(
                                                 player,
-                                                "gui.member_management.transfer_confirm.cancel_desc"
+                                                MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_TRANSFER_CONFIRM_CANCEL_DESC
                                         )
                                 )), GuiLoreFrame.NONE),
                                 ItemTag.TYPE_GUI_CANCEL
@@ -2507,12 +2517,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 Material.RED_WOOL,
                                 lang.getMessage(
                                         player,
-                                        "gui.member_management.transfer_confirm.confirm"
+                                        MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_TRANSFER_CONFIRM_CONFIRM
                                 ),
                                 me.awabi2048.myworldmanager.util.semanticLore(listOf(GuiLoreLine.Warning(
                                         lang.getMessage(
                                                 player,
-                                                "gui.member_management.transfer_confirm.confirm_desc"
+                                                MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_TRANSFER_CONFIRM_CONFIRM_DESC
                                         )
                                 )), GuiLoreFrame.NONE),
                                 ItemTag.TYPE_GUI_CONFIRM
@@ -2541,7 +2551,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 var displayName = player.name
                 if (displayName == null) {
                         val stats = plugin.playerStatsRepository.findByUuid(uuid)
-                        displayName = stats.lastName ?: lang.getMessage(viewer, "general.unknown")
+                        displayName = stats.lastName ?: lang.getMessage(viewer, CommonKeys.GENERAL_UNKNOWN)
                 }
 
                 val payload = mapOf(
@@ -2593,43 +2603,43 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                         presentationActionLines += GuiLoreLine.Interaction(viewer, gesture.clicks, action.text)
                 }
-                if (capabilityView == null && isOwner && role != lang.getMessage(viewer, "role.owner")) {
-                        val nextRole = if (role == lang.getMessage(null as Player?, "role.member")) {
-                                lang.getMessage(null as Player?, "role.moderator")
+                if (capabilityView == null && isOwner && role != lang.getMessage(viewer, MyworldRoleKeys.ROLE_OWNER)) {
+                        val nextRole = if (role == lang.getMessage(null as Player?, MyworldRoleKeys.ROLE_MEMBER)) {
+                                lang.getMessage(null as Player?, MyworldRoleKeys.ROLE_MODERATOR)
                         } else {
-                                lang.getMessage(null as Player?, "role.member")
+                                lang.getMessage(null as Player?, MyworldRoleKeys.ROLE_MEMBER)
                         }
                         addHostAction(
                                 MenuGesture.PLAIN_LEFT,
-                                lang.getMessage(viewer, "gui.member_management.item.action.change_role", mapOf("next_role" to nextRole)),
+                                lang.getMessage(viewer, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_ITEM_ACTION_CHANGE_ROLE, mapOf("next_role" to nextRole)),
                                 MenuActionSafety.REVERSIBLE,
                         )
                 }
-                if (isOwner && role != lang.getMessage(viewer, "role.owner")) {
+                if (isOwner && role != lang.getMessage(viewer, MyworldRoleKeys.ROLE_OWNER)) {
                         addHostAction(
                                 MenuGesture.SHIFT_LEFT,
-                                lang.getMessage(viewer, "gui.member_management.item.action.transfer_owner"),
+                                lang.getMessage(viewer, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_ITEM_ACTION_TRANSFER_OWNER),
                                 MenuActionSafety.CONFIRM_ENTRY,
                         )
                         addHostAction(
                                 MenuGesture.SHIFT_RIGHT,
-                                lang.getMessage(viewer, "gui.member_management.item.action.remove_member"),
+                                lang.getMessage(viewer, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_ITEM_ACTION_REMOVE_MEMBER),
                                 MenuActionSafety.CONFIRM_ENTRY,
                         )
                 }
                 val targetInfoLines = buildList {
                         if (isOnline) {
-                                add(GuiLoreLine.Text(lang.getMessage(viewer, "gui.member_management.item.online_label")))
+                                add(GuiLoreLine.Text(lang.getMessage(viewer, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_ITEM_ONLINE_LABEL)))
                         } else {
                                 add(GuiLoreLine.Data(
-                                        lang.getMessage(viewer, "gui.member_management.item.last_online_label"),
+                                        lang.getMessage(viewer, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_ITEM_LAST_ONLINE_LABEL),
                                         stats.lastOnline?.let { formatStoredDateTimeForPlayer(viewer, it) }
-                                                ?: lang.getMessage(viewer, "general.unknown"),
+                                                ?: lang.getMessage(viewer, CommonKeys.GENERAL_UNKNOWN),
                                         GuiValueTone.DEFAULT.colorCode,
                                 ))
                         }
                         add(GuiLoreLine.Data(
-                                lang.getMessage(viewer, "gui.member_management.item.role_label"),
+                                lang.getMessage(viewer, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_ITEM_ROLE_LABEL),
                                 role,
                                 GuiValueTone.DEFAULT.colorCode,
                         ))
@@ -2733,7 +2743,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 page: Int,
         ): InventoryMenuView {
                 val lang = plugin.languageManager
-                val title = lang.getMessage(player, "gui.visitor_management.title")
+                val title = lang.getMessage(player, MyworldGuiSettingsKeys.GUI_VISITOR_MANAGEMENT_TITLE)
                 val world = Bukkit.getWorld("my_world.${worldData.uuid}")
                 val visitorPlayers =
                         world?.players.orEmpty().filter {
@@ -2769,7 +2779,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 layout.previousPageSlot,
                                 createItem(
                                         Material.ARROW,
-                                        lang.getMessage(player, "gui.common.prev_page"),
+                                        lang.getMessage(player, CommonKeys.GUI_COMMON_PREV_PAGE),
                                         GuiLoreSpec.None,
                                         null
                                 )
@@ -2785,7 +2795,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 layout.nextPageSlot,
                                 createItem(
                                         Material.ARROW,
-                                        lang.getMessage(player, "gui.common.next_page"),
+                                        lang.getMessage(player, CommonKeys.GUI_COMMON_NEXT_PAGE),
                                         GuiLoreSpec.None,
                                         null
                                 )
@@ -2841,11 +2851,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 targetUuid: UUID,
         ): InventoryMenuView {
                 val lang = plugin.languageManager
-                val targetName = PlayerNameUtil.getNameOrDefault(targetUuid, lang.getMessage(player, "general.unknown"))
+                val targetName = PlayerNameUtil.getNameOrDefault(targetUuid, lang.getMessage(player, CommonKeys.GENERAL_UNKNOWN))
                 val title =
                         lang.getMessage(
                                 player,
-                                "gui.visitor_management.kick_confirm.title",
+                                MyworldGuiSettingsKeys.GUI_VISITOR_MANAGEMENT_KICK_CONFIRM_TITLE,
                                 mapOf("player" to targetName)
                         )
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size, player)
@@ -2857,11 +2867,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 Material.PAPER,
                                 lang.getMessage(
                                         player,
-                                        "gui.visitor_management.kick_confirm.question"
+                                        MyworldGuiSettingsKeys.GUI_VISITOR_MANAGEMENT_KICK_CONFIRM_QUESTION
                                 ),
                                 me.awabi2048.myworldmanager.util.semanticLore(listOf(
                                         GuiLoreLine.Data(
-                                                lang.getMessage(player, "gui.visitor_management.kick_confirm.player_label"),
+                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_VISITOR_MANAGEMENT_KICK_CONFIRM_PLAYER_LABEL),
                                                 targetName,
                                                 "§f"
                                         ),
@@ -2878,12 +2888,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 Material.LIME_WOOL,
                                 lang.getMessage(
                                         player,
-                                        "gui.visitor_management.kick_confirm.cancel"
+                                        MyworldGuiSettingsKeys.GUI_VISITOR_MANAGEMENT_KICK_CONFIRM_CANCEL
                                 ),
                                 me.awabi2048.myworldmanager.util.semanticLore(listOf(GuiLoreLine.Text(
                                         lang.getMessage(
                                                 player,
-                                                "gui.visitor_management.kick_confirm.cancel_desc"
+                                                MyworldGuiSettingsKeys.GUI_VISITOR_MANAGEMENT_KICK_CONFIRM_CANCEL_DESC
                                         )
                                 )), GuiLoreFrame.NONE),
                                 ItemTag.TYPE_GUI_CANCEL
@@ -2895,12 +2905,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 Material.RED_WOOL,
                                 lang.getMessage(
                                         player,
-                                        "gui.visitor_management.kick_confirm.confirm"
+                                        MyworldGuiSettingsKeys.GUI_VISITOR_MANAGEMENT_KICK_CONFIRM_CONFIRM
                                 ),
                                 me.awabi2048.myworldmanager.util.semanticLore(listOf(GuiLoreLine.Warning(
                                         lang.getMessage(
                                                 player,
-                                                "gui.visitor_management.kick_confirm.confirm_desc"
+                                                MyworldGuiSettingsKeys.GUI_VISITOR_MANAGEMENT_KICK_CONFIRM_CONFIRM_DESC
                                         )
                                 )), GuiLoreFrame.NONE),
                                 ItemTag.TYPE_GUI_CONFIRM
@@ -2920,31 +2930,31 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val lang = plugin.languageManager
                 val player = Bukkit.getOfflinePlayer(uuid)
                 val isOnline = player.isOnline
-                val onlineColor = lang.getMessage(viewer, "publish_level.color.online")
-                val offlineColor = lang.getMessage(viewer, "publish_level.color.offline")
+                val onlineColor = lang.getMessage(viewer, MyworldPublishLevelKeys.PUBLISH_LEVEL_COLOR_ONLINE)
+                val offlineColor = lang.getMessage(viewer, MyworldPublishLevelKeys.PUBLISH_LEVEL_COLOR_OFFLINE)
                 val color = if (isOnline) onlineColor else offlineColor
 
                 val statusText =
-                        if (isOnline) lang.getMessage(viewer, "status.online")
-                        else lang.getMessage(viewer, "status.offline")
+                        if (isOnline) lang.getMessage(viewer, CommonKeys.STATUS_ONLINE)
+                        else lang.getMessage(viewer, CommonKeys.STATUS_OFFLINE)
                 return GuiMenuEntrySpec(
                         slot = slot,
                         material = Material.PLAYER_HEAD,
                         name = GuiNameSpec.FixedLabel(
                                 LegacyComponentSerializer.legacySection().deserialize(
-                                        "$color${player.name ?: lang.getMessage(viewer, "general.unknown")}"
+                                        "$color${player.name ?: lang.getMessage(viewer, CommonKeys.GENERAL_UNKNOWN)}"
                                 ).decoration(TextDecoration.ITALIC, false),
                         ),
                         role = if (canKick) GuiElementRole.ACTION else GuiElementRole.CONTENT,
                         data = listOf(GuiMenuEntryData(
-                                lang.getMessage(viewer, "gui.member_management.item.online_label"),
+                                lang.getMessage(viewer, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_ITEM_ONLINE_LABEL),
                                 statusText,
                                 if (isOnline) GuiValueTone.SUCCESS else GuiValueTone.DANGER,
                         )),
                         actions = if (canKick) listOf(menuGestureAction(
                                 ACTION_RUNTIME_DISPATCH,
                                 MenuGesture.ANY,
-                                lang.getMessage(viewer, "gui.visitor_management.item.kick"),
+                                lang.getMessage(viewer, MyworldGuiSettingsKeys.GUI_VISITOR_MANAGEMENT_ITEM_KICK),
                                 mapOf(
                                         ROUTE_OPERATION to WorldSettingsRuntimeOperation.VISITOR.name,
                                         ROUTE_TARGET_UUID to uuid.toString(),
@@ -3053,7 +3063,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 worldData: WorldData,
         ): InventoryMenuView {
                 val lang = plugin.languageManager
-                val title = lang.getMessage(player, "gui.critical.title")
+                val title = lang.getMessage(player, MyworldGuiCommonKeys.GUI_CRITICAL_TITLE)
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size, player)
                 val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
                 inventory.applyStandardFrame()
@@ -3090,10 +3100,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                     } catch (e: Exception) { 0L }
                 } else 0L
 
-                val archiveDescription = lang.getMessageList(player, "gui.critical.archive_world.description") +
-                        if (isOnCooldown) listOf(lang.getMessage(player, "gui.critical.archive_world.remaining", mapOf("hours_remaining" to hoursRemaining))) else emptyList()
+                val archiveDescription = lang.getMessageList(player, MyworldGuiCommonKeys.GUI_CRITICAL_ARCHIVE_WORLD_DESCRIPTION) +
+                        if (isOnCooldown) listOf(lang.getMessage(player, MyworldGuiCommonKeys.GUI_CRITICAL_ARCHIVE_WORLD_REMAINING, mapOf("hours_remaining" to hoursRemaining))) else emptyList()
                 val archiveWarnings = if (isOnCooldown) {
-                        listOf(lang.getMessage(player, "gui.critical.archive_world.cooldown_warning", mapOf("cooldown_hours" to cooldownHours)))
+                        listOf(lang.getMessage(player, MyworldGuiCommonKeys.GUI_CRITICAL_ARCHIVE_WORLD_COOLDOWN_WARNING, mapOf("cooldown_hours" to cooldownHours)))
                 } else emptyList()
 
                 // 動的スロット配置: ボーダー拡張の有無に応じて決定
@@ -3112,17 +3122,17 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 GuiMenuEntrySpec(
                                         slot = 20,
                                         material = Material.BARRIER,
-                                        name = me.awabi2048.myworldmanager.util.fixedLabelName(lang.getMessage(player, "gui.critical.reset_expansion.display"), GuiNameStyle.DEFAULT),
+                                        name = me.awabi2048.myworldmanager.util.fixedLabelName(lang.getMessage(player, MyworldGuiCommonKeys.GUI_CRITICAL_RESET_EXPANSION_DISPLAY), GuiNameStyle.DEFAULT),
                                         role = GuiElementRole.ACTION,
                                         data = listOf(
-                                                GuiMenuEntryData(lang.getMessage(player, "gui.critical.reset_expansion.level_label"), currentLevel, GuiValueTone.PRIMARY),
-                                                GuiMenuEntryData(lang.getMessage(player, "gui.critical.reset_expansion.refund_label"), resetRefund, GuiValueTone.PRIMARY),
+                                                GuiMenuEntryData(lang.getMessage(player, MyworldGuiCommonKeys.GUI_CRITICAL_RESET_EXPANSION_LEVEL_LABEL), currentLevel, GuiValueTone.PRIMARY),
+                                                GuiMenuEntryData(lang.getMessage(player, MyworldGuiCommonKeys.GUI_CRITICAL_RESET_EXPANSION_REFUND_LABEL), resetRefund, GuiValueTone.PRIMARY),
                                         ),
-                                        warnings = listOf(lang.getMessage(player, "gui.critical.reset_expansion.warning")),
+                                        warnings = listOf(lang.getMessage(player, MyworldGuiCommonKeys.GUI_CRITICAL_RESET_EXPANSION_WARNING)),
                                         actions = listOf(menuGestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
                                                 MenuGesture.ANY,
-                                                lang.getMessage(player, "gui.critical.reset_expansion.action"),
+                                                lang.getMessage(player, MyworldGuiCommonKeys.GUI_CRITICAL_RESET_EXPANSION_ACTION),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.RESET_EXPANSION.name),
                                                 safety = MenuActionSafety.CONFIRM_ENTRY,
                                         )),
@@ -3134,9 +3144,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 GuiMenuEntrySpec(
                                         slot = 20,
                                         material = Material.BARRIER,
-                                        name = me.awabi2048.myworldmanager.util.fixedLabelName(lang.getMessage(player, "gui.critical.reset_expansion.display"), GuiNameStyle.DEFAULT),
+                                        name = me.awabi2048.myworldmanager.util.fixedLabelName(lang.getMessage(player, MyworldGuiCommonKeys.GUI_CRITICAL_RESET_EXPANSION_DISPLAY), GuiNameStyle.DEFAULT),
                                         role = GuiElementRole.CONTENT,
-                                        warnings = listOf(lang.getMessage(player, "gui.critical.reset_expansion.unavailable")),
+                                        warnings = listOf(lang.getMessage(player, MyworldGuiCommonKeys.GUI_CRITICAL_RESET_EXPANSION_UNAVAILABLE)),
                                 ),
                         )
                     }
@@ -3145,20 +3155,20 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                     inventory.setMenuEntry(player, criticalActionSpec(
                             player, 22,
                             plugin.menuConfigManager.getIconMaterial("world_settings", "critical", Material.CHEST),
-                            lang.getMessage(player, "gui.critical.archive_world.display"),
+                            lang.getMessage(player, MyworldGuiCommonKeys.GUI_CRITICAL_ARCHIVE_WORLD_DISPLAY),
                             archiveDescription, archiveWarnings, !isOnCooldown,
                             WorldSettingsRuntimeOperation.ARCHIVE,
-                            lang.getMessage(player, "gui.critical.archive_world.action"),
+                            lang.getMessage(player, MyworldGuiCommonKeys.GUI_CRITICAL_ARCHIVE_WORLD_ACTION),
                     ))
                 } else {
                     // 拡張なし: アーカイブは slot 24
                     inventory.setMenuEntry(player, criticalActionSpec(
                             player, 24,
                             plugin.menuConfigManager.getIconMaterial("world_settings", "critical", Material.CHEST),
-                            lang.getMessage(player, "gui.critical.archive_world.display"),
+                            lang.getMessage(player, MyworldGuiCommonKeys.GUI_CRITICAL_ARCHIVE_WORLD_DISPLAY),
                             archiveDescription, archiveWarnings, !isOnCooldown,
                             WorldSettingsRuntimeOperation.ARCHIVE,
-                            lang.getMessage(player, "gui.critical.archive_world.action"),
+                            lang.getMessage(player, MyworldGuiCommonKeys.GUI_CRITICAL_ARCHIVE_WORLD_ACTION),
                     ))
                 }
 
@@ -3167,9 +3177,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val canDeleteWorld = !MyWorldManagerApi.isWorldSlotSystemEnabled() ||
                         ownerStats.unlockedWorldSlot > 0
                 val deleteDisplayName = if (canDeleteWorld) {
-                        lang.getMessage(player, "gui.critical.delete_world.display")
+                        lang.getMessage(player, MyworldGuiCommonKeys.GUI_CRITICAL_DELETE_WORLD_DISPLAY)
                 } else {
-                        "§8§m${lang.getMessage(player, "gui.critical.delete_world.display")}"
+                        "§8§m${lang.getMessage(player, MyworldGuiCommonKeys.GUI_CRITICAL_DELETE_WORLD_DISPLAY)}"
                 }
 
                 val deleteSlot = if (isExpansionEnabled || hasSpecialExpansion) 24 else 20
@@ -3180,18 +3190,18 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 material = Material.LAVA_BUCKET,
                                 name = me.awabi2048.myworldmanager.util.fixedLabelName(deleteDisplayName, GuiNameStyle.DEFAULT),
                                 role = if (canDeleteWorld) GuiElementRole.ACTION else GuiElementRole.CONTENT,
-                                description = listOf(lang.getMessage(player, "gui.critical.delete_world.description")) +
-                                        if (canDeleteWorld) listOf(lang.getMessage(player, "gui.critical.delete_world.refund_note", mapOf("percent" to percent))) else emptyList(),
+                                description = listOf(lang.getMessage(player, MyworldGuiCommonKeys.GUI_CRITICAL_DELETE_WORLD_DESCRIPTION)) +
+                                        if (canDeleteWorld) listOf(lang.getMessage(player, MyworldGuiCommonKeys.GUI_CRITICAL_DELETE_WORLD_REFUND_NOTE, mapOf("percent" to percent))) else emptyList(),
                                 data = if (canDeleteWorld) {
-                                        listOf(GuiMenuEntryData(lang.getMessage(player, "gui.critical.delete_world.refund_label"), refund, GuiValueTone.PRIMARY))
+                                        listOf(GuiMenuEntryData(lang.getMessage(player, MyworldGuiCommonKeys.GUI_CRITICAL_DELETE_WORLD_REFUND_LABEL), refund, GuiValueTone.PRIMARY))
                                 } else {
-                                        listOf(GuiMenuEntryData(lang.getMessage(player, "gui.critical.delete_world.owner_slots_label"), ownerStats.unlockedWorldSlot, GuiValueTone.PRIMARY))
+                                        listOf(GuiMenuEntryData(lang.getMessage(player, MyworldGuiCommonKeys.GUI_CRITICAL_DELETE_WORLD_OWNER_SLOTS_LABEL), ownerStats.unlockedWorldSlot, GuiValueTone.PRIMARY))
                                 },
-                                warnings = listOf(lang.getMessage(player, if (canDeleteWorld) "gui.critical.delete_world.warning" else "gui.critical.delete_world.unavailable_slot")),
+                                warnings = listOf(lang.getMessage(player, if (canDeleteWorld) MyworldGuiCommonKeys.GUI_CRITICAL_DELETE_WORLD_WARNING else MyworldGuiCommonKeys.GUI_CRITICAL_DELETE_WORLD_UNAVAILABLE_SLOT)),
                                 actions = if (canDeleteWorld) listOf(menuGestureAction(
                                         ACTION_RUNTIME_DISPATCH,
                                         MenuGesture.ANY,
-                                        lang.getMessage(player, "gui.critical.delete_world.action"),
+                                        lang.getMessage(player, MyworldGuiCommonKeys.GUI_CRITICAL_DELETE_WORLD_ACTION),
                                         mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.DELETE_WORLD.name),
                                         safety = MenuActionSafety.CONFIRM_ENTRY,
                                 )) else emptyList(),
@@ -3263,22 +3273,22 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 worldData: WorldData,
         ): InventoryMenuView {
                 val lang = plugin.languageManager
-                val title = lang.getMessage(player, "gui.confirm.reset_expansion.title")
+                val title = lang.getMessage(player, MyworldGuiCommonKeys.GUI_CONFIRM_RESET_EXPANSION_TITLE)
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size, player)
                 inventory.applyStandardFrame()
 
                 val loreLines = mutableListOf<GuiLoreLine>(
-                        GuiLoreLine.Warning(lang.getMessage(player, "gui.confirm.reset_expansion.question"))
+                        GuiLoreLine.Warning(lang.getMessage(player, MyworldGuiCommonKeys.GUI_CONFIRM_RESET_EXPANSION_QUESTION))
                 )
-                loreLines += lang.getMessageList(player, "gui.confirm.reset_expansion.description").map(::dangerLine)
+                loreLines += lang.getMessageList(player, MyworldGuiCommonKeys.GUI_CONFIRM_RESET_EXPANSION_DESCRIPTION).map(::dangerLine)
                 if (worldData.hasModifiedBorderExpansion()) {
-                        loreLines += lang.getMessageList(player, "gui.confirm.reset_expansion.modified_warning").map(GuiLoreLine::Warning)
+                        loreLines += lang.getMessageList(player, MyworldGuiCommonKeys.GUI_CONFIRM_RESET_EXPANSION_MODIFIED_WARNING).map(GuiLoreLine::Warning)
                 }
                 loreLines += getSpawnAdjustmentWarning(player, worldData, borderResetTargetForReset(worldData))
                 val infoItem =
                         createItem(
                                 Material.PAPER,
-                                lang.getMessage(player, "gui.confirm.reset_expansion.display"),
+                                lang.getMessage(player, MyworldGuiCommonKeys.GUI_CONFIRM_RESET_EXPANSION_DISPLAY),
                                 me.awabi2048.myworldmanager.util.semanticLore(loreLines, GuiLoreFrame.BOTH),
                                 ItemTag.TYPE_GUI_INFO
                         )
@@ -3288,7 +3298,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         20,
                         createItem(
                                 Material.LIME_WOOL,
-                                lang.getMessage(player, "gui.common.cancel"),
+                                lang.getMessage(player, CommonKeys.GUI_COMMON_CANCEL),
                                 GuiLoreSpec.None,
                                 ItemTag.TYPE_GUI_CANCEL
                         )
@@ -3297,7 +3307,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         24,
                         createItem(
                                 Material.RED_WOOL,
-                                lang.getMessage(player, "gui.common.confirm"),
+                                lang.getMessage(player, CommonKeys.GUI_COMMON_CONFIRM),
                                 GuiLoreSpec.None,
                                 ItemTag.TYPE_GUI_CONFIRM
                         )
@@ -3328,22 +3338,22 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 worldData: WorldData,
         ): InventoryMenuView {
                 val lang = plugin.languageManager
-                val title = lang.getMessage(player, "gui.confirm.reset_expansion_spawn_unsafe.title")
+                val title = lang.getMessage(player, MyworldGuiCommonKeys.GUI_CONFIRM_RESET_EXPANSION_SPAWN_UNSAFE_TITLE)
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size, player)
                 inventory.applyStandardFrame()
 
                 val loreLines = mutableListOf<GuiLoreLine>(
-                        GuiLoreLine.Danger(lang.getMessage(player, "gui.confirm.reset_expansion_spawn_unsafe.warning"))
+                        GuiLoreLine.Danger(lang.getMessage(player, MyworldGuiCommonKeys.GUI_CONFIRM_RESET_EXPANSION_SPAWN_UNSAFE_WARNING))
                 )
-                loreLines += lang.getMessageList(player, "gui.confirm.reset_expansion_spawn_unsafe.description").map(GuiLoreLine::Warning)
+                loreLines += lang.getMessageList(player, MyworldGuiCommonKeys.GUI_CONFIRM_RESET_EXPANSION_SPAWN_UNSAFE_DESCRIPTION).map(GuiLoreLine::Warning)
                 if (worldData.hasModifiedBorderExpansion()) {
-                        loreLines += lang.getMessageList(player, "gui.confirm.reset_expansion.modified_warning").map(GuiLoreLine::Warning)
+                        loreLines += lang.getMessageList(player, MyworldGuiCommonKeys.GUI_CONFIRM_RESET_EXPANSION_MODIFIED_WARNING).map(GuiLoreLine::Warning)
                 }
                 loreLines += getSpawnAdjustmentWarning(player, worldData, borderResetTargetForReset(worldData))
                 val infoItem =
                         createItem(
                                 Material.MAGMA_BLOCK,
-                                lang.getMessage(player, "gui.confirm.reset_expansion_spawn_unsafe.display"),
+                                lang.getMessage(player, MyworldGuiCommonKeys.GUI_CONFIRM_RESET_EXPANSION_SPAWN_UNSAFE_DISPLAY),
                                 me.awabi2048.myworldmanager.util.semanticLore(loreLines, GuiLoreFrame.BOTH),
                                 ItemTag.TYPE_GUI_INFO
                         )
@@ -3353,8 +3363,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         20,
                         createItem(
                                 Material.LIME_WOOL,
-                                lang.getMessage(player, "gui.common.cancel"),
-                                me.awabi2048.myworldmanager.util.semanticLore(listOf(GuiLoreLine.Text(lang.getMessage(player, "gui.common.back"))), GuiLoreFrame.NONE),
+                                lang.getMessage(player, CommonKeys.GUI_COMMON_CANCEL),
+                                me.awabi2048.myworldmanager.util.semanticLore(listOf(GuiLoreLine.Text(lang.getMessage(player, CommonKeys.GUI_COMMON_BACK))), GuiLoreFrame.NONE),
                                 ItemTag.TYPE_GUI_CANCEL
                         )
                 )
@@ -3362,7 +3372,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         24,
                         createItem(
                                 Material.RED_WOOL,
-                                lang.getMessage(player, "gui.common.confirm"),
+                                lang.getMessage(player, CommonKeys.GUI_COMMON_CONFIRM),
                                 GuiLoreSpec.None,
                                 ItemTag.TYPE_GUI_CONFIRM
                         )
@@ -3398,7 +3408,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 }
                 return plugin.languageManager.getMessageList(
                         player,
-                        "gui.confirm.spawn_adjustment_warning"
+                        MyworldGuiCommonKeys.GUI_CONFIRM_SPAWN_ADJUSTMENT_WARNING
                 ).map(GuiLoreLine::Warning)
         }
 
@@ -3424,22 +3434,22 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 player: Player,
         ): InventoryMenuView {
                 val lang = plugin.languageManager
-                val title = lang.getMessage(player, "gui.confirm.delete_1.title")
+                val title = lang.getMessage(player, MyworldGuiCommonKeys.GUI_CONFIRM_DELETE_1_TITLE)
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size, player)
                 inventory.applyStandardFrame()
 
                 val lore = me.awabi2048.myworldmanager.util.semanticLore(
                         listOf(
-                                GuiLoreLine.Danger(lang.getMessage(player, "gui.confirm.delete_1.question")),
-                                GuiLoreLine.Warning(lang.getMessage(player, "gui.confirm.delete_1.warning")),
-                                GuiLoreLine.Warning(lang.getMessage(player, "gui.confirm.delete_1.next_warning"))
+                                GuiLoreLine.Danger(lang.getMessage(player, MyworldGuiCommonKeys.GUI_CONFIRM_DELETE_1_QUESTION)),
+                                GuiLoreLine.Warning(lang.getMessage(player, MyworldGuiCommonKeys.GUI_CONFIRM_DELETE_1_WARNING)),
+                                GuiLoreLine.Warning(lang.getMessage(player, MyworldGuiCommonKeys.GUI_CONFIRM_DELETE_1_NEXT_WARNING))
                         ),
                         GuiLoreFrame.BOTH
                 )
                 val infoItem =
                         createItem(
                                 Material.PAPER,
-                                lang.getMessage(player, "gui.confirm.delete_1.display"),
+                                lang.getMessage(player, MyworldGuiCommonKeys.GUI_CONFIRM_DELETE_1_DISPLAY),
                                 lore,
                                 ItemTag.TYPE_GUI_INFO
                         )
@@ -3449,7 +3459,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         20,
                         createItem(
                                 Material.LIME_WOOL,
-                                lang.getMessage(player, "gui.common.cancel"),
+                                lang.getMessage(player, CommonKeys.GUI_COMMON_CANCEL),
                                 GuiLoreSpec.None,
                                 ItemTag.TYPE_GUI_CANCEL
                         )
@@ -3458,7 +3468,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         24,
                         createItem(
                                 Material.RED_WOOL,
-                                lang.getMessage(player, "gui.confirm.delete_1.next"),
+                                lang.getMessage(player, MyworldGuiCommonKeys.GUI_CONFIRM_DELETE_1_NEXT),
                                 GuiLoreSpec.None,
                                 ItemTag.TYPE_GUI_SETTING_DELETE_WORLD
                         )
@@ -3492,17 +3502,17 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 player: Player,
         ): InventoryMenuView {
                 val lang = plugin.languageManager
-                val title = lang.getMessage(player, "gui.confirm.delete_2.title")
+                val title = lang.getMessage(player, MyworldGuiCommonKeys.GUI_CONFIRM_DELETE_2_TITLE)
                 val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size, player)
                 inventory.applyStandardFrame()
 
                 val lore = me.awabi2048.myworldmanager.util.semanticLore(
                                 listOf(
                                         com.awabi2048.ccsystem.api.gui.GuiLoreLine.Danger(
-                                                lang.getMessage(player, "gui.confirm.delete_2.danger")
+                                                lang.getMessage(player, MyworldGuiCommonKeys.GUI_CONFIRM_DELETE_2_DANGER)
                                         ),
                                         com.awabi2048.ccsystem.api.gui.GuiLoreLine.Warning(
-                                                lang.getMessage(player, "gui.confirm.delete_2.warning")
+                                                lang.getMessage(player, MyworldGuiCommonKeys.GUI_CONFIRM_DELETE_2_WARNING)
                                         )
                                 ),
                                 com.awabi2048.ccsystem.api.gui.GuiLoreFrame.BOTH
@@ -3510,7 +3520,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val infoItem =
                         createItemComponent(
                                 Material.LAVA_BUCKET,
-                                lang.getMessage(player, "gui.confirm.delete_2.display"),
+                                lang.getMessage(player, MyworldGuiCommonKeys.GUI_CONFIRM_DELETE_2_DISPLAY),
                                 lore,
                                 ItemTag.TYPE_GUI_INFO
                         )
@@ -3520,7 +3530,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         20,
                         createItem(
                                 Material.LIME_WOOL,
-                                lang.getMessage(player, "gui.common.cancel"),
+                                lang.getMessage(player, CommonKeys.GUI_COMMON_CANCEL),
                                 GuiLoreSpec.None,
                                 ItemTag.TYPE_GUI_CANCEL
                         )
@@ -3529,7 +3539,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         24,
                         createItem(
                                 Material.RED_WOOL,
-                                lang.getMessage(player, "gui.confirm.delete_2.confirm_btn"),
+                                lang.getMessage(player, MyworldGuiCommonKeys.GUI_CONFIRM_DELETE_2_CONFIRM_BTN),
                                 GuiLoreSpec.None,
                                 ItemTag.TYPE_GUI_CONFIRM
                         )
@@ -3569,7 +3579,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 page: Int,
         ): InventoryMenuView {
                 val lang = plugin.languageManager
-                val title = lang.getMessage(player, "gui.settings.portals.display")
+                val title = lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_PORTALS_DISPLAY)
                 val allPortals =
                         plugin.portalRepository.findAll().filter { it.worldKey == worldData.worldKey }
 
@@ -3645,7 +3655,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val displayTitle =
                         lang.getMessage(
                                 player,
-                                "gui.admin_portals.portal_item.name",
+                                MyworldGuiPortalKeys.GUI_ADMIN_PORTALS_PORTAL_ITEM_NAME,
                                 mapOf("id" to destName)
                         )
                 val payload = mapOf(
@@ -3662,13 +3672,13 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         role = GuiElementRole.ACTION,
                         data = listOf(
                                 GuiMenuEntryData(
-                                        lang.getMessage(player, "gui.admin_portals.portal_item.coordinates"),
+                                        lang.getMessage(player, MyworldGuiPortalKeys.GUI_ADMIN_PORTALS_PORTAL_ITEM_COORDINATES),
                                         "${portal.x}, ${portal.y}, ${portal.z}",
                                 ),
                         ),
                         actions = listOf(
-                                menuGestureAction(ACTION_RUNTIME_DISPATCH, MenuGesture.PLAIN_LEFT, lang.getMessage(player, "gui.admin_portals.portal_item.action.teleport"), payload, safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT),
-                                menuGestureAction(ACTION_RUNTIME_DISPATCH, MenuGesture.PLAIN_RIGHT, lang.getMessage(player, "gui.admin_portals.portal_item.action.remove"), payload, safety = MenuActionSafety.IRREVERSIBLE),
+                                menuGestureAction(ACTION_RUNTIME_DISPATCH, MenuGesture.PLAIN_LEFT, lang.getMessage(player, MyworldGuiPortalKeys.GUI_ADMIN_PORTALS_PORTAL_ITEM_ACTION_TELEPORT), payload, safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT),
+                                menuGestureAction(ACTION_RUNTIME_DISPATCH, MenuGesture.PLAIN_RIGHT, lang.getMessage(player, MyworldGuiPortalKeys.GUI_ADMIN_PORTALS_PORTAL_ITEM_ACTION_REMOVE), payload, safety = MenuActionSafety.IRREVERSIBLE),
                         ),
                 )
         }
@@ -3858,7 +3868,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val typeName = plugin.languageManager.getMessage(player, typeKey)
                 player.sendMessage(
                         plugin.languageManager.getMessage(
-                                player, "messages.spawn_setting_started", mapOf("type" to typeName)
+                                player, MyworldMessagesKeys.MESSAGES_SPAWN_SETTING_STARTED, mapOf("type" to typeName)
                         )
                 )
         }
@@ -3881,7 +3891,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 worldData.announcementMessages.clear()
                 plugin.worldConfigRepository.save(worldData)
                 player.sendMessage(
-                        plugin.languageManager.getMessage(player, "messages.announcement_cleared")
+                        plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_ANNOUNCEMENT_CLEARED)
                 )
         }
 

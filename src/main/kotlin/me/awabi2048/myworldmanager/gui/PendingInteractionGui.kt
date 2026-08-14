@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiCommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import me.awabi2048.myworldmanager.util.descriptionLine
 import me.awabi2048.myworldmanager.util.warningLine
 import me.awabi2048.myworldmanager.util.dangerLine
@@ -105,7 +109,7 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
         return InventoryMenuView(
             layout.size,
             me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(
-                plugin.languageManager.getComponent(player, "gui.pending_list.title"),
+                plugin.languageManager.getComponent(player, MyworldGuiCommonKeys.GUI_PENDING_LIST_TITLE),
             ),
             elements,
         )
@@ -147,16 +151,16 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
     private fun openJavaDecisionDialog(player: Player, decisionId: UUID, page: Int, intendedAction: Boolean? = null) {
         val entry = plugin.pendingDecisionManager.getPendingEntry(player.uniqueId, decisionId)
             ?: run {
-                player.sendMessage(plugin.languageManager.getMessage(player, "messages.myworld_pending_none"))
+                player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_MYWORLD_PENDING_NONE))
                 return
             }
 
         val worldName = entry.worldUuid?.let { plugin.worldConfigRepository.findByUuid(it)?.name }
-            ?: plugin.languageManager.getMessage(player, "general.unknown")
-        val actorName = PlayerNameUtil.getNameOrDefault(entry.actorUuid, plugin.languageManager.getMessage(player, "general.unknown"))
+            ?: plugin.languageManager.getMessage(player, CommonKeys.GENERAL_UNKNOWN)
+        val actorName = PlayerNameUtil.getNameOrDefault(entry.actorUuid, plugin.languageManager.getMessage(player, CommonKeys.GENERAL_UNKNOWN))
         val typeLabel = typeLabel(player, entry.type)
 
-        val title = plugin.languageManager.getComponent(player, "gui.pending_list.confirm.title")
+        val title = plugin.languageManager.getComponent(player, MyworldGuiCommonKeys.GUI_PENDING_LIST_CONFIRM_TITLE)
         val center = PendingInteractionItemFactory.createDisplay(
             plugin = plugin,
             viewer = player,
@@ -224,16 +228,16 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
     ) {
         val entry = plugin.pendingDecisionManager.getPendingEntry(player.uniqueId, decisionId)
             ?: run {
-                player.sendMessage(plugin.languageManager.getMessage(player, "messages.myworld_pending_none"))
+                player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_MYWORLD_PENDING_NONE))
                 return
             }
 
         val worldName = entry.worldUuid?.let { plugin.worldConfigRepository.findByUuid(it)?.name }
-            ?: plugin.languageManager.getMessage(player, "general.unknown")
-        val actorName = PlayerNameUtil.getNameOrDefault(entry.actorUuid, plugin.languageManager.getMessage(player, "general.unknown"))
+            ?: plugin.languageManager.getMessage(player, CommonKeys.GENERAL_UNKNOWN)
+        val actorName = PlayerNameUtil.getNameOrDefault(entry.actorUuid, plugin.languageManager.getMessage(player, CommonKeys.GENERAL_UNKNOWN))
         val typeLabel = typeLabel(player, entry.type)
 
-        val title = plugin.languageManager.getComponent(player, "gui.pending_list.confirm.title")
+        val title = plugin.languageManager.getComponent(player, MyworldGuiCommonKeys.GUI_PENDING_LIST_CONFIRM_TITLE)
         val center = PendingInteractionItemFactory.createDisplay(
             plugin = plugin,
             viewer = player,
@@ -300,7 +304,7 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
         slot: Int,
     ): MenuElement {
         val worldName = entry.worldUuid?.let { plugin.worldConfigRepository.findByUuid(it)?.name }
-            ?: plugin.languageManager.getMessage(player, "general.unknown")
+            ?: plugin.languageManager.getMessage(player, CommonKeys.GENERAL_UNKNOWN)
         return PendingInteractionItemFactory.createElement(
             plugin = plugin,
             viewer = player,
@@ -321,11 +325,11 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
                 slot = slot,
                 item = GuiItemSpec(
                     material = Material.BARRIER,
-                    name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(player, "gui.pending_list.empty.name")),
+                    name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(player, MyworldGuiCommonKeys.GUI_PENDING_LIST_EMPTY_NAME)),
                     lore = GuiLoreSpec.Blocks(
                         listOf(
                             GuiLoreBlock(
-                                plugin.languageManager.getMessageList(player, "gui.pending_list.empty.lore")
+                                plugin.languageManager.getMessageList(player, MyworldGuiCommonKeys.GUI_PENDING_LIST_EMPTY_LORE)
                                     .map(::descriptionLine),
                             ),
                         ),
@@ -343,7 +347,7 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
                 item = GuiItemSpec(
                     material = Material.BOOK,
                     name = me.awabi2048.myworldmanager.util.fixedLabelName(
-                        plugin.languageManager.getMessage(player, "gui.pending_list.info.name"),
+                        plugin.languageManager.getMessage(player, MyworldGuiCommonKeys.GUI_PENDING_LIST_INFO_NAME),
                         GuiNameStyle.DEFAULT,
                     ),
                     lore = GuiLoreSpec.Blocks(
@@ -351,12 +355,12 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
                             GuiLoreBlock(
                                 listOf(
                                     GuiLoreLine.Data(
-                                        plugin.languageManager.getMessage(player, "gui.pending_list.info.count_label"),
+                                        plugin.languageManager.getMessage(player, MyworldGuiCommonKeys.GUI_PENDING_LIST_INFO_COUNT_LABEL),
                                         count,
                                         "§e",
                                     ),
                                     GuiLoreLine.Data(
-                                        plugin.languageManager.getMessage(player, "gui.pending_list.info.page_label"),
+                                        plugin.languageManager.getMessage(player, MyworldGuiCommonKeys.GUI_PENDING_LIST_INFO_PAGE_LABEL),
                                         "$page/$pages",
                                         "§e",
                                     ),
@@ -402,11 +406,11 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
 
     private fun typeLabel(player: Player, type: PendingDecisionManager.PendingType): String {
         return when (type) {
-            PendingDecisionManager.PendingType.WORLD_INVITE -> plugin.languageManager.getMessage(player, "gui.pending_list.type.world_invite")
-            PendingDecisionManager.PendingType.MEMBER_INVITE -> plugin.languageManager.getMessage(player, "gui.pending_list.type.member_invite")
-            PendingDecisionManager.PendingType.MEMBER_REQUEST -> plugin.languageManager.getMessage(player, "gui.pending_list.type.member_request")
-            PendingDecisionManager.PendingType.MEET_REQUEST -> plugin.languageManager.getMessage(player, "gui.pending_list.type.meet_request")
-            PendingDecisionManager.PendingType.VISIT_REQUEST -> plugin.languageManager.getMessage(player, "gui.pending_list.type.visit_request")
+            PendingDecisionManager.PendingType.WORLD_INVITE -> plugin.languageManager.getMessage(player, MyworldGuiCommonKeys.GUI_PENDING_LIST_TYPE_WORLD_INVITE)
+            PendingDecisionManager.PendingType.MEMBER_INVITE -> plugin.languageManager.getMessage(player, MyworldGuiCommonKeys.GUI_PENDING_LIST_TYPE_MEMBER_INVITE)
+            PendingDecisionManager.PendingType.MEMBER_REQUEST -> plugin.languageManager.getMessage(player, MyworldGuiCommonKeys.GUI_PENDING_LIST_TYPE_MEMBER_REQUEST)
+            PendingDecisionManager.PendingType.MEET_REQUEST -> plugin.languageManager.getMessage(player, MyworldGuiCommonKeys.GUI_PENDING_LIST_TYPE_MEET_REQUEST)
+            PendingDecisionManager.PendingType.VISIT_REQUEST -> plugin.languageManager.getMessage(player, MyworldGuiCommonKeys.GUI_PENDING_LIST_TYPE_VISIT_REQUEST)
         }
     }
 

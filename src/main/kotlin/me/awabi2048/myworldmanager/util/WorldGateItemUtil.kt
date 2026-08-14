@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.util
 
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiPortalKeys
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
@@ -21,7 +23,7 @@ object WorldGateItemUtil {
     fun createBaseWorldGateItem(lang: LanguageManager, player: Player?): ItemStack {
         val item = ItemStack(Material.POISONOUS_POTATO)
         val meta = item.itemMeta ?: return item
-        meta.displayName(lang.getComponent(player, "gui.world_gate_item.name"))
+        meta.displayName(lang.getComponent(player, MyworldGuiPortalKeys.GUI_WORLD_GATE_ITEM_NAME))
         meta.lore(worldGateLore(lang, player, null))
         try {
             meta.setMaxStackSize(1)
@@ -87,7 +89,7 @@ object WorldGateItemUtil {
         val blocks = buildList {
             if (destination != null) {
                 add(GuiLoreBlock(listOf(GuiLoreLine.Data(
-                    lang.getMessage(player, "gui.world_gate_item.destination"),
+                    lang.getMessage(player, MyworldGuiPortalKeys.GUI_WORLD_GATE_ITEM_DESTINATION),
                     destination,
                     "§f§n"
                 ))))
@@ -100,9 +102,9 @@ object WorldGateItemUtil {
                     GuiLoreLine.Interaction(
                         player,
                         MenuGesture.SHIFT_RIGHT,
-                        lang.getMessage(player, if (destination == null) "gui.world_gate_item.action.link" else "gui.world_gate_item.action.relink")
+                        lang.getMessage(player, if (destination == null) MyworldGuiPortalKeys.GUI_WORLD_GATE_ITEM_ACTION_LINK else MyworldGuiPortalKeys.GUI_WORLD_GATE_ITEM_ACTION_RELINK)
                     ),
-                    GuiLoreLine.Interaction(player, MenuGesture.RIGHT, lang.getMessage(player, "gui.world_gate_item.action.select_area"))
+                    GuiLoreLine.Interaction(player, MenuGesture.RIGHT, lang.getMessage(player, MyworldGuiPortalKeys.GUI_WORLD_GATE_ITEM_ACTION_SELECT_AREA))
                 )
             )
         )

@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.listener
 
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import com.sk89q.worldedit.IncompleteRegionException
 import com.sk89q.worldedit.WorldEdit
 import com.sk89q.worldedit.bukkit.BukkitAdapter
@@ -178,7 +180,7 @@ class WorldEditPortalSyncListener(private val plugin: MyWorldManager) : Listener
         // 追加・削除のどちらよりも前に永続書き込み可否を確定させます。
         runCatching { plugin.portalRepository.ensureWritableForOperation() }
             .onFailure {
-                player.sendMessage(plugin.languageManager.getMessage(player, "messages.migration.required"))
+                player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_MIGRATION_REQUIRED))
                 return
             }
 

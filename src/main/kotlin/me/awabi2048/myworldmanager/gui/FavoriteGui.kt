@@ -1,5 +1,11 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiCommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiDiscoveryKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiFavoriteKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiCycle
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
@@ -137,7 +143,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
         }
         return InventoryMenuView(
             size = layout.size,
-            title = GuiHelper.inventoryTitle(lang.getMessage(player, "gui.favorite.title")),
+            title = GuiHelper.inventoryTitle(lang.getMessage(player, MyworldGuiFavoriteKeys.GUI_FAVORITE_TITLE)),
             elements = elements,
         )
     }
@@ -202,13 +208,13 @@ class FavoriteGui(private val plugin: MyWorldManager) {
             me.awabi2048.myworldmanager.api.event.MwmFavoriteAddSource.FAVORITE_MENU,
         )) {
             me.awabi2048.myworldmanager.service.FavoriteStateService.ToggleResult.Added -> {
-                player.sendMessage(plugin.languageManager.getMessage(player, "messages.favorite_added"))
+                player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_FAVORITE_ADDED))
                 MenuActionResult.Success(MenuUpdate.Refresh)
             }
             me.awabi2048.myworldmanager.service.FavoriteStateService.ToggleResult.LimitReached -> {
                 player.sendMessage(plugin.languageManager.getMessage(
                     player,
-                    "error.favorite_limit_reached",
+                    CommonKeys.ERROR_FAVORITE_LIMIT_REACHED,
                     mapOf("limit" to plugin.config.getInt("favorite.max_count", 1000)),
                 ))
                 MenuActionResult.Rejected()
@@ -223,7 +229,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
         val worldName = lang.getMessageStrict(player, data.name) ?: data.name
         val ownerName = PlayerNameUtil.getNameOrDefault(
             data.owner,
-            lang.getMessage(player, "general.unknown"),
+            lang.getMessage(player, CommonKeys.GENERAL_UNKNOWN),
         )
         val tagNames = data.tags.takeIf { it.isNotEmpty() }?.joinToString(", ") {
             plugin.worldTagManager.getDisplayName(player, it)
@@ -237,7 +243,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
             menuGestureAction(
                 ACTION_WORLD,
                 MenuGesture.ANY,
-                lang.getMessage(player, "gui.favorite.world_item.open_actions"),
+                lang.getMessage(player, MyworldGuiFavoriteKeys.GUI_FAVORITE_WORLD_ITEM_OPEN_ACTIONS),
                 payload,
                 safety = MenuActionSafety.NAVIGATION_ONLY,
             ),
@@ -247,22 +253,22 @@ class FavoriteGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = data.icon,
-                name = GuiNameSpec.TargetIdentity(lang.getComponent(player, "gui.common.world_item_name", mapOf("world" to worldName))),
+                name = GuiNameSpec.TargetIdentity(lang.getComponent(player, MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_NAME, mapOf("world" to worldName))),
                 role = GuiElementRole.ACTION,
                 description = listOfNotNull(data.description.takeIf(String::isNotBlank)),
                 data = buildList {
-                    add(GuiMenuEntryData(lang.getMessage(player, "gui.common.world_item.owner"), ownerName, GuiValueTone.INFO))
-                    add(GuiMenuEntryData(lang.getMessage(player, "gui.common.world_item.favorite"), data.favorite, GuiValueTone.DANGER))
+                    add(GuiMenuEntryData(lang.getMessage(player, MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_OWNER), ownerName, GuiValueTone.INFO))
+                    add(GuiMenuEntryData(lang.getMessage(player, MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_FAVORITE), data.favorite, GuiValueTone.DANGER))
                     add(GuiMenuEntryData(
-                        lang.getMessage(player, "gui.common.world_item.recent_visitors"),
-                        lang.getMessage(player, "gui.common.world_item.recent_visitors_value", mapOf("count" to data.recentVisitors.sum())),
+                        lang.getMessage(player, MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_RECENT_VISITORS),
+                        lang.getMessage(player, MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_RECENT_VISITORS_VALUE, mapOf("count" to data.recentVisitors.sum())),
                         GuiValueTone.SUCCESS,
                     ))
-                    tagNames?.let { add(GuiMenuEntryData(lang.getMessage(player, "gui.common.world_item.tags"), it, GuiValueTone.PRIMARY)) }
+                    tagNames?.let { add(GuiMenuEntryData(lang.getMessage(player, MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_TAGS), it, GuiValueTone.PRIMARY)) }
                 },
                 warnings = buildList {
-                    if (data.isArchived) add(lang.getMessage(player, "gui.favorite.world_item.archived_label"))
-                    else if (!canWarp) add(lang.getMessage(player, "gui.favorite.world_item.direct_warp_unavailable"))
+                    if (data.isArchived) add(lang.getMessage(player, MyworldGuiFavoriteKeys.GUI_FAVORITE_WORLD_ITEM_ARCHIVED_LABEL))
+                    else if (!canWarp) add(lang.getMessage(player, MyworldGuiFavoriteKeys.GUI_FAVORITE_WORLD_ITEM_DIRECT_WARP_UNAVAILABLE))
                 },
                 actions = actions,
             ),
@@ -278,16 +284,16 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 material = Material.PLAYER_HEAD,
                 name = GuiNameSpec.FixedLabel(lang.getComponent(
                 player,
-                "gui.favorite.player_icon.name",
+                MyworldGuiFavoriteKeys.GUI_FAVORITE_PLAYER_ICON_NAME,
                 mapOf(
                     "player" to PlayerNameUtil.getNameOrDefault(
                         player.uniqueId,
-                        lang.getMessage(player, "general.unknown"),
+                        lang.getMessage(player, CommonKeys.GENERAL_UNKNOWN),
                     ),
                 ),
             )),
                 role = GuiElementRole.CONTENT,
-                data = listOf(GuiMenuEntryData(lang.getMessage(player, "gui.favorite.player_icon.lore_count"), totalCount, GuiValueTone.SUCCESS)),
+                data = listOf(GuiMenuEntryData(lang.getMessage(player, MyworldGuiFavoriteKeys.GUI_FAVORITE_PLAYER_ICON_LORE_COUNT), totalCount, GuiValueTone.SUCCESS)),
                 playerHeadOwner = player.uniqueId,
             ),
         )
@@ -300,13 +306,13 @@ class FavoriteGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = Material.COMPASS,
-                name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.favorite.favorite_menu.other_worlds.name")),
+                name = GuiNameSpec.FixedLabel(lang.getComponent(player, MyworldGuiFavoriteKeys.GUI_FAVORITE_FAVORITE_MENU_OTHER_WORLDS_NAME)),
                 role = GuiElementRole.ACTION,
-                description = lang.getMessageList(player, "gui.favorite.favorite_menu.other_worlds.lore"),
+                description = lang.getMessageList(player, MyworldGuiFavoriteKeys.GUI_FAVORITE_FAVORITE_MENU_OTHER_WORLDS_LORE),
                 actions = listOf(menuGestureAction(
                     ACTION_OTHER_WORLDS,
                     MenuGesture.ANY,
-                    lang.getMessage(player, "gui.favorite.favorite_menu.other_worlds.action"),
+                    lang.getMessage(player, MyworldGuiFavoriteKeys.GUI_FAVORITE_FAVORITE_MENU_OTHER_WORLDS_ACTION),
                     safety = MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE,
                 )),
             ),
@@ -327,7 +333,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 GuiMenuEntrySpec(
                     slot = slot,
                     material = Material.BARRIER,
-                    name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.favorite.favorite_menu.toggle.name_restricted")),
+                    name = GuiNameSpec.FixedLabel(lang.getComponent(player, MyworldGuiFavoriteKeys.GUI_FAVORITE_FAVORITE_MENU_TOGGLE_NAME_RESTRICTED)),
                     role = GuiElementRole.CONTENT,
                     warnings = listOf(lang.getMessage(player, warningKey)),
                 ),
@@ -349,7 +355,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 actions = listOf(menuGestureAction(
                     ACTION_TOGGLE_CURRENT,
                     MenuGesture.ANY,
-                    lang.getMessage(player, "gui.favorite.favorite_menu.toggle.action"),
+                    lang.getMessage(player, MyworldGuiFavoriteKeys.GUI_FAVORITE_FAVORITE_MENU_TOGGLE_ACTION),
                     mapOf(WORLD_UUID to worldData.uuid.toString()),
                     safety = if (isFavorite) MenuActionSafety.CONFIRM_ENTRY else MenuActionSafety.REVERSIBLE,
                     reversibleContract = if (isFavorite) null else MwmMenuActionSemantics.contract("favorite-toggle"),
@@ -360,7 +366,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
 
     private fun createTagFilterEntry(player: Player, selectedTag: String?, slot: Int): MenuElement {
         val lang = plugin.languageManager
-        val options = listOf("" to lang.getMessage(player, "gui.discovery.tag_filter.no_selection")) +
+        val options = listOf("" to lang.getMessage(player, MyworldGuiDiscoveryKeys.GUI_DISCOVERY_TAG_FILTER_NO_SELECTION)) +
             plugin.worldTagManager.getEnabledTagIds().map {
                 it to plugin.worldTagManager.getDisplayName(player, it)
             }
@@ -370,15 +376,15 @@ class FavoriteGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = plugin.menuConfigManager.getIconMaterial("favorite", "tag_filter", Material.NAME_TAG),
-                name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.discovery.tag_filter.name")),
+                name = GuiNameSpec.FixedLabel(lang.getComponent(player, MyworldGuiDiscoveryKeys.GUI_DISCOVERY_TAG_FILTER_NAME)),
                 role = GuiElementRole.ACTION,
-                data = listOf(GuiMenuEntryData(lang.getMessage(player, "gui.discovery.tag_filter.label"), selected.second, GuiValueTone.PRIMARY)),
+                data = listOf(GuiMenuEntryData(lang.getMessage(player, MyworldGuiDiscoveryKeys.GUI_DISCOVERY_TAG_FILTER_LABEL), selected.second, GuiValueTone.PRIMARY)),
                 options = options.map { (id, displayName) -> GuiMenuEntryOption(displayName, id == selected.first) },
                 actions = listOf(
                     menuGestureAction(
                         ACTION_TAG,
                         MenuGesture.ANY,
-                        lang.getMessage(player, "gui.common.action.cycle"),
+                        lang.getMessage(player, MyworldGuiCommonKeys.GUI_COMMON_ACTION_CYCLE),
                         safety = MenuActionSafety.REVERSIBLE,
                         reversibleContract = MwmMenuActionSemantics.contract("favorite-tag"),
                     ),

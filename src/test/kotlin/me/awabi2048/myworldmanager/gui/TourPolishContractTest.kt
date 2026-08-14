@@ -39,7 +39,7 @@ class TourPolishContractTest {
     fun `tour creation reopens the dialog with an inline required-name error`() {
         val source = guiRoot.resolve("TourDialogManager.kt").readText()
 
-        assertTrue("create_dialog.name_required" in source)
+        assertTrue("GUI_TOUR_CREATE_DIALOG_NAME_REQUIRED" in source)
         assertTrue("showCreateTourDialog(" in source)
         assertTrue("MenuActionResult.Ignored" in source)
     }

@@ -2,6 +2,8 @@
 
 package me.awabi2048.myworldmanager.task
 
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.util.ChiyogamiUtil
 import net.kyori.adventure.text.Component
@@ -96,7 +98,7 @@ class MsptMonitorTask(private val plugin: MyWorldManager) : BukkitRunnable() {
         Bukkit.getOnlinePlayers().filter { it.isOp }.forEach { admin ->
             val clickableMessage = lang.getComponent(
                 null,
-                "messages.mspt_warning_chat",
+                MyworldMessagesKeys.MESSAGES_MSPT_WARNING_CHAT,
                 mapOf("world" to registeredName, "mspt" to msptString)
             ).clickEvent(ClickEvent.runCommand(plugin.internalCommandTokenManager.buildCommand(admin, "mspt-sort")))
              .hoverEvent(HoverEvent.showText(Component.text("MSPT順のワールド一覧を開く").color(NamedTextColor.GRAY)))
@@ -116,7 +118,7 @@ class MsptMonitorTask(private val plugin: MyWorldManager) : BukkitRunnable() {
             // サブタイトル表示
             val subtitle = lang.getComponent(
                 admin,
-                "messages.mspt_warning_subtitle",
+                MyworldMessagesKeys.MESSAGES_MSPT_WARNING_SUBTITLE,
                 mapOf("world" to registeredName, "mspt" to msptString)
             )
             

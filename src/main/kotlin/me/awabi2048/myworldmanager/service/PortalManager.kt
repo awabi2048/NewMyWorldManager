@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.service
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiPortalKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.event.MwmWarpReason
@@ -473,7 +477,7 @@ class PortalManager(private val plugin: MyWorldManager) {
                 return@Runnable
             }
             if (Bukkit.getWorld(targetWorld.key) == null || !player.teleport(locationProvider(targetWorld))) {
-                player.sendMessage(plugin.languageManager.getMessage(player, "error.world_teleport_failed"))
+                player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_TELEPORT_FAILED))
                 plugin.logger.warning(
                     "Portal teleport did not complete: player=${player.uniqueId} world=$targetWorldKey"
                 )
@@ -483,7 +487,7 @@ class PortalManager(private val plugin: MyWorldManager) {
         }
 
         if (loadResult.loadedNow) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_loading"))
+            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_LOADING))
             Bukkit.getScheduler().runTaskLater(plugin, doTeleport, waitTicks)
         } else {
             doTeleport.run()
@@ -591,7 +595,7 @@ class PortalManager(private val plugin: MyWorldManager) {
          val color = TextColor.color(portal.particleColor.asRGB())
          display.text(
              Component.text()
-                 .append(LegacyComponentSerializer.legacySection().deserialize(lang.getMessage(null as Player?, "gui.portal.destination_label")))
+                 .append(LegacyComponentSerializer.legacySection().deserialize(lang.getMessage(null as Player?, MyworldGuiPortalKeys.GUI_PORTAL_DESTINATION_LABEL)))
                  .append(Component.text(destName, color))
                  .build()
          )
@@ -692,7 +696,7 @@ class PortalManager(private val plugin: MyWorldManager) {
                     // ロード拒否やteleport失敗時に成功扱いしないため、完了後だけ状態と案内を更新します。
                     warpCooldowns[player.uniqueId] = System.currentTimeMillis()
                     player.sendMessage(
-                        lang.getMessage(player, "messages.portal_warped", mapOf("destination" to destData.name))
+                        lang.getMessage(player, MyworldMessagesKeys.MESSAGES_PORTAL_WARPED, mapOf("destination" to destData.name))
                     )
                 }
             )
@@ -715,7 +719,7 @@ class PortalManager(private val plugin: MyWorldManager) {
             if (!teleportPlayerToWorldSpawn(player, targetWorldKey) {
                     warpCooldowns[player.uniqueId] = System.currentTimeMillis()
                     player.sendMessage(
-                        lang.getMessage(player, "messages.portal_warped", mapOf("destination" to displayName))
+                        lang.getMessage(player, MyworldMessagesKeys.MESSAGES_PORTAL_WARPED, mapOf("destination" to displayName))
                     )
                 }
             ) {

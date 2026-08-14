@@ -1,5 +1,10 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiCommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiPortalKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiInteractionGuidance
@@ -167,7 +172,7 @@ class VisitGui(private val plugin: MyWorldManager) {
                                 player.sendMessage(
                                         plugin.languageManager.getMessage(
                                                 player,
-                                                "messages.warp_success",
+                                                MyworldMessagesKeys.MESSAGES_WARP_SUCCESS,
                                                 mapOf("world" to worldData.name),
                                         ),
                                 )
@@ -178,11 +183,11 @@ class VisitGui(private val plugin: MyWorldManager) {
 
                 return when (plugin.favoriteStateService.toggle(player, worldData)) {
                         me.awabi2048.myworldmanager.service.FavoriteStateService.ToggleResult.Removed -> {
-                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.favorite_removed"))
+                        player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_FAVORITE_REMOVED))
                                 MenuActionResult.Success(MenuUpdate.Refresh)
                         }
                         me.awabi2048.myworldmanager.service.FavoriteStateService.ToggleResult.Added -> {
-                                player.sendMessage(plugin.languageManager.getMessage(player, "messages.favorite_added"))
+                                player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_FAVORITE_ADDED))
                                 MenuActionResult.Success(MenuUpdate.Refresh)
                         }
                         me.awabi2048.myworldmanager.service.FavoriteStateService.ToggleResult.LimitReached -> {
@@ -190,7 +195,7 @@ class VisitGui(private val plugin: MyWorldManager) {
                                 player.sendMessage(
                                         plugin.languageManager.getMessage(
                                                 player,
-                                                "error.favorite_limit_reached",
+                                                CommonKeys.ERROR_FAVORITE_LIMIT_REACHED,
                                                 mapOf("limit" to maxFavoriteCount),
                                         ),
                                 )
@@ -201,14 +206,14 @@ class VisitGui(private val plugin: MyWorldManager) {
 
         private fun createWorldEntry(viewer: Player, world: WorldData, slot: Int): MenuElement {
                 val lang = plugin.languageManager
-                val ownerName = PlayerNameUtil.getNameOrDefault(world.owner, lang.getMessage(viewer, "general.unknown"))
+                val ownerName = PlayerNameUtil.getNameOrDefault(world.owner, lang.getMessage(viewer, CommonKeys.GENERAL_UNKNOWN))
                 val tagNames = if (world.tags.isNotEmpty()) {
                         world.tags.joinToString(", ") {
                                 plugin.worldTagManager.getDisplayName(viewer, it)
                         }
                 } else null
 
-                val warpAction = lang.getMessage(viewer, "gui.visit.world_item.warp")
+                val warpAction = lang.getMessage(viewer, MyworldGuiPortalKeys.GUI_VISIT_WORLD_ITEM_WARP)
 
                 val stats = plugin.playerStatsRepository.findByUuid(viewer.uniqueId)
                 val viewerPlayerUuid = viewer.uniqueId
@@ -218,9 +223,9 @@ class VisitGui(private val plugin: MyWorldManager) {
 
                 val favoriteAction = if (!isMember) {
                         if (stats.favoriteWorlds.containsKey(world.uuid)) {
-                                lang.getMessage(viewer, "gui.visit.world_item.fav_remove")
+                                lang.getMessage(viewer, MyworldGuiPortalKeys.GUI_VISIT_WORLD_ITEM_FAV_REMOVE)
                         } else {
-                                lang.getMessage(viewer, "gui.visit.world_item.fav_add")
+                                lang.getMessage(viewer, MyworldGuiPortalKeys.GUI_VISIT_WORLD_ITEM_FAV_ADD)
                         }
                 } else ""
 
@@ -230,19 +235,19 @@ class VisitGui(private val plugin: MyWorldManager) {
                                 slot = slot,
                                 material = world.icon,
                                 name = GuiNameSpec.TargetIdentity(
-                                        lang.getComponent(viewer, "gui.common.world_item_name", mapOf("world" to world.name)),
+                                        lang.getComponent(viewer, MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_NAME, mapOf("world" to world.name)),
                                 ),
                                 role = GuiElementRole.ACTION,
                                 description = listOfNotNull(world.description.takeIf(String::isNotBlank)),
                                 data = buildList {
-                                        add(GuiMenuEntryData(lang.getMessage(viewer, "gui.common.world_item.owner"), ownerName, GuiValueTone.INFO))
-                                        add(GuiMenuEntryData(lang.getMessage(viewer, "gui.common.world_item.favorite"), world.favorite, GuiValueTone.DANGER))
+                                        add(GuiMenuEntryData(lang.getMessage(viewer, MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_OWNER), ownerName, GuiValueTone.INFO))
+                                        add(GuiMenuEntryData(lang.getMessage(viewer, MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_FAVORITE), world.favorite, GuiValueTone.DANGER))
                                         add(GuiMenuEntryData(
-                                                lang.getMessage(viewer, "gui.common.world_item.recent_visitors"),
-                                                lang.getMessage(viewer, "gui.common.world_item.recent_visitors_value", mapOf("count" to world.recentVisitors.sum())),
+                                                lang.getMessage(viewer, MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_RECENT_VISITORS),
+                                                lang.getMessage(viewer, MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_RECENT_VISITORS_VALUE, mapOf("count" to world.recentVisitors.sum())),
                                                 GuiValueTone.SUCCESS,
                                         ))
-                                        tagNames?.let { add(GuiMenuEntryData(lang.getMessage(viewer, "gui.common.world_item.tags"), it, GuiValueTone.PRIMARY)) }
+                                        tagNames?.let { add(GuiMenuEntryData(lang.getMessage(viewer, MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_TAGS), it, GuiValueTone.PRIMARY)) }
                                 },
                                 actions = buildList {
                                         add(menuGestureAction(ACTION_WORLD, MenuGesture.LEFT, warpAction, mapOf(WORLD_UUID to world.uuid.toString()), safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT))

@@ -1,5 +1,8 @@
 package me.awabi2048.myworldmanager.listener
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import com.awabi2048.ccsystem.CCSystem
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
@@ -46,7 +49,7 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
             val targetBlock = PlayerBlockTargetResolver.find(player) ?: event.clickedBlock ?: return
             val spawnLocation = targetBlock.location.clone().add(0.5, 1.0, 0.5)
             if (!plugin.worldSettingsSpawnPreviewService.isSpawnAreaPlaceable(spawnLocation)) {
-                player.sendMessage(plugin.languageManager.getMessage(player, "messages.tour.waypoint_invalid_location"))
+                player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_TOUR_WAYPOINT_INVALID_LOCATION))
                 return
             }
             stopWaypointPreview(player)
@@ -109,7 +112,7 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
         val existing = plugin.tourManager.findSignFromBlock(worldData, event.block)
         if (existing != null && !plugin.tourManager.canManage(worldData, player.uniqueId)) {
             event.isCancelled = true
-            player.sendMessage(plugin.languageManager.getMessage(player, "error.tour.no_permission"))
+            player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_TOUR_NO_PERMISSION))
             return
         }
         val isTourMarker = plain.serialize(event.line(0) ?: Component.empty()) == "[Tour]"
@@ -163,12 +166,12 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
     fun beginWaypointPick(player: Player, waypointUuid: UUID? = null) {
         val session = plugin.tourSessionManager.getEdit(player.uniqueId) ?: return
         if (waypointUuid == null && session.draft.waypoints.size >= 28) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "error.tour.waypoint_limit"))
+            player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_TOUR_WAYPOINT_LIMIT))
             return
         }
         session.awaitingWaypointPick = true
         session.editingWaypointUuid = waypointUuid
-        player.sendMessage(plugin.languageManager.getMessage(player, "messages.tour.waypoint_pick"))
+        player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_TOUR_WAYPOINT_PICK))
         startWaypointPreview(player)
     }
 
@@ -216,7 +219,7 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
         val signData = plugin.tourManager.findSignFromBlock(worldData, event.block) ?: return
         if (!plugin.tourManager.isWorldMember(worldData, event.player.uniqueId)) {
             event.isCancelled = true
-            event.player.sendMessage(plugin.languageManager.getMessage(event.player, "error.tour.no_permission"))
+            event.player.sendMessage(plugin.languageManager.getMessage(event.player, CommonKeys.ERROR_TOUR_NO_PERMISSION))
             return
         }
         event.isDropItems = false
@@ -236,7 +239,7 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
         }
         if (plugin.tourSessionManager.get(event.player.uniqueId) != null) {
             plugin.tourManager.stopTour(event.player, silent = true)
-            event.player.sendMessage(plugin.languageManager.getMessage(event.player, "messages.tour.stopped_world_change"))
+            event.player.sendMessage(plugin.languageManager.getMessage(event.player, MyworldMessagesKeys.MESSAGES_TOUR_STOPPED_WORLD_CHANGE))
         }
     }
 }

@@ -2,6 +2,15 @@
 
 package me.awabi2048.myworldmanager.listener
 
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiCreationKeys
+
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiBedrockKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiCommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiMeetKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiSettingsKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import me.awabi2048.myworldmanager.util.descriptionLine
 import me.awabi2048.myworldmanager.util.warningLine
 import me.awabi2048.myworldmanager.util.dangerLine
@@ -175,7 +184,7 @@ class WorldSettingsListener : Listener {
                                 return MenuActionResult.Success(MenuUpdate.Back)
                         WorldSettingsRuntimeOperation.EXPAND -> {
                                 if (MyWorldManagerApi.getWorldService()?.isPlayerInWorld(player, worldData) != true) {
-                                        player.sendMessage(plugin.languageManager.getMessage(player, "gui.settings.common.must_be_in_world"))
+                                        player.sendMessage(plugin.languageManager.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_COMMON_MUST_BE_IN_WORLD))
                                         return MenuActionResult.Ignored
                                 }
                                 if (worldData.borderExpansionLevel == WorldData.EXPANSION_LEVEL_SPECIAL) return MenuActionResult.Ignored
@@ -185,7 +194,7 @@ class WorldSettingsListener : Listener {
                                 }
                                 val maxLevel = plugin.config.getConfigurationSection("expansion.costs")?.getKeys(false)?.size ?: 3
                                 if (worldData.borderExpansionLevel >= maxLevel) {
-                                        player.sendMessage(plugin.languageManager.getMessage("error.max_expansion_reached"))
+                                        player.sendMessage(plugin.languageManager.getMessage(CommonKeys.ERROR_MAX_EXPANSION_REACHED))
                                         return MenuActionResult.Ignored
                                 }
                                 return MenuActionResult.Success(
@@ -211,7 +220,7 @@ class WorldSettingsListener : Listener {
                                         it.uniqueId != worldData.owner && it.uniqueId !in worldData.moderators && it.uniqueId !in worldData.members
                                 } ?: 0
                                 if (visitorCount == 0) {
-                                        player.sendMessage(plugin.languageManager.getMessage(player, "gui.visitor_management.no_visitors"))
+                                        player.sendMessage(plugin.languageManager.getMessage(player, MyworldGuiSettingsKeys.GUI_VISITOR_MANAGEMENT_NO_VISITORS))
                                         return MenuActionResult.Ignored
                                 }
                                 return MenuActionResult.Success(
@@ -240,7 +249,7 @@ class WorldSettingsListener : Listener {
                                 )
                         WorldSettingsRuntimeOperation.OPEN_ENVIRONMENT -> {
                                 if (plugin.playerPlatformResolver.isBedrock(player)) {
-                                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.bedrock_option_unavailable"))
+                                        player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_BEDROCK_OPTION_UNAVAILABLE))
                                         return MenuActionResult.Ignored
                                 }
                                 if (!player.hasPermission("myworldmanager.admin")) return MenuActionResult.Ignored
@@ -306,7 +315,7 @@ class WorldSettingsListener : Listener {
                         }
                         WorldSettingsRuntimeOperation.EXPANSION_STEP_BACK -> {
                                 if (worldData.latestBorderExpansionRecord() == null) {
-                                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.expansion_step_back_unavailable"))
+                                        player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_EXPANSION_STEP_BACK_UNAVAILABLE))
                                         return MenuActionResult.Rejected()
                                 } else {
                                         return MenuActionResult.Success(
@@ -425,7 +434,7 @@ class WorldSettingsListener : Listener {
                                                 } catch (e: Exception) { 0L }
                                         } ?: 0L
                                         player.sendMessage(plugin.languageManager.getMessage(
-                                                player, "messages.archive_cooldown",
+                                                player, MyworldMessagesKeys.MESSAGES_ARCHIVE_COOLDOWN,
                                                 mapOf("cooldown_hours" to cooldownHours, "hours_remaining" to hoursRemaining)
                                         ))
                                         return MenuActionResult.Rejected()
@@ -521,7 +530,7 @@ class WorldSettingsListener : Listener {
                         plugin.portalManager.removePortalAndRefund(portal)
                 }.getOrElse { error ->
                         plugin.logger.warning("Managed portal removal was rejected for ${portal.id}: ${error.message}")
-                        player.sendMessage(lang.getMessage(player, "messages.migration.required"))
+                        player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_MIGRATION_REQUIRED))
                         return
                 }
                 if (!portal.isGate()) {
@@ -537,7 +546,7 @@ class WorldSettingsListener : Listener {
                 if (portal.worldUuid != null) {
                         val worldUuid = portal.worldUuid!!
                         val destinationName = plugin.worldConfigRepository.findByUuid(worldUuid)?.name
-                                ?: lang.getMessage(player, "general.unknown")
+                                ?: lang.getMessage(player, CommonKeys.GENERAL_UNKNOWN)
                         if (portal.isGate()) {
                                 me.awabi2048.myworldmanager.util.WorldGateItemUtil.bindWorld(returnItem, worldUuid, worldName = destinationName, lang, player)
                         } else {
@@ -555,11 +564,11 @@ class WorldSettingsListener : Listener {
                 player.inventory.addItem(returnItem)
                 if (portal.isGate()) {
                         val ownerName = Bukkit.getOfflinePlayer(portal.ownerUuid).name ?: portal.ownerUuid.toString()
-                        player.sendMessage(lang.getMessage(player, "messages.world_gate_removed_refund", mapOf(
+                        player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_GATE_REMOVED_REFUND, mapOf(
                                 "points" to (refundResult?.points ?: 0), "percent" to (refundResult?.percent ?: 0), "owner" to ownerName,
                         )))
                 } else {
-                        player.sendMessage(lang.getMessage(player, "messages.portal_removed"))
+                        player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_PORTAL_REMOVED))
                 }
         }
 
@@ -572,9 +581,9 @@ class WorldSettingsListener : Listener {
                 plugin.portalManager.addIgnorePlayer(player)
                 if (!plugin.portalManager.teleportPlayerToPortalLocation(player, portal) {
                                 plugin.soundManager.playTeleportSound(player)
-                                player.sendMessage(lang.getMessage(player, "messages.warp_generic"))
+                                player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_WARP_GENERIC))
                         }) {
-                        player.sendMessage(lang.getMessage(player, "general.world_not_found"))
+                        player.sendMessage(lang.getMessage(player, CommonKeys.GENERAL_WORLD_NOT_FOUND))
                 }
         }
 
@@ -660,7 +669,7 @@ class WorldSettingsListener : Listener {
                                         worldData.moderators.remove(memberId)
                                         plugin.worldConfigRepository.save(worldData)
                                         Bukkit.getPluginManager().callEvent(MwmMemberRemovedEvent(worldData.uuid, memberId, memberName, player.uniqueId, MwmMemberRemoveSource.MANUAL))
-                                        player.sendMessage(plugin.languageManager.getMessage("messages.member_deleted"))
+                                        player.sendMessage(plugin.languageManager.getMessage(MyworldMessagesKeys.MESSAGES_MEMBER_DELETED))
                                         plugin.macroManager.execute("on_member_remove", mapOf("world_uuid" to worldData.uuid.toString(), "member" to memberName))
                                 }
                                 MenuActionResult.Success(MenuUpdate.Back)
@@ -690,7 +699,7 @@ class WorldSettingsListener : Listener {
                                 worldData.members.remove(newOwnerId)
                                 plugin.worldConfigRepository.save(worldData)
                                 Bukkit.getPluginManager().callEvent(MwmOwnerTransferredEvent(worldData.uuid, oldOwnerId, oldOwnerName, newOwnerId, newOwnerName, player.uniqueId, MwmOwnerTransferSource.MANUAL))
-                                player.sendMessage(plugin.languageManager.getMessage(player, "messages.owner_transferred", mapOf("old_owner" to newOwnerName)))
+                                player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_OWNER_TRANSFERRED, mapOf("old_owner" to newOwnerName)))
                                 plugin.macroManager.execute("on_owner_transfer", mapOf("old_owner" to oldOwnerName, "new_owner" to newOwnerName, "world_uuid" to worldData.uuid.toString()))
                                 MenuActionResult.Success(MenuUpdate.Back)
                         }
@@ -731,8 +740,8 @@ class WorldSettingsListener : Listener {
                                 val worldFolderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
                                 if (visitor != null && visitor.world.name == worldFolderName) {
                                         visitor.teleport(plugin.worldService.getEvacuationLocation())
-                                        visitor.sendMessage(plugin.languageManager.getMessage(visitor, "messages.kicked"))
-                                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.kicked_success", mapOf("player" to visitor.name)))
+                                        visitor.sendMessage(plugin.languageManager.getMessage(visitor, MyworldMessagesKeys.MESSAGES_KICKED))
+                                        player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_KICKED_SUCCESS, mapOf("player" to visitor.name)))
                                 }
                                 MenuActionResult.Success(MenuUpdate.Back)
                         }
@@ -754,8 +763,8 @@ class WorldSettingsListener : Listener {
                                 player.sendMessage("§cポイントが不足しています。")
                                 return MenuActionResult.Rejected()
                         }
-                        val messageList = plugin.languageManager.getMessageList(player, "messages.oage_ganbaru_messages")
-                        val randomMessage = if (messageList.isNotEmpty()) messageList.random() else plugin.languageManager.getMessage(player, "messages.oage_ganbaru_default")
+                        val messageList = plugin.languageManager.getMessageList(player, MyworldMessagesKeys.MESSAGES_OAGE_GANBARU_MESSAGES)
+                        val randomMessage = if (messageList.isNotEmpty()) messageList.random() else plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_OAGE_GANBARU_DEFAULT)
                         player.sendMessage(randomMessage)
                         player.playSound(player.location, Sound.BLOCK_ANVIL_USE, 0.5f, 0.5f)
                         val task = Bukkit.getScheduler().runTaskLater(plugin, Runnable {
@@ -840,13 +849,13 @@ class WorldSettingsListener : Listener {
                                 }
                                 val refundRate = plugin.config.getDouble("critical_settings.refund_percentage", 0.5)
                                 val refund = (worldData.cumulativePoints * refundRate).toInt()
-                                player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_delete_start", mapOf("world" to worldData.name)))
+                                player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_DELETE_START, mapOf("world" to worldData.name)))
                                 plugin.worldService.deleteWorld(worldData.uuid, player).thenAccept { success: Boolean ->
                                         Bukkit.getScheduler().runTask(plugin, Runnable {
                                                 if (success) {
-                                                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_delete_success", mapOf("points" to refund)))
+                                                        player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_DELETE_SUCCESS, mapOf("points" to refund)))
                                                 } else {
-                                                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_delete_fail"))
+                                                        player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_DELETE_FAIL))
                                                 }
                                         })
                                 }
@@ -874,7 +883,7 @@ class WorldSettingsListener : Listener {
                                 MenuActionResult.Success(MenuUpdate.Back)
                         }
                         WorldSettingsRuntimeOperation.CONFIRM -> {
-                                player.sendMessage(plugin.languageManager.getMessage(player, "messages.archive_success", mapOf("world" to worldData.name)))
+                                player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_ARCHIVE_SUCCESS, mapOf("world" to worldData.name)))
                                 worldData.isArchived = true
                                 plugin.worldConfigRepository.save(worldData)
                                 plugin.settingsSessionManager.endSession(player)
@@ -888,7 +897,7 @@ class WorldSettingsListener : Listener {
                 return when (operation) {
                         WorldSettingsRuntimeOperation.CANCEL -> MenuActionResult.Success(MenuUpdate.Back)
                         WorldSettingsRuntimeOperation.CONFIRM -> {
-                                player.sendMessage(plugin.languageManager.getMessage(player, "messages.archive_start"))
+                                player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_ARCHIVE_START))
                                 plugin.worldService.archiveWorld(worldData.uuid).thenAccept { success: Boolean ->
                                         Bukkit.getScheduler().runTask(plugin, Runnable {
                                                 if (success) {
@@ -896,9 +905,9 @@ class WorldSettingsListener : Listener {
                                                         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
                                                         stats.lastArchiveActionAt = now
                                                         plugin.playerStatsRepository.save(stats)
-                                                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.archive_success", mapOf("world" to worldData.name)))
+                                                        player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_ARCHIVE_SUCCESS, mapOf("world" to worldData.name)))
                                                 } else {
-                                                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.archive_failed"))
+                                                        player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_ARCHIVE_FAILED))
                                                 }
                                         })
                                 }
@@ -915,7 +924,7 @@ class WorldSettingsListener : Listener {
                                 MenuActionResult.Success(MenuUpdate.Back)
                         }
                         WorldSettingsRuntimeOperation.CONFIRM -> {
-                                player.sendMessage(plugin.languageManager.getMessage(player, "messages.unarchive_start"))
+                                player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_UNARCHIVE_START))
                                 plugin.worldService.unarchiveWorld(worldData.uuid).thenAccept { success: Boolean ->
                                         Bukkit.getScheduler().runTask(plugin, Runnable {
                                                 if (success) {
@@ -924,10 +933,10 @@ class WorldSettingsListener : Listener {
                                                         stats.lastArchiveActionAt = now
                                                         plugin.playerStatsRepository.save(stats)
                                                         plugin.worldService.teleportToWorld(player, worldData.uuid) {
-                                                                player.sendMessage(plugin.languageManager.getMessage(player, "messages.unarchive_success"))
+                                                                player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_UNARCHIVE_SUCCESS))
                                                         }
                                                 } else {
-                                                        player.sendMessage(plugin.languageManager.getMessage(player, "error.unarchive_failed"))
+                                                        player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_UNARCHIVE_FAILED))
                                                 }
                                         })
                                 }
@@ -1054,7 +1063,7 @@ class WorldSettingsListener : Listener {
                 }
                 val lang = plugin.languageManager
                 if (!canCancelMemberInvite(player, worldData)) {
-                        player.sendMessage(lang.getMessage(player, "general.no_permission"))
+                        player.sendMessage(lang.getMessage(player, CommonKeys.GENERAL_NO_PERMISSION))
                         plugin.soundManager.playActionSound(player, "world_settings", "error")
                         return MenuActionResult.Rejected()
                 }
@@ -1066,7 +1075,7 @@ class WorldSettingsListener : Listener {
                                 interaction.worldUuid != worldData.uuid
                 ) {
                         player.sendMessage(
-                                lang.getMessage(player, "messages.member_invite_cancel_not_found")
+                                lang.getMessage(player, MyworldMessagesKeys.MESSAGES_MEMBER_INVITE_CANCEL_NOT_FOUND)
                         )
                         return MenuActionResult.Success(MenuUpdate.Refresh)
                 }
@@ -1106,7 +1115,7 @@ class WorldSettingsListener : Listener {
                                 interaction.type != PendingInteractionType.MEMBER_REQUEST ||
                                 interaction.worldUuid != worldData.uuid
                 ) {
-                        player.sendMessage(lang.getMessage(player, "messages.myworld_pending_none"))
+                        player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_MYWORLD_PENDING_NONE))
                         return MenuActionResult.Success(MenuUpdate.Refresh)
                 }
                 plugin.settingsSessionManager.updateSessionAction(
@@ -1176,7 +1185,7 @@ class WorldSettingsListener : Listener {
                         ) {
                                 player.sendMessage(
                                         plugin.languageManager.getMessage(
-                                                "messages.owner_transfer_failed_limit"
+                                                MyworldMessagesKeys.MESSAGES_OWNER_TRANSFER_FAILED_LIMIT
                                         )
                                 )
                                 plugin.soundManager.playActionSound(
@@ -1264,7 +1273,7 @@ class WorldSettingsListener : Listener {
                                 ?.getKeys(false)
                                 ?.size ?: 3
                 if (worldData.borderExpansionLevel >= maxLevel) {
-                        player.sendMessage(plugin.languageManager.getMessage("error.max_expansion_reached"))
+                        player.sendMessage(plugin.languageManager.getMessage(CommonKeys.ERROR_MAX_EXPANSION_REACHED))
                         return false
                 }
 
@@ -1344,25 +1353,25 @@ class WorldSettingsListener : Listener {
                 val methodText =
                         lang.getMessage(
                                 player,
-                                "gui.expansion.method_direction",
+                                MyworldGuiCommonKeys.GUI_EXPANSION_METHOD_DIRECTION,
                                 mapOf("direction" to directionName)
                         )
                 val content =
                         listOf(
-                                        "${lang.getMessage(player, "gui.expansion.method_label")}: $methodText",
-                                        "${lang.getMessage(player, "gui.expansion.cost_label")}: $cost",
-                                        lang.getMessage(player, "gui.expansion.warning")
+                                        "${lang.getMessage(player, MyworldGuiCommonKeys.GUI_EXPANSION_METHOD_LABEL)}: $methodText",
+                                        "${lang.getMessage(player, MyworldGuiCommonKeys.GUI_EXPANSION_COST_LABEL)}: $cost",
+                                        lang.getMessage(player, MyworldGuiCommonKeys.GUI_EXPANSION_WARNING)
                                 )
                                 .joinToString("\n")
 
                 return plugin.floodgateFormBridge.sendSimpleForm(
                         player = player,
-                        title = lang.getMessage(player, "gui.expansion.confirm_title"),
+                        title = lang.getMessage(player, MyworldGuiCommonKeys.GUI_EXPANSION_CONFIRM_TITLE),
                         content = content,
                         buttons =
                                 listOf(
-                                        lang.getMessage(player, "gui.common.confirm"),
-                                        lang.getMessage(player, "messages.expand_retry_button")
+                                        lang.getMessage(player, CommonKeys.GUI_COMMON_CONFIRM),
+                                        lang.getMessage(player, MyworldMessagesKeys.MESSAGES_EXPAND_RETRY_BUTTON)
                                 ),
                         onSelect = { index ->
                                 val latestSession = plugin.settingsSessionManager.getSession(player)
@@ -1382,7 +1391,7 @@ class WorldSettingsListener : Listener {
                                 latestSession.action = SettingsAction.EXPAND_DIRECTION_WAIT
                                 startBorderDirectionPreview(player)
                                 player.sendMessage(
-                                        lang.getMessage(player, "messages.expand_direction_prompt")
+                                        lang.getMessage(player, MyworldMessagesKeys.MESSAGES_EXPAND_DIRECTION_PROMPT)
                                 )
                         }
                 )
@@ -1477,10 +1486,10 @@ class WorldSettingsListener : Listener {
 
                 return plugin.floodgateFormBridge.sendCustomInputForm(
                         player = player,
-                        title = lang.getMessage(player, "gui.bedrock.input.member_invite.title"),
-                        label = lang.getMessage(player, "gui.bedrock.input.member_invite.label"),
+                        title = lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_MEMBER_INVITE_TITLE),
+                        label = lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_MEMBER_INVITE_LABEL),
                         placeholder =
-                                lang.getMessage(player, "gui.bedrock.input.member_invite.placeholder"),
+                                lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_MEMBER_INVITE_PLACEHOLDER),
                         defaultValue = "",
                         onSubmit = { value ->
                                 val latestWorld =
@@ -1525,7 +1534,7 @@ class WorldSettingsListener : Listener {
                 val lang = plugin.languageManager
                 val latestWorld = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return
                 if (!canCancelMemberInvite(player, latestWorld)) {
-                        player.sendMessage(lang.getMessage(player, "general.no_permission"))
+                        player.sendMessage(lang.getMessage(player, CommonKeys.GENERAL_NO_PERMISSION))
                         reopenMemberManagementLatest(player, worldUuid)
                         return
                 }
@@ -1537,7 +1546,7 @@ class WorldSettingsListener : Listener {
                                 interaction.worldUuid != worldUuid
                 ) {
                         player.sendMessage(
-                                lang.getMessage(player, "messages.member_invite_cancel_not_found")
+                                lang.getMessage(player, MyworldMessagesKeys.MESSAGES_MEMBER_INVITE_CANCEL_NOT_FOUND)
                         )
                         reopenMemberManagementLatest(player, worldUuid)
                         return
@@ -1547,12 +1556,12 @@ class WorldSettingsListener : Listener {
                 val targetName =
                         PlayerNameUtil.getNameOrDefault(
                                 interaction.targetUuid,
-                                lang.getMessage(player, "general.unknown")
+                                lang.getMessage(player, CommonKeys.GENERAL_UNKNOWN)
                         )
                 player.sendMessage(
                         lang.getMessage(
                                 player,
-                                "messages.member_invite_cancelled",
+                                MyworldMessagesKeys.MESSAGES_MEMBER_INVITE_CANCELLED,
                                 mapOf("player" to targetName)
                         )
                 )
@@ -1599,7 +1608,7 @@ class WorldSettingsListener : Listener {
                 val target = resolveInviteTarget(targetName)
 
                 if (target == null) {
-                        player.sendMessage(lang.getMessage(player, "general.player_not_found"))
+                        player.sendMessage(lang.getMessage(player, CommonKeys.GENERAL_PLAYER_NOT_FOUND))
                         player.playSound(
                                 player.location,
                                 org.bukkit.Sound.ENTITY_VILLAGER_NO,
@@ -1613,7 +1622,7 @@ class WorldSettingsListener : Listener {
                 }
 
                 if (target.uniqueId == player.uniqueId) {
-                        player.sendMessage(lang.getMessage(player, "messages.invite_self_error"))
+                        player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_INVITE_SELF_ERROR))
                         player.playSound(
                                 player.location,
                                 org.bukkit.Sound.ENTITY_VILLAGER_NO,
@@ -1631,7 +1640,7 @@ class WorldSettingsListener : Listener {
                                 worldData.members.contains(target.uniqueId) ||
                                 worldData.moderators.contains(target.uniqueId)
                 ) {
-                        player.sendMessage(lang.getMessage(player, "error.invite_already_member"))
+                        player.sendMessage(lang.getMessage(player, CommonKeys.ERROR_INVITE_ALREADY_MEMBER))
                         player.playSound(
                                 player.location,
                                 org.bukkit.Sound.ENTITY_VILLAGER_NO,
@@ -1666,7 +1675,7 @@ class WorldSettingsListener : Listener {
                         )
                 ) {
                         player.sendMessage(
-                                lang.getMessage(player, "messages.member_invite_already_sent")
+                                lang.getMessage(player, MyworldMessagesKeys.MESSAGES_MEMBER_INVITE_ALREADY_SENT)
                         )
                         player.playSound(
                                 player.location,
@@ -1695,7 +1704,7 @@ class WorldSettingsListener : Listener {
                                 target.sendMessage(
                                         lang.getMessage(
                                                 target,
-                                                "messages.member_force_added_self",
+                                                MyworldMessagesKeys.MESSAGES_MEMBER_FORCE_ADDED_SELF,
                                                 mapOf("world" to worldData.name)
                                         )
                                 )
@@ -1705,7 +1714,7 @@ class WorldSettingsListener : Listener {
                         player.sendMessage(
                                 lang.getMessage(
                                         player,
-                                        "messages.member_force_add_success",
+                                        MyworldMessagesKeys.MESSAGES_MEMBER_FORCE_ADD_SUCCESS,
                                         mapOf(
                                                 "player" to targetDisplayName,
                                                 "world" to worldData.name
@@ -1727,7 +1736,7 @@ class WorldSettingsListener : Listener {
                                 memberPlayer.sendMessage(
                                         lang.getMessage(
                                                 memberPlayer,
-                                                "messages.member_joined_notify",
+                                                MyworldMessagesKeys.MESSAGES_MEMBER_JOINED_NOTIFY,
                                                 mapOf(
                                                         "player" to targetDisplayName,
                                                         "world" to worldData.name
@@ -1767,7 +1776,7 @@ class WorldSettingsListener : Listener {
                 player.sendMessage(
                         lang.getMessage(
                                 player,
-                                        "messages.invite_sent_success",
+                                        MyworldMessagesKeys.MESSAGES_INVITE_SENT_SUCCESS,
                                         mapOf(
                                                 "player" to (target.name ?: targetName),
                                                 "world" to worldData.name
@@ -1778,7 +1787,7 @@ class WorldSettingsListener : Listener {
                         player.sendMessage(
                                 lang.getMessage(
                                         player,
-                                        "messages.invite_queued_offline",
+                                        MyworldMessagesKeys.MESSAGES_INVITE_QUEUED_OFFLINE,
                                         mapOf("player" to (target.name ?: targetName))
                                 )
                         )
@@ -1800,11 +1809,11 @@ class WorldSettingsListener : Listener {
                 if (result is WorldNameValidation.Failure) {
                         player.sendMessage(plugin.languageManager.getComponent(player, result.messageKey, result.placeholders))
                 } else if (plugin.worldConfigRepository.hasDisplayNameConflict(worldData.owner, newName, worldData.uuid)) {
-                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_name_duplicate"))
+                        player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_NAME_DUPLICATE))
                 } else {
                         worldData.name = newName
                         plugin.worldConfigRepository.save(worldData)
-                        player.sendMessage(lang.getMessage(player, "messages.world_name_change"))
+                        player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_NAME_CHANGE))
                 }
 
                 plugin.settingsSessionManager.endSession(player)
@@ -1819,7 +1828,7 @@ class WorldSettingsListener : Listener {
                 val lang = plugin.languageManager
                 worldData.description = newDescription
                 plugin.worldConfigRepository.save(worldData)
-                player.sendMessage(lang.getMessage(player, "messages.world_desc_change"))
+                player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_DESC_CHANGE))
 
                 plugin.settingsSessionManager.endSession(player)
                 CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
@@ -1841,7 +1850,7 @@ class WorldSettingsListener : Listener {
                 // アイコン選択はプレイヤー自身のインベントリを使うため、閉じた時点で明確にキャンセルする。
                 if (session.action == SettingsAction.SELECT_ICON) {
                         plugin.settingsSessionManager.endSession(player)
-                        player.sendMessage(lang.getMessage(player, "messages.icon_cancelled"))
+                        player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_ICON_CANCELLED))
                         return
                 }
 
@@ -1997,7 +2006,7 @@ class WorldSettingsListener : Listener {
                         player.sendMessage(
                                 plugin.languageManager.getMessage(
                                         player,
-                                        "messages.expand_complete",
+                                        MyworldMessagesKeys.MESSAGES_EXPAND_COMPLETE,
                                         mapOf(
                                                 "level_before" to
                                                         (worldData.borderExpansionLevel - 1),
@@ -2007,7 +2016,7 @@ class WorldSettingsListener : Listener {
                         )
                 } else {
 player.sendMessage(
-                                plugin.languageManager.getMessage("error.expand_failed")
+                                plugin.languageManager.getMessage(CommonKeys.ERROR_EXPAND_FAILED)
                         )
                 }
         }
@@ -2031,7 +2040,7 @@ player.sendMessage(
                         player.sendMessage(
                                 plugin.languageManager.getMessage(
                                         player,
-                                        "messages.expand_complete",
+                                        MyworldMessagesKeys.MESSAGES_EXPAND_COMPLETE,
                                         mapOf(
                                                 "level_before" to
                                                         (worldData.borderExpansionLevel - 1),
@@ -2041,7 +2050,7 @@ player.sendMessage(
                         )
                         plugin.soundManager.playActionSound(player, "creation", "wizard_next")
                 } else {
-                        player.sendMessage(plugin.languageManager.getMessage("error.expand_failed"))
+                        player.sendMessage(plugin.languageManager.getMessage(CommonKeys.ERROR_EXPAND_FAILED))
                 }
                 clearBorderPreview(player)
                 plugin.settingsSessionManager.endSession(player)
@@ -2123,7 +2132,7 @@ player.sendMessage(
                                 player.sendMessage(
                                         plugin.languageManager.getMessage(
                                                 player,
-                                                "messages.expand_direction_selected",
+                                                MyworldMessagesKeys.MESSAGES_EXPAND_DIRECTION_SELECTED,
                                                 mapOf("direction" to directionName)
                                         )
                                 )
@@ -2169,7 +2178,7 @@ player.sendMessage(
                                 player.sendMessage(
                                         plugin.languageManager.getMessage(
                                                 player,
-                                                "error.spawn_set_blocked"
+                                                CommonKeys.ERROR_SPAWN_SET_BLOCKED
                                         )
                                 )
                                 return
@@ -2182,14 +2191,14 @@ player.sendMessage(
                                         worldData.spawnPosGuest = loc
                                         player.sendMessage(
                                                 plugin.languageManager.getMessage(
-                                                        "messages.spawn_guest_set"
+                                                        MyworldMessagesKeys.MESSAGES_SPAWN_GUEST_SET
                                                 )
                                         )
                                 } else {
                                         worldData.spawnPosMember = loc
                                         player.sendMessage(
                                                 plugin.languageManager.getMessage(
-                                                        "messages.spawn_member_set"
+                                                        MyworldMessagesKeys.MESSAGES_SPAWN_MEMBER_SET
                                                 )
                                         )
                                 }
@@ -2357,7 +2366,7 @@ player.sendMessage(
                         player.sendMessage(
                                 plugin.languageManager.getMessage(
                                         player,
-                                        "gui.creation.insufficient",
+                                        MyworldGuiCreationKeys.GUI_CREATION_INSUFFICIENT,
                                         mapOf("shortage" to (cost - stats.worldPoint))
                                 )
                         )
@@ -2380,7 +2389,7 @@ player.sendMessage(
                 player.sendMessage(
                         plugin.languageManager.getMessage(
                                 player,
-                                "messages.env_gravity_changed",
+                                MyworldMessagesKeys.MESSAGES_ENV_GRAVITY_CHANGED,
                                 mapOf("gravity" to "Moon", "multiplier" to "0.17")
                         )
                 )
@@ -2413,13 +2422,13 @@ player.sendMessage(
 
                 if (isAdminWorld) {
                         player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
-                        player.sendMessage(lang.getMessage(player, "messages.custom_item.biome_bottle_disabled"))
+                        player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_CUSTOM_ITEM_BIOME_BOTTLE_DISABLED))
                         return
                 }
 
                 if (!isMember) {
                         player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
-                        player.sendMessage(lang.getMessage(player, "error.custom_item.no_permission"))
+                        player.sendMessage(lang.getMessage(player, CommonKeys.ERROR_CUSTOM_ITEM_NO_PERMISSION))
                         return
                 }
 
@@ -2427,7 +2436,7 @@ player.sendMessage(
                         player.sendMessage(
                                 plugin.languageManager.getMessage(
                                         player,
-                                        "gui.creation.insufficient",
+                                        MyworldGuiCreationKeys.GUI_CREATION_INSUFFICIENT,
                                         mapOf("shortage" to (cost - stats.worldPoint))
                                 )
                         )
@@ -2454,7 +2463,7 @@ player.sendMessage(
                         player.sendMessage(
                                 lang.getMessage(
                                         player,
-                                        "messages.env_biome_changed",
+                                        MyworldMessagesKeys.MESSAGES_ENV_BIOME_CHANGED,
                                         mapOf("biome" to biomeName)
                                 )
                         )
@@ -2611,11 +2620,11 @@ player.sendMessage(
 
         private fun sendExpansionConfirmMessage(player: Player) {
                 val lang = plugin.languageManager
-                val confirmText = lang.getMessage(player, "messages.expand_confirm_chat")
-                val confirmBtn = lang.getMessage(player, "messages.expand_confirm_button")
-                val confirmHover = lang.getMessage(player, "messages.expand_confirm_hover")
-                val retryBtn = lang.getMessage(player, "messages.expand_retry_button")
-                val retryHover = lang.getMessage(player, "messages.expand_retry_hover")
+                val confirmText = lang.getMessage(player, MyworldMessagesKeys.MESSAGES_EXPAND_CONFIRM_CHAT)
+                val confirmBtn = lang.getMessage(player, MyworldMessagesKeys.MESSAGES_EXPAND_CONFIRM_BUTTON)
+                val confirmHover = lang.getMessage(player, MyworldMessagesKeys.MESSAGES_EXPAND_CONFIRM_HOVER)
+                val retryBtn = lang.getMessage(player, MyworldMessagesKeys.MESSAGES_EXPAND_RETRY_BUTTON)
+                val retryHover = lang.getMessage(player, MyworldMessagesKeys.MESSAGES_EXPAND_RETRY_HOVER)
                 val confirmCommand = plugin.internalCommandTokenManager.buildCommand(player, "expand_confirm")
                 val retryCommand = plugin.internalCommandTokenManager.buildCommand(player, "expand_retry")
 
@@ -2718,13 +2727,13 @@ player.sendMessage(
                                                 ?.let { raw -> runCatching { UUID.fromString(raw) }.getOrNull() }
                                 val invite = plugin.memberInviteManager.getInvite(player.uniqueId, inviteId)
                                 if (invite == null) {
-                                        player.sendMessage(lang.getMessage(player, "error.invite_expired"))
+                                        player.sendMessage(lang.getMessage(player, CommonKeys.ERROR_INVITE_EXPIRED))
                                         return
                                 }
 
                                 val worldData = plugin.worldConfigRepository.findByUuid(invite.worldUuid)
                                 if (worldData == null) {
-                                        player.sendMessage(lang.getMessage(player, "error.invite_world_not_found"))
+                                        player.sendMessage(lang.getMessage(player, CommonKeys.ERROR_INVITE_WORLD_NOT_FOUND))
                                         plugin.memberInviteManager.removeInvite(invite.id)
                                         return
                                 }
@@ -2736,21 +2745,21 @@ player.sendMessage(
                                         SettingsAction.MEMBER_INVITE,
                                         isGui = false
                                 )
-                                val title = Component.text(lang.getMessage(player, "gui.member_invite_accept_confirm.title"))
+                                val title = Component.text(lang.getMessage(player, MyworldGuiMeetKeys.GUI_MEMBER_INVITE_ACCEPT_CONFIRM_TITLE))
                                 val center = me.awabi2048.myworldmanager.util.GuiSpecFactory.spec(
                                         Material.PLAYER_HEAD,
                                         Component.text(senderName),
                                         me.awabi2048.myworldmanager.util.semanticLore(
                                                 lang.getMessageList(
                                                         player,
-                                                        "gui.member_invite_accept_confirm.lore",
+                                                        MyworldGuiMeetKeys.GUI_MEMBER_INVITE_ACCEPT_CONFIRM_LORE,
                                                         mapOf("world" to worldData.name, "player" to senderName)
                                                 ).map(::descriptionLine),
                                                 GuiLoreFrame.BOTH
                                         ),
                                 )
-                                val confirmLabel = lang.getMessage(player, "gui.member_invite_accept_confirm.confirm")
-                                val cancelLabel = lang.getMessage(player, "gui.member_invite_accept_confirm.cancel")
+                                val confirmLabel = lang.getMessage(player, MyworldGuiMeetKeys.GUI_MEMBER_INVITE_ACCEPT_CONFIRM_CONFIRM)
+                                val cancelLabel = lang.getMessage(player, MyworldGuiMeetKeys.GUI_MEMBER_INVITE_ACCEPT_CONFIRM_CANCEL)
                                 val confirmItem = me.awabi2048.myworldmanager.util.GuiSpecFactory.spec(
                                         Material.LIME_CONCRETE,
                                         confirmLabel,
@@ -2796,9 +2805,9 @@ player.sendMessage(
                             when (plugin.tourManager.startTour(player, worldData, tour)) {
                                 me.awabi2048.myworldmanager.service.TourManager.StartTourResult.STARTED -> CCSystem.getAPI().getMenuRuntimeService().close(player)
                                 me.awabi2048.myworldmanager.service.TourManager.StartTourResult.INVALID_TOUR ->
-                                    player.sendMessage(lang.getMessage(player, "messages.tour.none_available"))
+                                    player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_TOUR_NONE_AVAILABLE))
                                 me.awabi2048.myworldmanager.service.TourManager.StartTourResult.WRONG_WORLD ->
-                                    player.sendMessage(lang.getMessage(player, "messages.no_in_myworld"))
+                                    player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_NO_IN_MYWORLD))
                             }
                         }
                 }
@@ -2822,27 +2831,27 @@ player.sendMessage(
                     owner = "myworldmanager",
                     id = "settings-member-invite",
                     title = Component.text(
-                        lang.getMessage(player, "gui.member_management.invite.name"),
+                        lang.getMessage(player, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_INVITE_NAME),
                         NamedTextColor.YELLOW,
                     ),
                     body = listOf(Component.text(lang.getMessage(player, inviteInputMessageKey))),
                     inputs = listOf(
                         MenuDialogInput.Text(
                             "member_invite_target",
-                            Component.text(lang.getMessage(player, "gui.bedrock.input.member_invite.label")),
+                            Component.text(lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_MEMBER_INVITE_LABEL)),
                             maxLength = 32,
                         ),
                     ),
                     confirm = MenuDialogButton(
-                        Component.text(lang.getMessage(player, "gui.common.confirm"), NamedTextColor.GREEN),
+                        Component.text(lang.getMessage(player, CommonKeys.GUI_COMMON_CONFIRM), NamedTextColor.GREEN),
                         MenuDialogHandler { target, response ->
                             val session = plugin.settingsSessionManager.getSession(target)
                                 ?: return@MenuDialogHandler MenuActionResult.Rejected(
-                                    lang.getComponent(target, "messages.member_invite_input"),
+                                    lang.getComponent(target, MyworldMessagesKeys.MESSAGES_MEMBER_INVITE_INPUT),
                                 )
                             val currentWorld = plugin.worldConfigRepository.findByUuid(session.worldUuid)
                                 ?: return@MenuDialogHandler MenuActionResult.Rejected(
-                                    lang.getComponent(target, "general.world_not_found"),
+                                    lang.getComponent(target, CommonKeys.GENERAL_WORLD_NOT_FOUND),
                                 )
                             applyMemberInvite(
                                 target,
@@ -2855,7 +2864,7 @@ player.sendMessage(
                         },
                     ),
                     cancel = MenuDialogButton(
-                        Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED),
+                        Component.text(lang.getMessage(player, CommonKeys.GUI_COMMON_CANCEL), NamedTextColor.RED),
                         MenuDialogHandler { _, _ ->
                             MenuActionResult.Success(MenuUpdate.Resume)
                         },
@@ -2939,7 +2948,7 @@ player.sendMessage(
                 val record = worldData.latestBorderExpansionRecord()
                 if (record == null) {
                         player.sendMessage(
-                                lang.getMessage(player, "messages.expansion_step_back_unavailable")
+                                lang.getMessage(player, MyworldMessagesKeys.MESSAGES_EXPANSION_STEP_BACK_UNAVAILABLE)
                         )
                         plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
                         return
@@ -2984,16 +2993,16 @@ player.sendMessage(
                 title,
                 me.awabi2048.myworldmanager.util.semanticLore(
                     buildList {
-                        add(GuiLoreLine.Text(lang.getMessage(player, "gui.common.confirm_action")))
+                        add(GuiLoreLine.Text(lang.getMessage(player, CommonKeys.GUI_COMMON_CONFIRM_ACTION)))
                         if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
-                            add(GuiLoreLine.Data(lang.getMessage(player, "gui.settings.expand.blocks.cost"), cost, "§e"))
+                            add(GuiLoreLine.Data(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_EXPAND_BLOCKS_COST), cost, "§e"))
                         }
                     },
                     GuiLoreFrame.BOTH
                 ),
             )
-            val confirmLabel = lang.getMessage(player, "gui.common.confirm")
-            val cancelLabel = lang.getMessage(player, "gui.common.cancel")
+            val confirmLabel = lang.getMessage(player, CommonKeys.GUI_COMMON_CONFIRM)
+            val cancelLabel = lang.getMessage(player, CommonKeys.GUI_COMMON_CANCEL)
             val confirmItem = me.awabi2048.myworldmanager.util.GuiSpecFactory.spec(
                 Material.LIME_CONCRETE,
                 confirmLabel,
@@ -3050,7 +3059,7 @@ player.sendMessage(
                         player.sendMessage(
                                 plugin.languageManager.getMessage(
                                         player,
-                                        "gui.creation.insufficient",
+                                        MyworldGuiCreationKeys.GUI_CREATION_INSUFFICIENT,
                                         mapOf("shortage" to (cost - stats.worldPoint))
                                 )
                         )
@@ -3067,7 +3076,7 @@ player.sendMessage(
                 player.sendMessage(
                         plugin.languageManager.getMessage(
                                 player,
-                                "messages.env_gravity_changed",
+                                MyworldMessagesKeys.MESSAGES_ENV_GRAVITY_CHANGED,
                                 mapOf("gravity" to "Moon", "multiplier" to "0.17")
                         )
                 )
@@ -3086,7 +3095,7 @@ player.sendMessage(
                         player.sendMessage(
                                 plugin.languageManager.getMessage(
                                         player,
-                                        "gui.creation.insufficient",
+                                        MyworldGuiCreationKeys.GUI_CREATION_INSUFFICIENT,
                                         mapOf("shortage" to (cost - stats.worldPoint))
                                 )
                         )
@@ -3115,7 +3124,7 @@ player.sendMessage(
                         player.sendMessage(
                                 plugin.languageManager.getMessage(
                                         player,
-                                        "gui.creation.insufficient",
+                                        MyworldGuiCreationKeys.GUI_CREATION_INSUFFICIENT,
                                         mapOf("shortage" to (cost - stats.worldPoint))
                                 )
                         )
@@ -3133,7 +3142,7 @@ player.sendMessage(
                         plugin.worldConfigRepository.save(worldData)
 
                         val biomeName = lang.getMessage(player, "biomes.${biomeId.lowercase()}")
-                        player.sendMessage(lang.getMessage(player, "messages.env_biome_changed", mapOf("biome" to biomeName)))
+                        player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_ENV_BIOME_CHANGED, mapOf("biome" to biomeName)))
                         sendEnvironmentCostPaid(player, cost, stats.worldPoint)
                         plugin.soundManager.playActionSound(player, "environment", "biome_change")
                         applyBiomeToWorld(worldData)
@@ -3153,7 +3162,7 @@ player.sendMessage(
                         player.sendMessage(
                                 plugin.languageManager.getMessage(
                                         player,
-                                        "gui.creation.insufficient",
+                                        MyworldGuiCreationKeys.GUI_CREATION_INSUFFICIENT,
                                         mapOf("shortage" to (cost - stats.worldPoint))
                                 )
                         )
@@ -3169,7 +3178,7 @@ player.sendMessage(
                         player.sendMessage(
                                 plugin.languageManager.getMessage(
                                         player,
-                                        "messages.expand_complete",
+                                        MyworldMessagesKeys.MESSAGES_EXPAND_COMPLETE,
                                         mapOf(
                                                 "level_before" to (worldData.borderExpansionLevel - 1),
                                                 "level_after" to worldData.borderExpansionLevel
@@ -3178,7 +3187,7 @@ player.sendMessage(
                         )
                         plugin.soundManager.playActionSound(player, "creation", "wizard_next")
                 } else {
-                        player.sendMessage(plugin.languageManager.getMessage("error.expand_failed"))
+                        player.sendMessage(plugin.languageManager.getMessage(CommonKeys.ERROR_EXPAND_FAILED))
                 }
                 if (!CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)) {
                         plugin.worldSettingsGui.open(player, worldData)
@@ -3216,7 +3225,7 @@ player.sendMessage(
                 }
                 return plugin.languageManager.getMessageList(
                         player,
-                        "gui.confirm.spawn_adjustment_warning"
+                        MyworldGuiCommonKeys.GUI_CONFIRM_SPAWN_ADJUSTMENT_WARNING
                 )
         }
 
@@ -3238,7 +3247,7 @@ player.sendMessage(
                         player.sendMessage(
                                 plugin.languageManager.getMessage(
                                         player,
-                                        "messages.expansion_step_back_unavailable"
+                                        MyworldMessagesKeys.MESSAGES_EXPANSION_STEP_BACK_UNAVAILABLE
                                 )
                         )
                         plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
@@ -3247,7 +3256,7 @@ player.sendMessage(
 
                 val world = resolveWorld(worldData)
                 if (world == null) {
-                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_not_found"))
+                        player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_NOT_FOUND))
                         return
                 }
 
@@ -3272,7 +3281,7 @@ player.sendMessage(
                 player.sendMessage(
                         plugin.languageManager.getMessage(
                                 player,
-                                "messages.expansion_step_back_success",
+                                MyworldMessagesKeys.MESSAGES_EXPANSION_STEP_BACK_SUCCESS,
                                 mapOf(
                                         "level_before" to record.levelAfter,
                                         "level_after" to record.levelBefore
@@ -3350,7 +3359,7 @@ player.sendMessage(
                         val title = LegacyComponentSerializer.legacySection().deserialize(
                                 plugin.languageManager.getMessage(
                                         player,
-                                        "gui.confirm.reset_expansion_spawn_unsafe.title"
+                                        MyworldGuiCommonKeys.GUI_CONFIRM_RESET_EXPANSION_SPAWN_UNSAFE_TITLE
                                 )
                         )
                         val bodyTextLines = plugin.languageManager
@@ -3360,7 +3369,7 @@ player.sendMessage(
                                 bodyTextLines.addAll(
                                         plugin.languageManager.getMessageList(
                                                 player,
-                                                "gui.confirm.reset_expansion.modified_warning"
+                                                MyworldGuiCommonKeys.GUI_CONFIRM_RESET_EXPANSION_MODIFIED_WARNING
                                         )
                                 )
                         }
@@ -3380,8 +3389,8 @@ player.sendMessage(
                                 plugin,
                                 title,
                                 bodyTextLines,
-                                plugin.languageManager.getMessage(player, "gui.common.confirm"),
-                                plugin.languageManager.getMessage(player, "gui.common.cancel"),
+                                plugin.languageManager.getMessage(player, CommonKeys.GUI_COMMON_CONFIRM),
+                                plugin.languageManager.getMessage(player, CommonKeys.GUI_COMMON_CANCEL),
                                 onConfirm = {
                                         executeExpansionReset(player, worldData, closeInventory = false)
                                         plugin.soundManager.playActionSound(player, "environment", "gravity_change")
@@ -3411,7 +3420,7 @@ player.sendMessage(
                                         player.sendMessage(
                                                 plugin.languageManager.getMessage(
                                                         player,
-                                                        "messages.world_delete_success",
+                                                        MyworldMessagesKeys.MESSAGES_WORLD_DELETE_SUCCESS,
                                                         mapOf("points" to refund)
                                                 )
                                         )
@@ -3419,7 +3428,7 @@ player.sendMessage(
                                         plugin.settingsSessionManager.endSession(player)
                                         CCSystem.getAPI().getMenuRuntimeService().close(player)
                                 } else {
-                                        player.sendMessage(plugin.languageManager.getMessage("error.delete_failed"))
+                                        player.sendMessage(plugin.languageManager.getMessage(CommonKeys.ERROR_DELETE_FAILED))
                                         plugin.worldSettingsGui.open(player, worldData)
                                 }
                         })
@@ -3441,12 +3450,12 @@ player.sendMessage(
                 player.sendMessage(
                         plugin.languageManager.getMessage(
                                 player,
-                                "messages.env_cost_paid",
+                                MyworldMessagesKeys.MESSAGES_ENV_COST_PAID,
                                 mapOf(
                                         "cost" to cost,
                                         "remaining_info" to plugin.languageManager.getMessage(
                                                 player,
-                                                "messages.env_cost_paid_remaining",
+                                                MyworldMessagesKeys.MESSAGES_ENV_COST_PAID_REMAINING,
                                                 mapOf("remaining" to remaining)
                                         )
                                 )
@@ -3464,7 +3473,7 @@ player.sendMessage(
                 player.sendMessage(
                         plugin.languageManager.getMessage(
                                 player,
-                                "messages.world_delete_unavailable_slot"
+                                MyworldMessagesKeys.MESSAGES_WORLD_DELETE_UNAVAILABLE_SLOT
                         )
                 )
         }
@@ -3474,7 +3483,7 @@ player.sendMessage(
                 player.sendMessage(
                         plugin.languageManager.getMessage(
                                 player,
-                                "messages.unarchive_start"
+                                MyworldMessagesKeys.MESSAGES_UNARCHIVE_START
                         )
                 )
 
@@ -3494,7 +3503,7 @@ player.sendMessage(
                                                                 player.sendMessage(
                                                                         plugin.languageManager.getMessage(
                                                                                 player,
-                                                                                "messages.unarchive_success"
+                                                                                MyworldMessagesKeys.MESSAGES_UNARCHIVE_SUCCESS
                                                                         )
                                                                 )
                                                         }
@@ -3502,7 +3511,7 @@ player.sendMessage(
                                                         player.sendMessage(
                                                                 plugin.languageManager.getMessage(
                                                                         player,
-                                                                        "error.unarchive_failed"
+                                                                        CommonKeys.ERROR_UNARCHIVE_FAILED
                                                                 )
                                                         )
                                                 }
@@ -3517,7 +3526,7 @@ player.sendMessage(
                 val currentOwner =
                         PlayerNameUtil.getNameOrDefault(
                                 worldData.owner,
-                                lang.getMessage(player, "general.unknown")
+                                lang.getMessage(player, CommonKeys.GENERAL_UNKNOWN)
                         )
                 CCSystem.getAPI().getMenuDialogService().show(
                     player,
@@ -3526,12 +3535,12 @@ player.sendMessage(
                         id = "settings-admin-owner-reset",
                         title = lang.getComponent(
                             player,
-                            "gui.member_management.admin_owner_reset.dialog.title",
+                            MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_ADMIN_OWNER_RESET_DIALOG_TITLE,
                         ),
                         body = listOf(
                             lang.getComponent(
                                 player,
-                                "gui.member_management.admin_owner_reset.dialog.body",
+                                MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_ADMIN_OWNER_RESET_DIALOG_BODY,
                                 mapOf("world" to worldData.name, "owner" to currentOwner),
                             ),
                         ),
@@ -3540,7 +3549,7 @@ player.sendMessage(
                                 "new_owner_name",
                                 lang.getComponent(
                                     player,
-                                    "gui.member_management.admin_owner_reset.dialog.input",
+                                    MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_ADMIN_OWNER_RESET_DIALOG_INPUT,
                                 ),
                                 width = 300,
                             ),
@@ -3548,7 +3557,7 @@ player.sendMessage(
                         confirm = MenuDialogButton(
                             lang.getComponent(
                                 player,
-                                "gui.member_management.admin_owner_reset.dialog.confirm",
+                                MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_ADMIN_OWNER_RESET_DIALOG_CONFIRM,
                             ),
                             MenuDialogHandler { target, response ->
                                 val session = plugin.settingsSessionManager.getSession(target)
@@ -3570,7 +3579,7 @@ player.sendMessage(
                         cancel = MenuDialogButton(
                             lang.getComponent(
                                 player,
-                                "gui.member_management.admin_owner_reset.dialog.cancel",
+                                MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_ADMIN_OWNER_RESET_DIALOG_CANCEL,
                             ),
                             MenuDialogHandler { target, _ ->
                                 reopenMemberManagementLatest(target, worldData.uuid)
@@ -3591,7 +3600,7 @@ player.sendMessage(
                         player.sendMessage(
                                 lang.getMessage(
                                         player,
-                                        "gui.member_management.admin_owner_reset.error.empty"
+                                        MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_ADMIN_OWNER_RESET_ERROR_EMPTY
                                 )
                         )
                         showAdminOwnerResetDialog(player, worldData)
@@ -3603,7 +3612,7 @@ player.sendMessage(
                         player.sendMessage(
                                 lang.getMessage(
                                         player,
-                                        "gui.member_management.admin_owner_reset.error.not_found",
+                                        MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_ADMIN_OWNER_RESET_ERROR_NOT_FOUND,
                                         mapOf("player" to targetName)
                                 )
                         )
@@ -3614,7 +3623,7 @@ player.sendMessage(
                         player.sendMessage(
                                 lang.getMessage(
                                         player,
-                                        "gui.member_management.admin_owner_reset.error.same_owner"
+                                        MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_ADMIN_OWNER_RESET_ERROR_SAME_OWNER
                                 )
                         )
                         showAdminOwnerResetDialog(player, worldData)
@@ -3629,13 +3638,13 @@ player.sendMessage(
                 val oldOwnerName =
                         PlayerNameUtil.getNameOrDefault(
                                 oldOwnerId,
-                                lang.getMessage(player, "general.unknown")
+                                lang.getMessage(player, CommonKeys.GENERAL_UNKNOWN)
                         )
                 val newOwnerName =
                         newOwner.name
                                 ?: PlayerNameUtil.getNameOrDefault(
                                         newOwner.uniqueId,
-                                        lang.getMessage(player, "general.unknown")
+                                        lang.getMessage(player, CommonKeys.GENERAL_UNKNOWN)
                                 )
 
                 worldData.owner = newOwner.uniqueId
@@ -3670,7 +3679,7 @@ player.sendMessage(
                 player.sendMessage(
                         lang.getMessage(
                                 player,
-                                "gui.member_management.admin_owner_reset.success",
+                                MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_ADMIN_OWNER_RESET_SUCCESS,
                                 mapOf("player" to newOwnerName)
                         )
                 )
@@ -3682,11 +3691,11 @@ player.sendMessage(
                 val worldFolderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
                 if (visitor != null && visitor.world.name == worldFolderName) {
                         visitor.teleport(plugin.worldService.getEvacuationLocation())
-                        visitor.sendMessage(plugin.languageManager.getMessage(visitor, "messages.kicked"))
+                        visitor.sendMessage(plugin.languageManager.getMessage(visitor, MyworldMessagesKeys.MESSAGES_KICKED))
                         player.sendMessage(
                                 plugin.languageManager.getMessage(
                                         player,
-                                        "messages.kicked_success",
+                                        MyworldMessagesKeys.MESSAGES_KICKED_SUCCESS,
                                         mapOf("player" to visitor.name)
                                 )
                         )
@@ -3744,7 +3753,7 @@ player.sendMessage(
                         player.sendMessage(
                                 plugin.languageManager.getMessage(
                                         player,
-                                        "messages.archive_success",
+                                        MyworldMessagesKeys.MESSAGES_ARCHIVE_SUCCESS,
                                         mapOf("world" to worldData.name)
                                 )
                         )
@@ -3756,7 +3765,7 @@ player.sendMessage(
                 }
 
                 if (keyVal == "confirm/archive_world_critical") {
-                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.archive_start"))
+                        player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_ARCHIVE_START))
                         plugin.worldService.archiveWorld(worldData.uuid)
                                 .thenAccept { success: Boolean ->
                                         Bukkit.getScheduler().runTask(plugin, Runnable {
@@ -3769,12 +3778,12 @@ player.sendMessage(
                                                         player.sendMessage(
                                                                 plugin.languageManager.getMessage(
                                                                         player,
-                                                                        "messages.archive_success",
+                                                                        MyworldMessagesKeys.MESSAGES_ARCHIVE_SUCCESS,
                                                                         mapOf("world" to worldData.name)
                                                                 )
                                                         )
                                                 } else {
-                                                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.archive_failed"))
+                                                        player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_ARCHIVE_FAILED))
                                                 }
                                         })
                                 }
@@ -3837,7 +3846,7 @@ player.sendMessage(
                                         source = MwmMemberRemoveSource.MANUAL
                                 )
                         )
-                        player.sendMessage(plugin.languageManager.getMessage("messages.member_deleted"))
+                        player.sendMessage(plugin.languageManager.getMessage(MyworldMessagesKeys.MESSAGES_MEMBER_DELETED))
                         plugin.macroManager.execute(
                                 "on_member_remove",
                                 mapOf(
@@ -3889,7 +3898,7 @@ player.sendMessage(
                         player.sendMessage(
                                 plugin.languageManager.getMessage(
                                         player,
-                                        "messages.owner_transferred",
+                                        MyworldMessagesKeys.MESSAGES_OWNER_TRANSFERRED,
                                         mapOf("old_owner" to newOwnerName)
                                 )
                         )

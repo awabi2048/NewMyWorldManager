@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.listener
 
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.util.ItemTag
@@ -14,7 +18,7 @@ class WorldSeedListener {
         fun expandWorldSlot(plugin: MyWorldManager, player: Player): Boolean {
             if (!MyWorldManagerApi.isWorldSlotSystemEnabled()) {
                 // 確認画面を開いた後に設定が変わる経路も、確定処理側で防御します。
-                player.sendMessage(plugin.languageManager.getMessage(player, "error.custom_item.world_seed_disabled"))
+                player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_CUSTOM_ITEM_WORLD_SEED_DISABLED))
                 return false
             }
             val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
@@ -26,7 +30,7 @@ class WorldSeedListener {
                 player.sendMessage(
                     plugin.languageManager.getMessage(
                         player,
-                        "error.custom_item.world_seed_limit_reached",
+                        CommonKeys.ERROR_CUSTOM_ITEM_WORLD_SEED_LIMIT_REACHED,
                         mapOf("limit" to limit)
                     )
                 )
@@ -46,7 +50,7 @@ class WorldSeedListener {
             }
 
             if (!consumed) {
-                player.sendMessage(plugin.languageManager.getMessage(player, "error.custom_item.item_not_found_hand"))
+                player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_CUSTOM_ITEM_ITEM_NOT_FOUND_HAND))
                 return false
             }
 
@@ -57,7 +61,7 @@ class WorldSeedListener {
             player.sendMessage(
                 plugin.languageManager.getMessage(
                     player,
-                    "messages.custom_item.world_seed_expanded",
+                    MyworldMessagesKeys.MESSAGES_CUSTOM_ITEM_WORLD_SEED_EXPANDED,
                     mapOf("slots" to newTotal)
                 )
             )

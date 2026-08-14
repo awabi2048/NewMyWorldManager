@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiCreationKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
@@ -95,101 +99,101 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
 
         elements += menuEntry(
             player, 13, Material.FILLED_MAP,
-            lang.getMessage(player, "gui.template_wizard.status.display"),
+            lang.getMessage(player, MyworldGuiCreationKeys.GUI_TEMPLATE_WIZARD_STATUS_DISPLAY),
             GuiElementRole.CONTENT,
             data = listOf(
-                GuiMenuEntryData(lang.getMessage(player, "gui.template_wizard.status.source_world"), session.sourceWorldKey),
-                GuiMenuEntryData(lang.getMessage(player, "gui.template_wizard.status.template_id"), session.id.ifEmpty { lang.getMessage(player, "general.unknown") }),
+                GuiMenuEntryData(lang.getMessage(player, MyworldGuiCreationKeys.GUI_TEMPLATE_WIZARD_STATUS_SOURCE_WORLD), session.sourceWorldKey),
+                GuiMenuEntryData(lang.getMessage(player, MyworldGuiCreationKeys.GUI_TEMPLATE_WIZARD_STATUS_TEMPLATE_ID), session.id.ifEmpty { lang.getMessage(player, CommonKeys.GENERAL_UNKNOWN) }),
                 GuiMenuEntryData(
-                    lang.getMessage(player, "gui.template_wizard.status.spawn"),
+                    lang.getMessage(player, MyworldGuiCreationKeys.GUI_TEMPLATE_WIZARD_STATUS_SPAWN),
                     session.originLocation?.let { "(${it.blockX}, ${it.blockY}, ${it.blockZ})" }
-                        ?: lang.getMessage(player, "general.unknown"),
+                        ?: lang.getMessage(player, CommonKeys.GENERAL_UNKNOWN),
                 ),
             )
         )
         elements += actionEntry(
             player, choices.leftSlot,
                 plugin.menuConfigManager.getIconMaterial(MENU_ID, "name_input", Material.NAME_TAG),
-                lang.getMessage(player, "gui.template_wizard.name_input.display"),
-                lang.getMessageList(player, "gui.template_wizard.name_input.description", mapOf(
+                lang.getMessage(player, MyworldGuiCreationKeys.GUI_TEMPLATE_WIZARD_NAME_INPUT_DISPLAY),
+                lang.getMessageList(player, MyworldGuiCreationKeys.GUI_TEMPLATE_WIZARD_NAME_INPUT_DESCRIPTION, mapOf(
                     "name" to session.name.ifEmpty { "未設定" },
                     "id" to session.id.ifEmpty { "未設定" },
                 )),
                 ACTION_NAME,
-                lang.getMessage(player, "gui.template_wizard.name_input.action"),
+                lang.getMessage(player, MyworldGuiCreationKeys.GUI_TEMPLATE_WIZARD_NAME_INPUT_ACTION),
             )
         elements += actionEntry(
             player, choices.centerSlot,
                 plugin.menuConfigManager.getIconMaterial(MENU_ID, "desc_input", Material.WRITABLE_BOOK),
-                lang.getMessage(player, "gui.template_wizard.desc_input.display"),
-                lang.getMessageList(player, "gui.template_wizard.desc_input.description", mapOf("desc" to session.description.joinToString("\n") { "§f  - $it" })),
+                lang.getMessage(player, MyworldGuiCreationKeys.GUI_TEMPLATE_WIZARD_DESC_INPUT_DISPLAY),
+                lang.getMessageList(player, MyworldGuiCreationKeys.GUI_TEMPLATE_WIZARD_DESC_INPUT_DESCRIPTION, mapOf("desc" to session.description.joinToString("\n") { "§f  - $it" })),
                 ACTION_DESCRIPTION,
-                lang.getMessage(player, "gui.template_wizard.desc_input.action"),
+                lang.getMessage(player, MyworldGuiCreationKeys.GUI_TEMPLATE_WIZARD_DESC_INPUT_ACTION),
             )
         elements += actionEntry(
             player, choices.rightSlot,
                 session.icon,
-                lang.getMessage(player, "gui.template_wizard.icon_select.display"),
-                lang.getMessageList(player, "gui.template_wizard.icon_select.description", mapOf("icon" to session.icon.name)),
+                lang.getMessage(player, MyworldGuiCreationKeys.GUI_TEMPLATE_WIZARD_ICON_SELECT_DISPLAY),
+                lang.getMessageList(player, MyworldGuiCreationKeys.GUI_TEMPLATE_WIZARD_ICON_SELECT_DESCRIPTION, mapOf("icon" to session.icon.name)),
                 ACTION_ICON,
-                lang.getMessage(player, "gui.template_wizard.icon_select.action"),
+                lang.getMessage(player, MyworldGuiCreationKeys.GUI_TEMPLATE_WIZARD_ICON_SELECT_ACTION),
             )
         elements += actionEntry(
             player, 31,
                 plugin.menuConfigManager.getIconMaterial(MENU_ID, "origin_set", Material.COMPASS),
-                lang.getMessage(player, "gui.template_wizard.origin_set.display"),
-                lang.getMessageList(player, "gui.template_wizard.origin_set.description", mapOf(
+                lang.getMessage(player, MyworldGuiCreationKeys.GUI_TEMPLATE_WIZARD_ORIGIN_SET_DISPLAY),
+                lang.getMessageList(player, MyworldGuiCreationKeys.GUI_TEMPLATE_WIZARD_ORIGIN_SET_DESCRIPTION, mapOf(
                     "origin" to (session.originLocation?.let { "${it.blockX}, ${it.blockY}, ${it.blockZ}" } ?: "未設定"),
                 )),
                 ACTION_ORIGIN,
-                lang.getMessage(player, "gui.template_wizard.origin_set.action"),
+                lang.getMessage(player, MyworldGuiCreationKeys.GUI_TEMPLATE_WIZARD_ORIGIN_SET_ACTION),
             )
 
         val missing = buildList {
             if (session.id.isEmpty() || session.name.isEmpty()) {
-                add(lang.getMessage(player, "gui.template_wizard.requirement.name"))
+                add(lang.getMessage(player, MyworldGuiCreationKeys.GUI_TEMPLATE_WIZARD_REQUIREMENT_NAME))
             }
             if (session.originLocation == null) {
-                add(lang.getMessage(player, "gui.template_wizard.requirement.spawn"))
+                add(lang.getMessage(player, MyworldGuiCreationKeys.GUI_TEMPLATE_WIZARD_REQUIREMENT_SPAWN))
             }
             if (session.originLocation?.world?.name != session.sourceWorldName) {
-                add(lang.getMessage(player, "gui.template_wizard.requirement.source_world"))
+                add(lang.getMessage(player, MyworldGuiCreationKeys.GUI_TEMPLATE_WIZARD_REQUIREMENT_SOURCE_WORLD))
             }
         }
         elements += if (missing.isEmpty()) {
             actionEntry(
                 player, 40,
                     plugin.menuConfigManager.getIconMaterial(MENU_ID, "save_confirm", Material.NETHER_STAR),
-                    lang.getMessage(player, "gui.template_wizard.save_confirm.display"),
-                    lang.getMessageList(player, "gui.template_wizard.save_confirm.description"),
+                    lang.getMessage(player, MyworldGuiCreationKeys.GUI_TEMPLATE_WIZARD_SAVE_CONFIRM_DISPLAY),
+                    lang.getMessageList(player, MyworldGuiCreationKeys.GUI_TEMPLATE_WIZARD_SAVE_CONFIRM_DESCRIPTION),
                 ACTION_SAVE,
-                lang.getMessage(player, "gui.template_wizard.save_confirm.action"),
+                lang.getMessage(player, MyworldGuiCreationKeys.GUI_TEMPLATE_WIZARD_SAVE_CONFIRM_ACTION),
                 GuiElementRole.CONFIRM,
             )
         } else {
             menuEntry(
                 player, 40, Material.BARRIER,
-                lang.getMessage(player, "gui.template_wizard.requirement.display"),
+                lang.getMessage(player, MyworldGuiCreationKeys.GUI_TEMPLATE_WIZARD_REQUIREMENT_DISPLAY),
                 GuiElementRole.CONTENT,
                 warnings = missing,
             )
         }
         elements += actionEntry(
             player, 39, Material.SPYGLASS,
-            lang.getMessage(player, "gui.template_wizard.validate.display"),
+            lang.getMessage(player, MyworldGuiCreationKeys.GUI_TEMPLATE_WIZARD_VALIDATE_DISPLAY),
             emptyList(), ACTION_VALIDATE,
-            lang.getMessage(player, "gui.template_wizard.validate.action"),
+            lang.getMessage(player, MyworldGuiCreationKeys.GUI_TEMPLATE_WIZARD_VALIDATE_ACTION),
         )
         elements += actionEntry(
             player, 49, Material.RED_CONCRETE,
-            lang.getMessage(player, "gui.template_wizard.cancel.display"),
+            lang.getMessage(player, MyworldGuiCreationKeys.GUI_TEMPLATE_WIZARD_CANCEL_DISPLAY),
             emptyList(), ACTION_CANCEL,
-            lang.getMessage(player, "gui.template_wizard.cancel.action"),
+            lang.getMessage(player, MyworldGuiCreationKeys.GUI_TEMPLATE_WIZARD_CANCEL_ACTION),
             GuiElementRole.CANCEL,
         )
         return InventoryMenuView(
             layout.size,
-            GuiHelper.inventoryTitle(lang.getMessage(player, "gui.template_wizard.title")),
+            GuiHelper.inventoryTitle(lang.getMessage(player, MyworldGuiCreationKeys.GUI_TEMPLATE_WIZARD_TITLE)),
             elements,
             playerInventoryInteraction = PlayerInventoryInteraction.SELECTION,
         )
@@ -218,7 +222,7 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
         val session = session(context) ?: return MenuActionResult.Rejected()
         if (context.cursor.type == Material.AIR) {
             context.player.sendMessage(
-                plugin.languageManager.getMessage(context.player, "messages.template_wizard_icon_help"),
+                plugin.languageManager.getMessage(context.player, MyworldMessagesKeys.MESSAGES_TEMPLATE_WIZARD_ICON_HELP),
             )
             return MenuActionResult.Success(MenuUpdate.None)
         }
@@ -230,13 +234,13 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
         val session = session(context) ?: return MenuActionResult.Rejected()
         if (context.player.world.name != session.sourceWorldName) {
             context.player.sendMessage(
-                plugin.languageManager.getMessage(context.player, "messages.template_wizard_source_changed"),
+                plugin.languageManager.getMessage(context.player, MyworldMessagesKeys.MESSAGES_TEMPLATE_WIZARD_SOURCE_CHANGED),
             )
             return MenuActionResult.Rejected()
         }
         session.originLocation = context.player.location.clone()
         context.player.sendMessage(
-            plugin.languageManager.getMessage(context.player, "messages.template_wizard_spawn_set"),
+            plugin.languageManager.getMessage(context.player, MyworldMessagesKeys.MESSAGES_TEMPLATE_WIZARD_SPAWN_SET),
         )
         return MenuActionResult.Success(MenuUpdate.Refresh)
     }
@@ -246,16 +250,16 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
         val session = session(context) ?: return MenuActionResult.Rejected()
         val lang = plugin.languageManager
         if (session.id.isEmpty()) {
-            player.sendMessage(lang.getMessage(player, "messages.template_wizard_id_missing"))
+            player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_TEMPLATE_WIZARD_ID_MISSING))
             return MenuActionResult.Rejected()
         }
         val origin = session.originLocation
         if (origin == null || origin.world?.name != session.sourceWorldName) {
-            player.sendMessage(lang.getMessage(player, "messages.template_wizard_source_changed"))
+            player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_TEMPLATE_WIZARD_SOURCE_CHANGED))
             return MenuActionResult.Rejected()
         }
         if (plugin.templateRepository.findById(session.id) != null) {
-            player.sendMessage(lang.getMessage(player, "messages.template_wizard_id_exists"))
+            player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_TEMPLATE_WIZARD_ID_EXISTS))
             return MenuActionResult.Rejected()
         }
         plugin.templateRepository.saveTemplate(
@@ -272,7 +276,7 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
             ),
         )
         player.sendMessage(
-            lang.getMessage(player, "messages.wizard_registered", mapOf("template" to session.id)),
+            lang.getMessage(player, MyworldMessagesKeys.MESSAGES_WIZARD_REGISTERED, mapOf("template" to session.id)),
         )
         sessions.remove(player.uniqueId)
         plugin.templateRepository.loadTemplates()

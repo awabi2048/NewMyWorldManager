@@ -2,6 +2,10 @@
 
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiCreationKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
@@ -51,24 +55,24 @@ class CreationDialogManager {
                     owner = "myworldmanager",
                     id = "creation-name-input",
                     title = LegacyComponentSerializer.legacySection()
-                        .deserialize(lang.getMessage(player, "gui.creation.dialog.name_title")),
+                        .deserialize(lang.getMessage(player, MyworldGuiCreationKeys.GUI_CREATION_DIALOG_NAME_TITLE)),
                     body = listOfNotNull(errorMessage),
                     inputs = listOf(
                         MenuDialogInput.Text(
                             "world_name",
-                            lang.getComponent(player, "messages.wizard_name_prompt"),
+                            lang.getComponent(player, MyworldMessagesKeys.MESSAGES_WIZARD_NAME_PROMPT),
                             session.worldName ?: "",
                             maxLength = 32,
                         ),
                     ),
                     confirm = MenuDialogButton(
-                        lang.getComponent(player, "gui.creation.confirm.proceed_button"),
+                        lang.getComponent(player, MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_PROCEED_BUTTON),
                         MenuDialogHandler { target, response ->
                             applyWorldName(target, session, plugin, response.textValue("world_name"))
                         },
                     ),
                     cancel = MenuDialogButton(
-                        lang.getComponent(player, "gui.creation.confirm.action_back"),
+                        lang.getComponent(player, MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_ACTION_BACK),
                         MenuDialogHandler { target, _ ->
                             backFromName(target, session)
                         },
@@ -90,7 +94,7 @@ class CreationDialogManager {
                     owner = "myworldmanager",
                     id = "creation-seed-input",
                     title = Component.text(
-                        lang.getMessage(player, "gui.creation.dialog.seed_title"),
+                        lang.getMessage(player, MyworldGuiCreationKeys.GUI_CREATION_DIALOG_SEED_TITLE),
                         NamedTextColor.YELLOW,
                     ),
                     body = errorMessage
@@ -100,18 +104,18 @@ class CreationDialogManager {
                     inputs = listOf(
                         MenuDialogInput.Text(
                             "seed_value",
-                            lang.getComponent(player, "messages.wizard_seed_prompt"),
+                            lang.getComponent(player, MyworldMessagesKeys.MESSAGES_WIZARD_SEED_PROMPT),
                             session.inputSeedString ?: "",
                         ),
                     ),
                     confirm = MenuDialogButton(
-                        lang.getComponent(player, "gui.creation.confirm.proceed_button"),
+                        lang.getComponent(player, MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_PROCEED_BUTTON),
                         MenuDialogHandler { target, response ->
                             applySeed(target, session, plugin, response.textValue("seed_value"))
                         },
                     ),
                     cancel = MenuDialogButton(
-                        lang.getComponent(player, "gui.creation.confirm.action_back"),
+                        lang.getComponent(player, MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_ACTION_BACK),
                         MenuDialogHandler { _, _ ->
                             session.phase = WorldCreationPhase.TYPE_SELECT
                             // 入力画面を開く前の種類選択画面へ戻るだけなので、履歴を増やさず復帰する。
@@ -130,7 +134,7 @@ class CreationDialogManager {
             val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
             val lang = plugin.languageManager
             val body = mutableListOf(
-                lang.getComponent(player, "gui.creation.confirm.spawn_location.input.help")
+                lang.getComponent(player, MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_SPAWN_LOCATION_INPUT_HELP)
             )
             if (!errorMessage.isNullOrBlank()) {
                 body += LegacyComponentSerializer.legacySection().deserialize(errorMessage)
@@ -141,14 +145,14 @@ class CreationDialogManager {
                 MenuDialogRequest(
                     owner = "myworldmanager",
                     id = "creation-spawn-input",
-                    title = lang.getComponent(player, "gui.creation.confirm.spawn_location.input.title"),
+                    title = lang.getComponent(player, MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_SPAWN_LOCATION_INPUT_TITLE),
                     body = body,
                     inputs = listOf(
                         MenuDialogInput.Text(
                             "spawn_x",
                             lang.getComponent(
                                 player,
-                                "gui.creation.confirm.spawn_location.input.axis",
+                                MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_SPAWN_LOCATION_INPUT_AXIS,
                                 mapOf("axis" to "X"),
                             ),
                             coordinates?.x?.toString() ?: "",
@@ -157,7 +161,7 @@ class CreationDialogManager {
                             "spawn_y",
                             lang.getComponent(
                                 player,
-                                "gui.creation.confirm.spawn_location.input.axis",
+                                MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_SPAWN_LOCATION_INPUT_AXIS,
                                 mapOf("axis" to "Y"),
                             ),
                             coordinates?.y?.toString() ?: "",
@@ -166,20 +170,20 @@ class CreationDialogManager {
                             "spawn_z",
                             lang.getComponent(
                                 player,
-                                "gui.creation.confirm.spawn_location.input.axis",
+                                MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_SPAWN_LOCATION_INPUT_AXIS,
                                 mapOf("axis" to "Z"),
                             ),
                             coordinates?.z?.toString() ?: "",
                         ),
                     ),
                     confirm = MenuDialogButton(
-                        lang.getComponent(player, "gui.creation.confirm.spawn_location.input.apply"),
+                        lang.getComponent(player, MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_SPAWN_LOCATION_INPUT_APPLY),
                         MenuDialogHandler { target, response ->
                             applySpawnCoordinates(target, session, plugin, response)
                         },
                     ),
                     cancel = MenuDialogButton(
-                        lang.getComponent(player, "gui.creation.confirm.spawn_location.input.back"),
+                        lang.getComponent(player, MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_SPAWN_LOCATION_INPUT_BACK),
                         MenuDialogHandler { _, _ ->
                             session.phase = WorldCreationPhase.CONFIRM
                             // 確認画面はダイアログ表示前の現在Routeであり、通常遷移ではなく復帰する。
@@ -203,19 +207,19 @@ class CreationDialogManager {
             val config = plugin.config
 
             val typeName = when (session.creationType) {
-                WorldCreationType.TEMPLATE -> lang.getMessage(player, "gui.creation.type.template.name")
-                WorldCreationType.SEED -> lang.getMessage(player, "gui.creation.type.seed.name")
-                WorldCreationType.RANDOM -> lang.getMessage(player, "gui.creation.type.random.name")
-                else -> lang.getMessage(player, "general.unknown")
+                WorldCreationType.TEMPLATE -> lang.getMessage(player, MyworldGuiCreationKeys.GUI_CREATION_TYPE_TEMPLATE_NAME)
+                WorldCreationType.SEED -> lang.getMessage(player, MyworldGuiCreationKeys.GUI_CREATION_TYPE_SEED_NAME)
+                WorldCreationType.RANDOM -> lang.getMessage(player, MyworldGuiCreationKeys.GUI_CREATION_TYPE_RANDOM_NAME)
+                else -> lang.getMessage(player, CommonKeys.GENERAL_UNKNOWN)
             }
 
             val cost = session.creationType?.let { WorldRuntimePolicies.creationCost(config, it) } ?: 0
 
-            val cleanedName = session.worldName ?: lang.getMessage(player, "general.unknown")
+            val cleanedName = session.worldName ?: lang.getMessage(player, CommonKeys.GENERAL_UNKNOWN)
 
             val templateValue = if (session.creationType == WorldCreationType.TEMPLATE) {
                 val template = session.templateId?.let(plugin.templateRepository::findById)
-                template?.name ?: (session.templateId ?: lang.getMessage(player, "general.unknown"))
+                template?.name ?: (session.templateId ?: lang.getMessage(player, CommonKeys.GENERAL_UNKNOWN))
             } else null
 
             val seedValue = if (session.creationType == WorldCreationType.SEED) session.inputSeedString ?: "" else null
@@ -229,35 +233,35 @@ class CreationDialogManager {
                 lang.getMessage(player, "gui.creation.confirm.dimension.options.$dimensionKey")
             } else null
 
-            val nameLabel = lang.getMessage(player, "gui.creation.confirm.name_label")
-            val typeLabel = lang.getMessage(player, "gui.creation.confirm.type_label")
-            val costLabel = lang.getMessage(player, "gui.creation.confirm.cost_label")
+            val nameLabel = lang.getMessage(player, MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_NAME_LABEL)
+            val typeLabel = lang.getMessage(player, MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_TYPE_LABEL)
+            val costLabel = lang.getMessage(player, MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_COST_LABEL)
 
             val loreLines = mutableListOf<GuiLoreLine>()
             loreLines.add(GuiLoreLine.Data(nameLabel, cleanedName, "§a"))
             loreLines.add(GuiLoreLine.Data(typeLabel, typeName, "§e"))
-            templateValue?.let { loreLines.add(GuiLoreLine.Data(lang.getMessage(player, "gui.creation.confirm.template_label"), it, "§f")) }
+            templateValue?.let { loreLines.add(GuiLoreLine.Data(lang.getMessage(player, MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_TEMPLATE_LABEL), it, "§f")) }
             if (session.creationType == WorldCreationType.TEMPLATE) {
                 val origin = session.templateId
                     ?.let(plugin.templateRepository::findById)
                     ?.originLocation
                 loreLines.add(
                     GuiLoreLine.Data(
-                        lang.getMessage(player, "gui.creation.confirm.template_spawn_label"),
+                        lang.getMessage(player, MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_TEMPLATE_SPAWN_LABEL),
                         origin?.let { "(${it.blockX}, ${it.blockY}, ${it.blockZ})" }
-                            ?: lang.getMessage(player, "general.unknown"),
+                            ?: lang.getMessage(player, CommonKeys.GENERAL_UNKNOWN),
                         "§6"
                     )
                 )
             }
-            seedValue?.let { loreLines.add(GuiLoreLine.Data(lang.getMessage(player, "gui.creation.confirm.seed_label"), it, "§f")) }
-            seedDimensionValue?.let { loreLines.add(GuiLoreLine.Data(lang.getMessage(player, "gui.creation.confirm.dimension_label"), it, "§f")) }
+            seedValue?.let { loreLines.add(GuiLoreLine.Data(lang.getMessage(player, MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_SEED_LABEL), it, "§f")) }
+            seedDimensionValue?.let { loreLines.add(GuiLoreLine.Data(lang.getMessage(player, MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_DIMENSION_LABEL), it, "§f")) }
             if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
                 loreLines.add(GuiLoreLine.Data(costLabel, "§6🛖 §e$cost", ""))
                 val remaining = plugin.playerStatsRepository.findByUuid(player.uniqueId).worldPoint - cost
                 loreLines.add(
                     GuiLoreLine.Data(
-                        lang.getMessage(player, "gui.creation.confirm.remaining_points_label"),
+                        lang.getMessage(player, MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_REMAINING_POINTS_LABEL),
                         "§6🛖 §e${remaining.coerceAtLeast(0)}",
                         ""
                     )
@@ -270,13 +274,13 @@ class CreationDialogManager {
             val additionalActions = if (session.creationType == WorldCreationType.TEMPLATE) {
                 listOf(
                     MenuDialogButton(
-                        lang.getComponent(player, "gui.creation.confirm.action_preview"),
+                        lang.getComponent(player, MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_ACTION_PREVIEW),
                         MenuDialogHandler { target, _ ->
                             previewTemplate(target, session, plugin)
                         },
                     ),
                     MenuDialogButton(
-                        lang.getComponent(player, "gui.creation.confirm.change_template"),
+                        lang.getComponent(player, MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_CHANGE_TEMPLATE),
                         MenuDialogHandler { target, _ ->
                             session.phase = WorldCreationPhase.TEMPLATE_SELECT
                             plugin.creationGui.openTemplateSelection(target)
@@ -294,17 +298,17 @@ class CreationDialogManager {
                     owner = "myworldmanager",
                     id = "creation-confirmation",
                     title = LegacyComponentSerializer.legacySection()
-                        .deserialize(lang.getMessage(player, "gui.creation.title_confirm")),
+                        .deserialize(lang.getMessage(player, MyworldGuiCreationKeys.GUI_CREATION_TITLE_CONFIRM)),
                     body = bodyLines,
                     confirm = MenuDialogButton(
-                        lang.getComponent(player, "gui.creation.confirm.action_create"),
+                        lang.getComponent(player, MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_ACTION_CREATE),
                         MenuDialogHandler { target, _ ->
                             performWorldCreation(target, session, plugin)
                             MenuActionResult.Success(MenuUpdate.Close)
                         },
                     ),
                     cancel = MenuDialogButton(
-                        lang.getComponent(player, "gui.creation.confirm.change_name"),
+                        lang.getComponent(player, MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_CHANGE_NAME),
                         MenuDialogHandler { target, _ ->
                             session.phase = WorldCreationPhase.NAME_INPUT
                             showNameInputDialog(target, session)
@@ -358,7 +362,7 @@ class CreationDialogManager {
             }
             val cleanName = cleanWorldName(rawName)
             if (plugin.worldConfigRepository.hasDisplayNameConflict(player.uniqueId, cleanName)) {
-                val message = plugin.languageManager.getComponent(player, "messages.world_name_duplicate")
+                val message = plugin.languageManager.getComponent(player, MyworldMessagesKeys.MESSAGES_WORLD_NAME_DUPLICATE)
                 org.bukkit.Bukkit.getScheduler().runTask(plugin, Runnable {
                     showNameInputDialog(player, session, message)
                 })
@@ -409,7 +413,7 @@ class CreationDialogManager {
             if (seed.isBlank()) {
                 val message = plugin.languageManager.getMessage(
                     player,
-                    "gui.creation.dialog.seed_required",
+                    MyworldGuiCreationKeys.GUI_CREATION_DIALOG_SEED_REQUIRED,
                 )
                 org.bukkit.Bukkit.getScheduler().runTask(plugin, Runnable {
                     showSeedInputDialog(player, session, message)
@@ -440,7 +444,7 @@ class CreationDialogManager {
                 WorldSpawnCoordinates.ParseResult.InvalidNumber -> {
                     val message = plugin.languageManager.getMessage(
                         player,
-                        "gui.creation.confirm.spawn_location.error.number",
+                        MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_SPAWN_LOCATION_ERROR_NUMBER,
                     )
                     org.bukkit.Bukkit.getScheduler().runTask(plugin, Runnable {
                         showSpawnLocationInputDialog(player, session, message)
@@ -450,7 +454,7 @@ class CreationDialogManager {
                 WorldSpawnCoordinates.ParseResult.OutOfRange -> {
                     val message = plugin.languageManager.getMessage(
                         player,
-                        "gui.creation.confirm.spawn_location.error.range",
+                        MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_SPAWN_LOCATION_ERROR_RANGE,
                     )
                     org.bukkit.Bukkit.getScheduler().runTask(plugin, Runnable {
                         showSpawnLocationInputDialog(player, session, message)
@@ -472,7 +476,7 @@ class CreationDialogManager {
 
             val name = session.worldName ?: "New World"
             if (plugin.worldConfigRepository.hasDisplayNameConflict(player.uniqueId, name)) {
-                player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_name_duplicate"))
+                player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_NAME_DUPLICATE))
                 return
             }
 

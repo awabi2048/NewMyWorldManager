@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.command
 
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.util.PermissionManager
 import org.bukkit.command.Command
@@ -26,11 +28,11 @@ class FavoriteCommand(private val plugin: MyWorldManager) : CommandExecutor {
                 is me.awabi2048.myworldmanager.service.FavoriteGroupInviteService.CancelResult.Cancelled ->
                     sender.sendMessage(plugin.languageManager.getMessage(
                         sender,
-                        "messages.favorite_group_invite.sender.cancelled",
+                        MyworldMessagesKeys.MESSAGES_FAVORITE_GROUP_INVITE_SENDER_CANCELLED,
                         mapOf("count" to result.count),
                     ))
                 else -> sender.sendMessage(
-                    plugin.languageManager.getMessage(sender, "messages.favorite_group_invite.sender.cancel_not_found"),
+                    plugin.languageManager.getMessage(sender, MyworldMessagesKeys.MESSAGES_FAVORITE_GROUP_INVITE_SENDER_CANCEL_NOT_FOUND),
                 )
             }
             return true

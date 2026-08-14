@@ -1,5 +1,8 @@
 package me.awabi2048.myworldmanager.service
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import com.awabi2048.ccsystem.CCSystem
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.TourData
@@ -401,7 +404,7 @@ class TourManager(private val plugin: MyWorldManager) {
         tour.startedPlayerUuids.add(player.uniqueId)
         tour.activePlayerProgress[player.uniqueId] = 0
         plugin.worldConfigRepository.save(worldData)
-        player.sendMessage(plugin.languageManager.getMessage(player, "messages.tour.started", mapOf("tour" to tour.name)))
+        player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_TOUR_STARTED, mapOf("tour" to tour.name)))
         player.playSound(player.location, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.9f, 1.25f)
         showNextNavigation(player, worldData, tour, 0, sendMessage = true)
         return StartTourResult.STARTED
@@ -426,7 +429,7 @@ class TourManager(private val plugin: MyWorldManager) {
             }
         }
         if (!silent) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.tour.stopped"))
+            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_TOUR_STOPPED))
         }
     }
 
@@ -447,7 +450,7 @@ class TourManager(private val plugin: MyWorldManager) {
         if (session.nextIndex >= tour.waypoints.size) {
             tour.completedCount++
             plugin.worldConfigRepository.save(worldData)
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.tour.completed", mapOf("tour" to tour.name)))
+            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_TOUR_COMPLETED, mapOf("tour" to tour.name)))
             player.playSound(player.location, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 2.0f)
             stopTour(player, silent = true)
             return
@@ -485,7 +488,7 @@ class TourManager(private val plugin: MyWorldManager) {
         val waypoint = tour.waypoints.getOrNull(index) ?: return
         val mode = plugin.playerStatsRepository.findByUuid(player.uniqueId).tourNavigationMode
         if (sendMessage) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.tour.next_marker", mapOf("marker" to waypoint.name, "tour" to tour.name)))
+            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_TOUR_NEXT_MARKER, mapOf("marker" to waypoint.name, "tour" to tour.name)))
         }
         if (mode == TourNavigationMode.NONE) {
             bossBars.remove(player.uniqueId)?.let { player.hideBossBar(it) }
@@ -578,12 +581,12 @@ class TourManager(private val plugin: MyWorldManager) {
         val progress = if (tour.waypoints.isEmpty()) 0f else nextIndex.toFloat() / tour.waypoints.size.toFloat()
         val arrow = relativeArrow(player, target)
         val creator = Bukkit.getOfflinePlayer(tour.createdBy ?: worldData.owner).name
-            ?: plugin.languageManager.getMessage(player, "general.unknown")
+            ?: plugin.languageManager.getMessage(player, CommonKeys.GENERAL_UNKNOWN)
         bossBar.name(
             LegacyComponentSerializer.legacySection().deserialize(
                 plugin.languageManager.getMessage(
                     player,
-                    "messages.tour.navigation_bossbar",
+                    MyworldMessagesKeys.MESSAGES_TOUR_NAVIGATION_BOSSBAR,
                     mapOf("tour" to tour.name, "creator" to creator),
                 )
             )
@@ -596,13 +599,13 @@ class TourManager(private val plugin: MyWorldManager) {
         val actionbar = if (passedWaypoint != null) {
             plugin.languageManager.getMessage(
                 player,
-                "messages.tour.navigation_passed_waypoint",
+                MyworldMessagesKeys.MESSAGES_TOUR_NAVIGATION_PASSED_WAYPOINT,
                 mapOf("waypoint" to passedWaypoint.name),
             )
         } else {
             plugin.languageManager.getMessage(
                 player,
-                "messages.tour.navigation_next_waypoint",
+                MyworldMessagesKeys.MESSAGES_TOUR_NAVIGATION_NEXT_WAYPOINT,
                 mapOf("distance" to rounded, "arrow" to arrow),
             )
         }
@@ -621,7 +624,7 @@ class TourManager(private val plugin: MyWorldManager) {
     ) {
         val arrival = plugin.languageManager.getMessage(
             player,
-            "messages.tour.waypoint_arrival",
+            MyworldMessagesKeys.MESSAGES_TOUR_WAYPOINT_ARRIVAL,
             mapOf(
                 "waypoint" to waypoint.name,
                 "current" to current,
@@ -951,7 +954,7 @@ class TourManager(private val plugin: MyWorldManager) {
     }
 
     fun sendArrivalMessage(player: Player, worldData: WorldData) {
-        val message = Component.text(plugin.languageManager.getMessage(player, "messages.tour.available", mapOf("world" to worldData.name)))
+        val message = Component.text(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_TOUR_AVAILABLE, mapOf("world" to worldData.name)))
             .clickEvent(ClickEvent.runCommand("/tour"))
         player.sendMessage(message)
     }
