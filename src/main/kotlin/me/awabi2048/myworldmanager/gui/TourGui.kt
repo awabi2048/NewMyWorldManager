@@ -1,6 +1,7 @@
 package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.LocalizationKey
 import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiCommonKeys
 import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiFavoriteKeys
 import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
@@ -267,7 +268,7 @@ class TourGui(private val plugin: MyWorldManager) {
                 plugin.languageManager.getMessage(player, MyworldGuiCommonKeys.GUI_TOUR_MENU_TOUR_ITEM_ACTION_START),
                 ACTION_START,
                 GuiElementRole.CONFIRM),
-                simpleActionEntry(player, layout.cancelSlot, Material.RED_WOOL, "gui.common.cancel", GuiElementRole.CANCEL, ACTION_START_CANCEL),
+                simpleActionEntry(player, layout.cancelSlot, Material.RED_WOOL, CommonKeys.GUI_COMMON_CANCEL, GuiElementRole.CANCEL, ACTION_START_CANCEL),
             ),
             category = MenuViewCategory.CONFIRMATION,
         )
@@ -297,7 +298,7 @@ class TourGui(private val plugin: MyWorldManager) {
                     ACTION_STOP_CONFIRM,
                     GuiElementRole.CONFIRM,
                 ),
-                simpleActionEntry(player, layout.cancelSlot, Material.RED_WOOL, "gui.common.cancel", GuiElementRole.CANCEL, ACTION_STOP_CANCEL),
+                simpleActionEntry(player, layout.cancelSlot, Material.RED_WOOL, CommonKeys.GUI_COMMON_CANCEL, GuiElementRole.CANCEL, ACTION_STOP_CANCEL),
             ),
             category = MenuViewCategory.CONFIRMATION,
         )
@@ -943,7 +944,7 @@ class TourGui(private val plugin: MyWorldManager) {
                     player,
                     layout.confirmSlot,
                     Material.LIME_WOOL,
-                    "gui.tour.menu.waypoint_delete_confirm.confirm",
+                    MyworldGuiCommonKeys.GUI_TOUR_MENU_WAYPOINT_DELETE_CONFIRM_CONFIRM,
                     GuiElementRole.CONFIRM,
                     ACTION_WAYPOINT_DELETE_CONFIRM,
                 ),
@@ -951,7 +952,7 @@ class TourGui(private val plugin: MyWorldManager) {
                     player,
                     layout.cancelSlot,
                     Material.RED_WOOL,
-                    "gui.tour.menu.waypoint_delete_confirm.cancel",
+                    MyworldGuiCommonKeys.GUI_TOUR_MENU_WAYPOINT_DELETE_CONFIRM_CANCEL,
                     GuiElementRole.CANCEL,
                     ACTION_WAYPOINT_DELETE_CANCEL,
                 ),
@@ -1001,8 +1002,8 @@ class TourGui(private val plugin: MyWorldManager) {
                         GuiLoreLine.Warning(lang.getMessage(player, MyworldGuiCommonKeys.GUI_TOUR_MENU_DELETE_CONFIRM_WARNING)),
                     ),
                 ),
-                simpleActionEntry(player, layout.confirmSlot, Material.LIME_WOOL, "gui.tour.menu.delete_confirm.confirm", GuiElementRole.CONFIRM, ACTION_DELETE_CONFIRM),
-                simpleActionEntry(player, layout.cancelSlot, Material.RED_WOOL, "gui.tour.menu.delete_confirm.cancel", GuiElementRole.CANCEL, ACTION_DELETE_CANCEL),
+                simpleActionEntry(player, layout.confirmSlot, Material.LIME_WOOL, MyworldGuiCommonKeys.GUI_TOUR_MENU_DELETE_CONFIRM_CONFIRM, GuiElementRole.CONFIRM, ACTION_DELETE_CONFIRM),
+                simpleActionEntry(player, layout.cancelSlot, Material.RED_WOOL, MyworldGuiCommonKeys.GUI_TOUR_MENU_DELETE_CONFIRM_CANCEL, GuiElementRole.CANCEL, ACTION_DELETE_CANCEL),
             ),
             category = MenuViewCategory.CONFIRMATION,
         )
@@ -1147,8 +1148,8 @@ class TourGui(private val plugin: MyWorldManager) {
                         GuiLoreLine.Text(lang.getMessage(player, MyworldGuiCommonKeys.GUI_TOUR_MENU_DISCARD_NEW_BODY_LINE2)),
                     ),
                 ),
-                simpleActionEntry(player, layout.confirmSlot, Material.LIME_WOOL, "gui.common.confirm", GuiElementRole.CONFIRM, ACTION_DISCARD_CONFIRM),
-                simpleActionEntry(player, layout.cancelSlot, Material.RED_WOOL, "gui.common.cancel", GuiElementRole.CANCEL, ACTION_DISCARD_CANCEL),
+                simpleActionEntry(player, layout.confirmSlot, Material.LIME_WOOL, CommonKeys.GUI_COMMON_CONFIRM, GuiElementRole.CONFIRM, ACTION_DISCARD_CONFIRM),
+                simpleActionEntry(player, layout.cancelSlot, Material.RED_WOOL, CommonKeys.GUI_COMMON_CANCEL, GuiElementRole.CANCEL, ACTION_DISCARD_CANCEL),
             ),
             category = MenuViewCategory.CONFIRMATION,
         )
@@ -1302,7 +1303,7 @@ class TourGui(private val plugin: MyWorldManager) {
         player: Player,
         slot: Int,
         material: Material,
-        nameKey: String,
+        nameKey: LocalizationKey<String>,
         role: GuiElementRole,
         actionId: String,
     ): MenuElement = actionEntry(
@@ -1563,7 +1564,7 @@ class TourGui(private val plugin: MyWorldManager) {
         if (page.page + 1 < page.totalPages) {
             elements += navigationEntry(player, layout.nextPageSlot, true, page.page + 1)
         }
-        elements += simpleActionEntry(player, layout.backSlot, Material.RED_WOOL, "gui.common.cancel", GuiElementRole.CANCEL, ACTION_BIND_CANCEL)
+        elements += simpleActionEntry(player, layout.backSlot, Material.RED_WOOL, CommonKeys.GUI_COMMON_CANCEL, GuiElementRole.CANCEL, ACTION_BIND_CANCEL)
         return InventoryMenuView(
             size = layout.size,
             title = GuiHelper.inventoryTitle(Component.text(lang.getMessage(player, MyworldGuiCommonKeys.GUI_TOUR_BIND_SIGN_TITLE))),

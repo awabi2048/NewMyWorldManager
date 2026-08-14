@@ -1,6 +1,7 @@
 package me.awabi2048.myworldmanager.listener
 
 import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.LocalizationKey
 import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
 
 import me.awabi2048.myworldmanager.util.descriptionLine
@@ -411,8 +412,8 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
                         ),
                     ),
                 ),
-                confirmationEntry(player, layout.confirmSlot, Material.LIME_CONCRETE, "gui.common.confirm", "gui.common.confirm_action", GuiElementRole.CONFIRM, ACTION_CONFIRM_GATE),
-                confirmationEntry(player, layout.cancelSlot, Material.RED_CONCRETE, "gui.common.cancel", "gui.common.cancel_action", GuiElementRole.CANCEL, ACTION_CANCEL_GATE),
+                confirmationEntry(player, layout.confirmSlot, Material.LIME_CONCRETE, CommonKeys.GUI_COMMON_CONFIRM, CommonKeys.GUI_COMMON_CONFIRM_ACTION, GuiElementRole.CONFIRM, ACTION_CONFIRM_GATE),
+                confirmationEntry(player, layout.cancelSlot, Material.RED_CONCRETE, CommonKeys.GUI_COMMON_CANCEL, CommonKeys.GUI_COMMON_CANCEL, GuiElementRole.CANCEL, ACTION_CANCEL_GATE),
             ),
             category = MenuViewCategory.CONFIRMATION,
         )
@@ -422,8 +423,8 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         player: org.bukkit.entity.Player,
         slot: Int,
         material: Material,
-        nameKey: String,
-        actionKey: String,
+        nameKey: LocalizationKey<String>,
+        actionKey: LocalizationKey<String>,
         role: GuiElementRole,
         actionId: String,
     ): MenuElement = CCSystem.getAPI().getGuiElementService().menuEntry(

@@ -693,7 +693,7 @@ class CreationGui(private val plugin: MyWorldManager) {
             player,
             layout.confirmSlot,
             Material.LIME_CONCRETE,
-            "gui.common.confirm",
+            CommonKeys.GUI_COMMON_CONFIRM,
             GuiElementRole.CONFIRM,
             CreationConfirmationAction.CONFIRM,
         )
@@ -701,7 +701,7 @@ class CreationGui(private val plugin: MyWorldManager) {
             player,
             layout.cancelSlot,
             Material.RED_CONCRETE,
-            "gui.common.cancel",
+            CommonKeys.GUI_COMMON_CANCEL,
             GuiElementRole.CANCEL,
             CreationConfirmationAction.CANCEL,
         )
@@ -859,7 +859,7 @@ class CreationGui(private val plugin: MyWorldManager) {
         player: Player,
         slot: Int,
         material: Material,
-        nameKey: String,
+        nameKey: LocalizationKey<String>,
         role: GuiElementRole,
         action: CreationConfirmationAction,
     ): MenuElement = interactionEntry(

@@ -2,6 +2,9 @@ package me.awabi2048.myworldmanager.session
 
 import com.awabi2048.ccsystem.api.gui.GuiCycle
 import com.awabi2048.ccsystem.api.gui.GuiCycleDirection
+import com.awabi2048.ccsystem.api.localization.LocalizationKey
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiAdminKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiPortalKeys
 import me.awabi2048.myworldmanager.model.PublishLevel
 import java.util.UUID
 
@@ -19,7 +22,7 @@ data class AdminGuiSession(
     // ポータル用
     var portalPage: Int = 0,
     var portalSortBy: PortalSortType = PortalSortType.CREATED_DESC,
-    
+
     // その他
     var fromAdminMenu: Boolean = false
 )
@@ -27,50 +30,50 @@ data class AdminGuiSession(
 /**
  * アーカイブ状態フィルター
  */
-enum class ArchiveFilter(val displayKey: String) {
-    ALL("gui.admin.filter.archive.all"),           // すべて
-    ACTIVE_ONLY("gui.admin.filter.archive.active"), // アクティブのみ
-    ARCHIVED_ONLY("gui.admin.filter.archive.archived") // アーカイブのみ
+enum class ArchiveFilter(val displayKey: LocalizationKey<String>) {
+    ALL(MyworldGuiAdminKeys.GUI_ADMIN_FILTER_ARCHIVE_ALL),           // すべて
+    ACTIVE_ONLY(MyworldGuiAdminKeys.GUI_ADMIN_FILTER_ARCHIVE_ACTIVE), // アクティブのみ
+    ARCHIVED_ONLY(MyworldGuiAdminKeys.GUI_ADMIN_FILTER_ARCHIVE_ARCHIVED) // アーカイブのみ
 }
 
 /**
  * 公開レベルフィルター
  */
-enum class PublishFilter(val displayKey: String, val publishLevel: PublishLevel?) {
-    ALL("gui.admin.filter.publish.all", null),
-    PUBLIC("gui.admin.filter.publish.public", PublishLevel.PUBLIC),
-    FRIEND("gui.admin.filter.publish.friend", PublishLevel.FRIEND),
-    PRIVATE("gui.admin.filter.publish.private", PublishLevel.PRIVATE),
-    LOCKED("gui.admin.filter.publish.locked", PublishLevel.LOCKED)
+enum class PublishFilter(val displayKey: LocalizationKey<String>, val publishLevel: PublishLevel?) {
+    ALL(MyworldGuiAdminKeys.GUI_ADMIN_FILTER_PUBLISH_ALL, null),
+    PUBLIC(MyworldGuiAdminKeys.GUI_ADMIN_FILTER_PUBLISH_PUBLIC, PublishLevel.PUBLIC),
+    FRIEND(MyworldGuiAdminKeys.GUI_ADMIN_FILTER_PUBLISH_FRIEND, PublishLevel.FRIEND),
+    PRIVATE(MyworldGuiAdminKeys.GUI_ADMIN_FILTER_PUBLISH_PRIVATE, PublishLevel.PRIVATE),
+    LOCKED(MyworldGuiAdminKeys.GUI_ADMIN_FILTER_PUBLISH_LOCKED, PublishLevel.LOCKED)
 }
 
 /**
  * プレイヤーフィルタータイプ
  */
-enum class PlayerFilterType(val displayKey: String) {
-    NONE("gui.admin.filter.player.none"),     // フィルターなし
-    OWNER("gui.admin.filter.player.owner"),   // オーナーであるワールド
-    MEMBER("gui.admin.filter.player.member")  // メンバーであるワールド
+enum class PlayerFilterType(val displayKey: LocalizationKey<String>) {
+    NONE(MyworldGuiAdminKeys.GUI_ADMIN_FILTER_PLAYER_NONE),     // フィルターなし
+    OWNER(MyworldGuiAdminKeys.GUI_ADMIN_FILTER_PLAYER_OWNER),   // オーナーであるワールド
+    MEMBER(MyworldGuiAdminKeys.GUI_ADMIN_FILTER_PLAYER_MEMBER)  // メンバーであるワールド
 }
 
 /**
  * ソート種別
  */
-enum class AdminSortType(val displayKey: String) {
-    CREATED_DESC("gui.admin.sort.created_desc"),     // 作成日（新しい順）
-    CREATED_ASC("gui.admin.sort.created_asc"),       // 作成日（古い順）
-    EXPIRE_ASC("gui.admin.sort.expire_asc"),         // アーカイブ予定日（近い順）
-    EXPIRE_DESC("gui.admin.sort.expire_desc"),       // アーカイブ予定日（遠い順）
-    WORLD_SIZE_DESC("gui.admin.sort.world_size_desc"), // ワールドサイズ（大きい順）
-    MSPT_DESC("gui.admin.sort.mspt_desc")            // MSPT（高い順）
+enum class AdminSortType(val displayKey: LocalizationKey<String>) {
+    CREATED_DESC(MyworldGuiAdminKeys.GUI_ADMIN_SORT_CREATED_DESC),     // 作成日（新しい順）
+    CREATED_ASC(MyworldGuiAdminKeys.GUI_ADMIN_SORT_CREATED_ASC),       // 作成日（古い順）
+    EXPIRE_ASC(MyworldGuiAdminKeys.GUI_ADMIN_SORT_EXPIRE_ASC),         // アーカイブ予定日（近い順）
+    EXPIRE_DESC(MyworldGuiAdminKeys.GUI_ADMIN_SORT_EXPIRE_DESC),       // アーカイブ予定日（遠い順）
+    WORLD_SIZE_DESC(MyworldGuiAdminKeys.GUI_ADMIN_SORT_WORLD_SIZE_DESC), // ワールドサイズ（大きい順）
+    MSPT_DESC(MyworldGuiAdminKeys.GUI_ADMIN_SORT_MSPT_DESC)            // MSPT（高い順）
 }
 
 /**
  * ポータル用ソート種別
  */
-enum class PortalSortType(val displayKey: String) {
-    CREATED_DESC("gui.admin_portals.sort.created_desc"), // 設置日（新しい順）
-    CREATED_ASC("gui.admin_portals.sort.created_asc")    // 設置日（古い順）
+enum class PortalSortType(val displayKey: LocalizationKey<String>) {
+    CREATED_DESC(MyworldGuiPortalKeys.GUI_ADMIN_PORTALS_SORT_CREATED_DESC), // 設置日（新しい順）
+    CREATED_ASC(MyworldGuiPortalKeys.GUI_ADMIN_PORTALS_SORT_CREATED_ASC)    // 設置日（古い順）
 }
 
 /**

@@ -1,6 +1,7 @@
 package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiCommonKeys
+import com.awabi2048.ccsystem.api.localization.LocalizationKey
 
 import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
 import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiFavoriteKeys
@@ -83,7 +84,7 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
             player,
             FavoriteMenuLayout.DETAIL_ACTION_SLOTS[0],
             Material.ENDER_PEARL,
-            "gui.favorite.actions.warp",
+            MyworldGuiFavoriteKeys.GUI_FAVORITE_ACTIONS_WARP,
             ACTION_WARP,
             canWarp,
             MenuActionSafety.EXTERNAL_SIDE_EFFECT,
@@ -92,7 +93,7 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
             player,
             FavoriteMenuLayout.DETAIL_ACTION_SLOTS[1],
             Material.SPYGLASS,
-            "gui.favorite.actions.preview",
+            MyworldGuiFavoriteKeys.GUI_FAVORITE_ACTIONS_PREVIEW,
             ACTION_PREVIEW,
             !worldData.isArchived,
             MenuActionSafety.EXTERNAL_SIDE_EFFECT,
@@ -102,7 +103,7 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
             player,
             FavoriteMenuLayout.DETAIL_ACTION_SLOTS[3],
             Material.RED_DYE,
-            "gui.favorite.actions.unfavorite",
+            MyworldGuiFavoriteKeys.GUI_FAVORITE_ACTIONS_UNFAVORITE,
             ACTION_UNFAVORITE,
             worldData.uuid in stats.favoriteWorlds,
             MenuActionSafety.CONFIRM_ENTRY,
@@ -230,7 +231,7 @@ class FavoriteMenuGui(private val plugin: MyWorldManager) {
         player: Player,
         slot: Int,
         material: Material,
-        nameKey: String,
+        nameKey: LocalizationKey<String>,
         actionId: String,
         enabled: Boolean,
         safety: MenuActionSafety,

@@ -2,6 +2,7 @@ package me.awabi2048.myworldmanager.util
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.localization.LocalizationKey
+import com.awabi2048.ccsystem.api.localization.LocalizationCatalogContract
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
@@ -54,6 +55,9 @@ class LanguageManager(private val plugin: MyWorldManager) {
 
     fun hasKey(player: Player?, key: LocalizationKey<*>): Boolean = CCSystem.getAPI().hasI18nKey(key.id)
 
+    @Deprecated("生成済みLocalizationKeyへ移行してください")
+    fun hasKey(player: Player?, key: String): Boolean = CCSystem.getAPI().hasI18nKey(key)
+
     fun resolveLocale(player: Player?): String {
         return if (player != null) {
             CCSystem.getAPI().getPlayerLanguage(player).lowercase(Locale.ROOT)
@@ -62,90 +66,46 @@ class LanguageManager(private val plugin: MyWorldManager) {
         }
     }
 
-    fun getMessage(player: Player?, key: String): String {
-        return CCSystem.getAPI().getI18nString(player, key).replace('&', '§')
-    }
+    // 移行中だけ残す厳密境界です。全呼出側を生成キーへ変更した後、この一群は削除します。
+    @Deprecated("生成済みLocalizationKeyへ移行してください")
+    fun getMessage(player: Player?, key: String): String = getMessage(player, LocalizationCatalogContract.resolveText(key))
 
-    fun getMessage(key: String): String {
-        return getMessage(null as Player?, key)
-    }
+    @Deprecated("生成済みLocalizationKeyへ移行してください")
+    fun getMessage(key: String): String = getMessage(null as Player?, key)
 
-    fun getMessage(player: Player?, key: String, placeholders: Map<String, Any>): String {
-        return CCSystem.getAPI().getI18nString(player, key, placeholders).replace('&', '§')
-    }
+    @Deprecated("生成済みLocalizationKeyへ移行してください")
+    fun getMessage(player: Player?, key: String, placeholders: Map<String, Any>): String =
+        getMessage(player, LocalizationCatalogContract.resolveText(key), placeholders)
 
-    fun getMessage(key: String, placeholders: Map<String, Any>): String {
-        return getMessage(null as Player?, key, placeholders)
-    }
+    @Deprecated("生成済みLocalizationKeyへ移行してください")
+    fun getMessage(key: String, placeholders: Map<String, Any>): String = getMessage(null as Player?, key, placeholders)
 
-    fun getComponent(player: Player?, key: String, placeholders: Map<String, Any>): Component {
-        return normalizeComponent(serializer.deserialize(getMessage(player, key, placeholders)))
-    }
+    @Deprecated("生成済みLocalizationKeyへ移行してください")
+    fun getComponent(player: Player?, key: String, placeholders: Map<String, Any> = emptyMap()): Component =
+        getComponent(player, LocalizationCatalogContract.resolveText(key), placeholders)
 
-    fun getComponent(key: String, placeholders: Map<String, Any>): Component {
-        return getComponent(null as Player?, key, placeholders)
-    }
+    @Deprecated("生成済みLocalizationKeyへ移行してください")
+    fun getMessageList(player: Player?, key: String, placeholders: Map<String, Any> = emptyMap()): List<String> =
+        getMessageList(player, LocalizationCatalogContract.resolveTextList(key), placeholders)
 
-    fun getComponent(player: Player?, key: String): Component {
-        return normalizeComponent(serializer.deserialize(getMessage(player, key)))
-    }
+    @Deprecated("生成済みLocalizationKeyへ移行してください")
+    fun getMessageList(key: String): List<String> = getMessageList(null as Player?, key)
 
-    fun getComponentList(player: Player?, key: String): List<Component> {
-        return getMessageList(player, key).map {
-            normalizeComponent(serializer.deserialize(it))
-        }
-    }
+    @Deprecated("生成済みLocalizationKeyへ移行してください")
+    fun getMessageList(key: String, placeholders: Map<String, Any>): List<String> =
+        getMessageList(null as Player?, key, placeholders)
 
-    fun hasKey(player: Player?, key: String): Boolean {
-        return CCSystem.getAPI().hasI18nKey(key)
-    }
+    @Deprecated("生成済みLocalizationKeyへ移行してください")
+    fun getComponentList(player: Player?, key: String, placeholders: Map<String, Any> = emptyMap()): List<Component> =
+        getComponentList(player, LocalizationCatalogContract.resolveTextList(key), placeholders)
 
-    fun hasKey(lang: String, key: String): Boolean {
-        return CCSystem.getAPI().hasI18nKey(key)
-    }
-
-    fun getMessageStrict(player: Player?, key: String): String? {
-        return runCatching { getMessage(player, key) }.getOrNull()
-    }
-
-    fun getMessageListStrict(player: Player?, key: String): List<String>? {
-        return runCatching { getMessageList(player, key) }.getOrNull()
-    }
-
-    fun getMessageList(player: Player?, key: String): List<String> {
-        return CCSystem.getAPI().getI18nStringList(player, key).map { it.replace('&', '§') }
-    }
-
-    fun getMessageList(key: String): List<String> {
-        return getMessageList(null as Player?, key)
-    }
-
-    fun getMessageListDraft(lang: String, key: String): List<String> {
-        return CCSystem.getAPI().getI18nStringList(lang, key).map { it.replace('&', '§') }
-    }
-
-    fun getMessageList(player: Player?, key: String, placeholders: Map<String, Any>): List<String> {
-        return CCSystem.getAPI().getI18nStringList(player, key, placeholders).map { it.replace('&', '§') }
-    }
-
-    fun getMessageList(key: String, placeholders: Map<String, Any>): List<String> {
-        return getMessageList(null as Player?, key, placeholders)
-    }
-
-    fun getComponentList(player: Player?, key: String, placeholders: Map<String, Any>): List<Component> {
-        return getMessageList(player, key, placeholders).flatMap { it.split("\n") }.map {
-            normalizeComponent(serializer.deserialize(it))
-        }
-    }
+    @Deprecated("生成済みLocalizationKeyへ移行してください")
+    fun getMessageStrict(player: Player?, key: String): String? = runCatching { getMessage(player, key) }.getOrNull()
 
     private fun normalizeComponent(component: Component): Component {
         return component
             .colorIfAbsent(NamedTextColor.WHITE)
             .decoration(TextDecoration.ITALIC, false)
-    }
-
-    fun getComponentList(key: String, placeholders: Map<String, Any>): List<Component> {
-        return getComponentList(null as Player?, key, placeholders)
     }
 
     fun getSupportedLanguages(): List<String> {

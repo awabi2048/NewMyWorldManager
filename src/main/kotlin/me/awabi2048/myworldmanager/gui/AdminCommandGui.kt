@@ -2,6 +2,7 @@ package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
 import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiAdminKeys
+import com.awabi2048.ccsystem.api.localization.LocalizationKey
 
 import me.awabi2048.myworldmanager.util.descriptionLine
 import me.awabi2048.myworldmanager.util.warningLine
@@ -532,9 +533,9 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
                     player,
                     layout.confirmSlot,
                     if (isDanger) Material.RED_WOOL else Material.LIME_WOOL,
-                    "gui.common.confirm",
-                    "gui.common.confirm_desc",
-                    "gui.common.confirm_action",
+                    CommonKeys.GUI_COMMON_CONFIRM,
+                    CommonKeys.GUI_COMMON_CONFIRM_DESC,
+                    CommonKeys.GUI_COMMON_CONFIRM_ACTION,
                     GuiElementRole.CONFIRM,
                     ACTION_CONFIRM,
                 ),
@@ -542,9 +543,9 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
                     player,
                     layout.cancelSlot,
                     Material.GREEN_WOOL,
-                    "gui.common.cancel",
-                    "gui.common.cancel_desc",
-                    "gui.common.cancel_action",
+                    CommonKeys.GUI_COMMON_CANCEL,
+                    CommonKeys.GUI_COMMON_CANCEL_DESC,
+                    CommonKeys.GUI_COMMON_CANCEL,
                     GuiElementRole.CANCEL,
                     ACTION_CANCEL,
                 ),
@@ -593,9 +594,9 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         player: Player,
         slot: Int,
         material: Material,
-        nameKey: String,
-        descriptionKey: String,
-        actionKey: String,
+        nameKey: LocalizationKey<String>,
+        descriptionKey: LocalizationKey<String>,
+        actionKey: LocalizationKey<String>,
         role: GuiElementRole,
         actionId: String,
     ): MenuElement = CCSystem.getAPI().getGuiElementService().menuEntry(

@@ -1,6 +1,8 @@
 package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiSettingsKeys
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.LocalizationKey
 import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
 
 import com.awabi2048.ccsystem.CCSystem
@@ -86,23 +88,28 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
             player,
             slot,
             Material.BELL,
-            "gui.user_settings.notification.display",
-            "notification",
+            MyworldGuiSettingsKeys.GUI_USER_SETTINGS_NOTIFICATION_DISPLAY,
+            MyworldGuiSettingsKeys.GUI_USER_SETTINGS_NOTIFICATION_BLOCKS_DESCRIPTION,
+            MyworldGuiSettingsKeys.GUI_USER_SETTINGS_NOTIFICATION_BLOCKS_CURRENT_LABEL,
             notifyStatus,
             if (stats.visitorNotificationEnabled) GuiValueTone.SUCCESS else GuiValueTone.DANGER,
             ACTION_NOTIFICATION,
-            "gui.user_settings.cycle_action.toggle",
+            MyworldGuiSettingsKeys.GUI_USER_SETTINGS_CYCLE_ACTION_TOGGLE,
             glint = stats.visitorNotificationEnabled
         ) }
 
         val currentLocale = lang.resolveLocale(player)
-        val languageName = lang.getMessage(player, "general.language.$currentLocale")
+        val languageName = lang.getMessage(player, when (currentLocale) {
+            "en_us" -> CommonKeys.GENERAL_LANGUAGE_EN_US
+            else -> CommonKeys.GENERAL_LANGUAGE_JA_JP
+        })
         entries.add { slot -> settingEntry(
             player,
             slot,
             Material.WRITABLE_BOOK,
-            "gui.user_settings.language.display",
-            "language",
+            MyworldGuiSettingsKeys.GUI_USER_SETTINGS_LANGUAGE_DISPLAY,
+            MyworldGuiSettingsKeys.GUI_USER_SETTINGS_LANGUAGE_BLOCKS_DESCRIPTION,
+            MyworldGuiSettingsKeys.GUI_USER_SETTINGS_LANGUAGE_BLOCKS_CURRENT_LABEL,
             languageName,
             GuiValueTone.DEFAULT,
             null,
@@ -118,12 +125,13 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
             player,
             slot,
             Material.RECOVERY_COMPASS,
-            "gui.user_settings.critical_settings_visibility.display",
-            "critical_settings_visibility",
+            MyworldGuiSettingsKeys.GUI_USER_SETTINGS_CRITICAL_SETTINGS_VISIBILITY_DISPLAY,
+            MyworldGuiSettingsKeys.GUI_USER_SETTINGS_CRITICAL_SETTINGS_VISIBILITY_BLOCKS_DESCRIPTION,
+            MyworldGuiSettingsKeys.GUI_USER_SETTINGS_CRITICAL_SETTINGS_VISIBILITY_BLOCKS_CURRENT_LABEL,
             criticalStatus,
             if (stats.criticalSettingsEnabled) GuiValueTone.SUCCESS else GuiValueTone.MUTED,
             ACTION_CRITICAL_VISIBILITY,
-            "gui.user_settings.cycle_action.toggle"
+            MyworldGuiSettingsKeys.GUI_USER_SETTINGS_CYCLE_ACTION_TOGGLE
         ) }
 
         entries.add { slot -> tourNavigationEntry(player, stats.tourNavigationMode, slot) }
@@ -136,12 +144,13 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
             player,
             slot,
             Material.GOAT_HORN,
-            "gui.user_settings.favorite_group_invites.display",
-            "favorite_group_invites",
+            MyworldGuiSettingsKeys.GUI_USER_SETTINGS_FAVORITE_GROUP_INVITES_DISPLAY,
+            MyworldGuiSettingsKeys.GUI_USER_SETTINGS_FAVORITE_GROUP_INVITES_BLOCKS_DESCRIPTION,
+            MyworldGuiSettingsKeys.GUI_USER_SETTINGS_FAVORITE_GROUP_INVITES_BLOCKS_CURRENT_LABEL,
             groupInviteStatus,
             if (stats.favoriteGroupInvitesEnabled) GuiValueTone.SUCCESS else GuiValueTone.DANGER,
             ACTION_FAVORITE_GROUP_INVITES,
-            "gui.user_settings.cycle_action.toggle",
+            MyworldGuiSettingsKeys.GUI_USER_SETTINGS_CYCLE_ACTION_TOGGLE,
             glint = stats.favoriteGroupInvitesEnabled,
         ) }
         val totalRows = 5
@@ -210,15 +219,15 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
         player: Player,
         slot: Int,
         material: Material,
-        displayKey: String,
-        setting: String,
+        displayKey: LocalizationKey<String>,
+        descriptionKey: LocalizationKey<List<String>>,
+        currentLabelKey: LocalizationKey<String>,
         currentValue: String,
         currentValueTone: GuiValueTone,
         actionId: String?,
-        actionKey: String?,
+        actionKey: LocalizationKey<String>?,
         glint: Boolean? = null,
     ): MenuElement {
-        val prefix = "gui.user_settings.$setting.blocks"
         return CCSystem.getAPI().getGuiElementService().menuEntry(
             player,
             GuiMenuEntrySpec(
@@ -230,10 +239,10 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
                 ),
                 role = GuiElementRole.CONTENT,
                 amount = 1,
-                description = plugin.languageManager.getMessageList(player, "$prefix.description"),
+                description = plugin.languageManager.getMessageList(player, descriptionKey),
                 data = listOf(
                     GuiMenuEntryData(
-                        plugin.languageManager.getMessage(player, "$prefix.current_label"),
+                        plugin.languageManager.getMessage(player, currentLabelKey),
                         currentValue,
                         currentValueTone,
                     )
