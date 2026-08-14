@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.util
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.WorldData
 import org.bukkit.OfflinePlayer
@@ -11,42 +13,42 @@ object WorldAccessMessageResolver {
         language.getMessage(
             player,
             MyWorldManagerApi.getWorldAccessPolicy().inviteToWorldDeniedMessageKey(player, world)
-                ?: "error.invite_locked_error"
+                ?: CommonKeys.ERROR_INVITE_LOCKED_ERROR
         )
 
     fun inviteTarget(language: LanguageManager, player: Player, world: WorldData, target: OfflinePlayer): String =
         language.getMessage(
             player,
             MyWorldManagerApi.getWorldAccessPolicy().inviteTargetDeniedMessageKey(player, world, target)
-                ?: "error.invite_locked_error"
+                ?: CommonKeys.ERROR_INVITE_LOCKED_ERROR
         )
 
     fun visit(language: LanguageManager, player: Player, world: WorldData?, isMember: Boolean): String =
         language.getMessage(
             player,
             world?.let { MyWorldManagerApi.getWorldAccessPolicy().visitDeniedMessageKey(player, it, isMember) }
-                ?: "error.world_not_public"
+                ?: CommonKeys.ERROR_WORLD_NOT_PUBLIC
         )
 
     fun enter(language: LanguageManager, player: Player, world: WorldData, isMember: Boolean): String =
         language.getMessage(
             player,
             MyWorldManagerApi.getWorldAccessPolicy().enterDeniedMessageKey(player, world, isMember)
-                ?: "error.portal_dest_locked"
+                ?: CommonKeys.ERROR_PORTAL_DEST_LOCKED
         )
 
     fun warp(language: LanguageManager, player: Player, world: WorldData, isMember: Boolean): String =
         language.getMessage(
             player,
             MyWorldManagerApi.getWorldAccessPolicy().enterDeniedMessageKey(player, world, isMember)
-                ?: "messages.worldwarp_access_denied"
+                ?: MyworldMessagesKeys.MESSAGES_WORLDWARP_ACCESS_DENIED
         )
 
     fun sharedEntry(language: LanguageManager, player: Player, world: WorldData, isMember: Boolean): String =
         language.getMessage(
             player,
             MyWorldManagerApi.getWorldAccessPolicy().sharedEntryDeniedMessageKey(player, world, isMember)
-                ?: "error.portal_bind_invalid_publish"
+                ?: CommonKeys.ERROR_PORTAL_BIND_INVALID_PUBLISH
         )
 
     fun meet(
@@ -59,6 +61,6 @@ object WorldAccessMessageResolver {
         language.getMessage(
             player,
             MyWorldManagerApi.getWorldAccessPolicy().meetDeniedMessageKey(player, target, world, isMember)
-                ?: "error.world_not_public"
+                ?: CommonKeys.ERROR_WORLD_NOT_PUBLIC
         )
 }

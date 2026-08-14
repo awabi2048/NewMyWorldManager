@@ -67,7 +67,7 @@ class InviteCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCo
         when (val reason = InviteTargetResolver.getRejectionReason(plugin, player, worldData, target)) {
             null -> Unit
             else -> {
-                val messageKey = InviteTargetResolver.getRejectionMessageKey(reason) ?: return true
+                val messageKey = InviteTargetResolver.getRejectionMessageKey(reason)
                 player.sendMessage(lang.getMessage(player, messageKey, mapOf("player" to target.name)))
                 return true
             }

@@ -1,5 +1,6 @@
 package me.awabi2048.myworldmanager.api.extension
 
+import com.awabi2048.ccsystem.api.localization.LocalizationKey
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldData
 import org.bukkit.OfflinePlayer
@@ -57,17 +58,17 @@ interface WorldAccessPolicy {
      * Optional, user-facing explanation supplied by an overlay policy when an
      * access decision differs from MWM's normal publish-level rules.
      */
-    fun inviteToWorldDeniedMessageKey(sender: Player, worldData: WorldData): String? = null
+    fun inviteToWorldDeniedMessageKey(sender: Player, worldData: WorldData): LocalizationKey<String>? = null
 
-    fun inviteTargetDeniedMessageKey(sender: Player, worldData: WorldData, target: OfflinePlayer): String? = null
+    fun inviteTargetDeniedMessageKey(sender: Player, worldData: WorldData, target: OfflinePlayer): LocalizationKey<String>? = null
 
-    fun visitDeniedMessageKey(viewer: Player, worldData: WorldData, isMember: Boolean): String? = null
+    fun visitDeniedMessageKey(viewer: Player, worldData: WorldData, isMember: Boolean): LocalizationKey<String>? = null
 
-    fun enterDeniedMessageKey(player: Player, worldData: WorldData, isMember: Boolean): String? = null
+    fun enterDeniedMessageKey(player: Player, worldData: WorldData, isMember: Boolean): LocalizationKey<String>? = null
 
-    fun sharedEntryDeniedMessageKey(player: Player, worldData: WorldData, isMember: Boolean): String? = null
+    fun sharedEntryDeniedMessageKey(player: Player, worldData: WorldData, isMember: Boolean): LocalizationKey<String>? = null
 
-    fun meetDeniedMessageKey(viewer: Player, target: Player, worldData: WorldData, isMember: Boolean): String? = null
+    fun meetDeniedMessageKey(viewer: Player, target: Player, worldData: WorldData, isMember: Boolean): LocalizationKey<String>? = null
 
     fun canEnterWorld(player: Player, worldData: WorldData, isMember: Boolean): Boolean {
         if (worldData.isArchived) return false

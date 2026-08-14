@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.util
 
+import com.awabi2048.ccsystem.api.localization.LocalizationKey
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.WorldData
@@ -17,14 +21,14 @@ object InviteTargetResolver {
         BUSY,
     }
 
-    fun getRejectionMessageKey(reason: RejectionReason): String? {
+    fun getRejectionMessageKey(reason: RejectionReason): LocalizationKey<String> {
         return when (reason) {
-            RejectionReason.LOCKED -> "error.invite_locked_error"
-            RejectionReason.SELF -> "messages.invite_self_error"
-            RejectionReason.ALREADY_MEMBER -> "messages.invite_member_error"
-            RejectionReason.ALREADY_PENDING -> "messages.invite_already_sent"
-            RejectionReason.SAME_WORLD -> "messages.invite_same_world_error"
-            RejectionReason.BUSY -> "messages.invite_busy_error"
+            RejectionReason.LOCKED -> CommonKeys.ERROR_INVITE_LOCKED_ERROR
+            RejectionReason.SELF -> MyworldMessagesKeys.MESSAGES_INVITE_SELF_ERROR
+            RejectionReason.ALREADY_MEMBER -> MyworldMessagesKeys.MESSAGES_INVITE_MEMBER_ERROR
+            RejectionReason.ALREADY_PENDING -> MyworldMessagesKeys.MESSAGES_INVITE_ALREADY_SENT
+            RejectionReason.SAME_WORLD -> MyworldMessagesKeys.MESSAGES_INVITE_SAME_WORLD_ERROR
+            RejectionReason.BUSY -> MyworldMessagesKeys.MESSAGES_INVITE_BUSY_ERROR
         }
     }
 
