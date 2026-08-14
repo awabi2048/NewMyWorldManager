@@ -9,6 +9,7 @@ import me.awabi2048.myworldmanager.util.CustomItem
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
+import me.awabi2048.myworldmanager.util.CatalogKeyResolver
 import net.kyori.adventure.text.Component
 import org.bukkit.Material
 import org.bukkit.Sound
@@ -75,7 +76,7 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
                  }
 
                  player.playSound(player.location, Sound.ITEM_BOTTLE_FILL, 1.0f, 1.0f)
-                 val biomeName = plugin.languageManager.getMessage(player, "biomes.$biomeId")
+                 val biomeName = plugin.languageManager.getMessage(player, CatalogKeyResolver.biome(biomeId))
                  player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_CUSTOM_ITEM_BOTTLE_FILL, mapOf("biome" to biomeName)))
             }
         }
@@ -157,7 +158,7 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
                 player.playSound(player.location, Sound.ITEM_BOTTLE_FILL, 1.0f, 0.5f) // Open sound pitch lower
                 player.world.spawnParticle(org.bukkit.Particle.CLOUD, player.location, 50, 2.0, 1.0, 2.0, 0.1)
 
-                val biomeName = plugin.languageManager.getMessage(player, "biomes.${biomeId.lowercase()}")
+                val biomeName = plugin.languageManager.getMessage(player, CatalogKeyResolver.biome(biomeId))
                 player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_CUSTOM_ITEM_PARTIAL_BIOME_APPLIED, mapOf("biome" to biomeName)))
 
                 // Consume Item

@@ -2,6 +2,7 @@ package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
 import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiCommonKeys
+import com.awabi2048.ccsystem.api.localization.LocalizationKey
 
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.service.PendingDecisionManager
@@ -160,14 +161,14 @@ object PendingInteractionItemFactory {
     private fun actionLineKey(
         actionMode: PendingInteractionActionMode,
         type: PendingDecisionManager.PendingType
-    ): String {
+    ): LocalizationKey<String> {
         return when (actionMode) {
-            PendingInteractionActionMode.REVIEW -> "gui.pending_list.item.action_review"
+            PendingInteractionActionMode.REVIEW -> MyworldGuiCommonKeys.GUI_PENDING_LIST_ITEM_ACTION_REVIEW
             PendingInteractionActionMode.CANCEL -> {
                 if (type == PendingDecisionManager.PendingType.MEMBER_REQUEST) {
-                    "gui.pending_list.item.action_review_request"
+                    MyworldGuiCommonKeys.GUI_PENDING_LIST_ITEM_ACTION_REVIEW_REQUEST
                 } else {
-                    "gui.pending_list.item.action_cancel"
+                    MyworldGuiCommonKeys.GUI_PENDING_LIST_ITEM_ACTION_CANCEL
                 }
             }
         }

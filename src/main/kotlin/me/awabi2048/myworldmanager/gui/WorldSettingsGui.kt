@@ -989,7 +989,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         role = GuiElementRole.ACTION,
                                         description = listOf(lang.getMessage(
                                                 player,
-                                                "publish_level.description.${worldData.publishLevel.name.lowercase()}",
+                                                when (worldData.publishLevel) {
+                                                        PublishLevel.PUBLIC -> MyworldPublishLevelKeys.PUBLISH_LEVEL_DESCRIPTION_PUBLIC
+                                                        PublishLevel.FRIEND -> MyworldPublishLevelKeys.PUBLISH_LEVEL_DESCRIPTION_FRIEND
+                                                        PublishLevel.PRIVATE -> MyworldPublishLevelKeys.PUBLISH_LEVEL_DESCRIPTION_PRIVATE
+                                                        PublishLevel.LOCKED -> MyworldPublishLevelKeys.PUBLISH_LEVEL_DESCRIPTION_LOCKED
+                                                },
                                         )),
                                         options = levels.map { (level, name, _) ->
                                                 GuiMenuEntryOption(name, level == worldData.publishLevel)
@@ -1308,11 +1313,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 PublishLevel.LOCKED ->
                                         lang.getMessage(player, MyworldPublishLevelKeys.PUBLISH_LEVEL_COLOR_LOCKED)
                         }
-                val publishLevelName =
-                        lang.getMessage(
-                                player,
-                                "publish_level.${worldData.publishLevel.name.lowercase()}"
-                        )
+                val publishLevelName = lang.getMessage(player, when (worldData.publishLevel) {
+                        PublishLevel.PUBLIC -> MyworldPublishLevelKeys.PUBLISH_LEVEL_PUBLIC
+                        PublishLevel.FRIEND -> MyworldPublishLevelKeys.PUBLISH_LEVEL_FRIEND
+                        PublishLevel.PRIVATE -> MyworldPublishLevelKeys.PUBLISH_LEVEL_PRIVATE
+                        PublishLevel.LOCKED -> MyworldPublishLevelKeys.PUBLISH_LEVEL_LOCKED
+                })
 
                 // 有効期限の計算
                 val dateFormatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
@@ -1916,14 +1922,14 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val directionKey =
                         when (direction) {
                                 org.bukkit.block.BlockFace.NORTH_WEST ->
-                                        "general.direction.north_west"
+                                        CommonKeys.GENERAL_DIRECTION_NORTH_WEST
                                 org.bukkit.block.BlockFace.NORTH_EAST ->
-                                        "general.direction.north_east"
+                                        CommonKeys.GENERAL_DIRECTION_NORTH_EAST
                                 org.bukkit.block.BlockFace.SOUTH_WEST ->
-                                        "general.direction.south_west"
+                                        CommonKeys.GENERAL_DIRECTION_SOUTH_WEST
                                 org.bukkit.block.BlockFace.SOUTH_EAST ->
-                                        "general.direction.south_east"
-                                else -> "general.direction.unknown"
+                                        CommonKeys.GENERAL_DIRECTION_SOUTH_EAST
+                                else -> CommonKeys.GENERAL_DIRECTION_UNKNOWN
                         }
                 val directionName = lang.getMessage(player, directionKey)
                 val methodText =
@@ -3857,7 +3863,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 plugin.worldSettingsSpawnPreviewService.start(player)
 
-                val typeKey = if (isGuest) "gui.settings.spawn.type.guest" else "gui.settings.spawn.type.member"
+                val typeKey = if (isGuest) {
+                        MyworldGuiSettingsKeys.GUI_SETTINGS_SPAWN_TYPE_GUEST
+                } else {
+                        MyworldGuiSettingsKeys.GUI_SETTINGS_SPAWN_TYPE_MEMBER
+                }
                 val typeName = plugin.languageManager.getMessage(player, typeKey)
                 player.sendMessage(
                         plugin.languageManager.getMessage(

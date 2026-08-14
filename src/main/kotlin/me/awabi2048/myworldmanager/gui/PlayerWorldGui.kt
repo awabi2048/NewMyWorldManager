@@ -6,6 +6,8 @@ import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiBedrockKeys
 import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiCommonKeys
 import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiSettingsKeys
 import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldPublishLevelKeys
+import com.awabi2048.ccsystem.api.localization.LocalizationKey
 
 import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuView
@@ -30,6 +32,7 @@ import me.awabi2048.myworldmanager.api.extension.PlayerWorldCapabilityContract
 import me.awabi2048.myworldmanager.api.extension.PlayerWorldCapabilitySubject
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsNavigationRequest
 import me.awabi2048.myworldmanager.model.PlayerStats
+import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
@@ -507,7 +510,12 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
         ): MenuElement {
                 val lang = plugin.languageManager
                 val ownerName = PlayerNameUtil.getNameOrDefault(world.owner, lang.getMessage(player, CommonKeys.GENERAL_UNKNOWN))
-                val publishLevelName = lang.getMessage(player, "publish_level.${world.publishLevel.name.lowercase()}")
+                val publishLevelName = lang.getMessage(player, when (world.publishLevel) {
+                        PublishLevel.PUBLIC -> MyworldPublishLevelKeys.PUBLISH_LEVEL_PUBLIC
+                        PublishLevel.FRIEND -> MyworldPublishLevelKeys.PUBLISH_LEVEL_FRIEND
+                        PublishLevel.PRIVATE -> MyworldPublishLevelKeys.PUBLISH_LEVEL_PRIVATE
+                        PublishLevel.LOCKED -> MyworldPublishLevelKeys.PUBLISH_LEVEL_LOCKED
+                })
                 val favorites = world.favorite
                 val visitors = world.recentVisitors.sum()
                 val tagNames = if (world.tags.isNotEmpty()) {
@@ -875,18 +883,21 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 }
         }
 
-        private enum class CreationBlockReason(val displayKey: String, val loreKey: String) {
+        private enum class CreationBlockReason(
+                val displayKey: LocalizationKey<String>,
+                val loreKey: LocalizationKey<List<String>>,
+        ) {
                 POLICY_DENIED(
-                        "gui.player_world.creation_unavailable.policy_denied.display",
-                        "gui.player_world.creation_unavailable.policy_denied.lore"
+                        MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_CREATION_UNAVAILABLE_POLICY_DENIED_DISPLAY,
+                        MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_CREATION_UNAVAILABLE_POLICY_DENIED_LORE,
                 ),
                 NO_SLOT(
-                        "gui.player_world.creation_unavailable.no_slot.display",
-                        "gui.player_world.creation_unavailable.no_slot.lore"
+                        MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_CREATION_UNAVAILABLE_NO_SLOT_DISPLAY,
+                        MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_CREATION_UNAVAILABLE_NO_SLOT_LORE,
                 ),
                 NO_PERMISSION(
-                        "gui.player_world.creation_unavailable.no_permission.display",
-                        "gui.player_world.creation_unavailable.no_permission.lore"
+                        MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_CREATION_UNAVAILABLE_NO_PERMISSION_DISPLAY,
+                        MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_CREATION_UNAVAILABLE_NO_PERMISSION_LORE,
                 )
         }
 

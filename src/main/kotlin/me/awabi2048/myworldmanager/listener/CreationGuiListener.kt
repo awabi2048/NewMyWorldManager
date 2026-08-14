@@ -146,7 +146,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) {
                     player.sendMessage(
                         lang.getMessage(
                             player,
-                            if (success) "messages.creation_success" else "messages.creation_failed"
+                            if (success) MyworldMessagesKeys.MESSAGES_CREATION_SUCCESS else MyworldMessagesKeys.MESSAGES_CREATION_FAILED
                         )
                     )
                 }
@@ -162,7 +162,7 @@ class CreationGuiListener(private val plugin: MyWorldManager) {
                     player.sendMessage(
                         lang.getMessage(
                             player,
-                            if (success) "messages.creation_success" else "messages.creation_failed"
+                            if (success) MyworldMessagesKeys.MESSAGES_CREATION_SUCCESS else MyworldMessagesKeys.MESSAGES_CREATION_FAILED
                         )
                     )
                 }

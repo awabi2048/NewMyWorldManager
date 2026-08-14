@@ -225,12 +225,12 @@ class CreationDialogManager {
             val seedValue = if (session.creationType == WorldCreationType.SEED) session.inputSeedString ?: "" else null
             val seedDimensionValue = if (session.creationType == WorldCreationType.SEED) {
                 val dimensionKey = when (session.seedEnvironment) {
-                    org.bukkit.World.Environment.NORMAL -> "normal"
-                    org.bukkit.World.Environment.NETHER -> "nether"
-                    org.bukkit.World.Environment.THE_END -> "the_end"
-                    else -> "normal"
+                    org.bukkit.World.Environment.NORMAL -> MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_DIMENSION_OPTIONS_NORMAL
+                    org.bukkit.World.Environment.NETHER -> MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_DIMENSION_OPTIONS_NETHER
+                    org.bukkit.World.Environment.THE_END -> MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_DIMENSION_OPTIONS_THE_END
+                    else -> MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_DIMENSION_OPTIONS_NORMAL
                 }
-                lang.getMessage(player, "gui.creation.confirm.dimension.options.$dimensionKey")
+                lang.getMessage(player, dimensionKey)
             } else null
 
             val nameLabel = lang.getMessage(player, MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_NAME_LABEL)

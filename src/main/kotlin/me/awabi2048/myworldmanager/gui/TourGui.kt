@@ -365,9 +365,9 @@ class TourGui(private val plugin: MyWorldManager) {
             elements += navigationEntry(player, layout.nextPageSlot, true, safePage + 1)
         }
         val titleKey = if (showWorldIcon) {
-            "gui.tour.menu.visitor_title"
+            MyworldGuiCommonKeys.GUI_TOUR_MENU_VISITOR_TITLE
         } else {
-            "gui.tour.menu.start_selection_title"
+            MyworldGuiCommonKeys.GUI_TOUR_MENU_START_SELECTION_TITLE
         }
         return InventoryMenuView(
             size = layout.size,

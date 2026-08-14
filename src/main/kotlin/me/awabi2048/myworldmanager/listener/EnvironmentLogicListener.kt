@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.listener
 
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.WorldData
@@ -83,9 +85,9 @@ class EnvironmentLogicListener(private val plugin: MyWorldManager) : Listener {
         if (previousAllow == currentAllow) return
         if (player.gameMode == GameMode.CREATIVE || player.gameMode == GameMode.SPECTATOR) return
         val key = if (currentAllow) {
-            "messages.env_flight_enabled"
+            MyworldMessagesKeys.MESSAGES_ENV_FLIGHT_ENABLED
         } else {
-            "messages.env_flight_disabled"
+            MyworldMessagesKeys.MESSAGES_ENV_FLIGHT_DISABLED
         }
         player.sendMessage(plugin.languageManager.getMessage(player, key))
     }

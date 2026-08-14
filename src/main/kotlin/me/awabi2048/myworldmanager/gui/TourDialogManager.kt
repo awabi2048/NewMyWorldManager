@@ -383,8 +383,8 @@ class TourDialogManager {
 
         private fun showTextDialog(player: Player, plugin: MyWorldManager, currentName: String, currentDescription: String, tour: Boolean) {
             val lang = plugin.languageManager
-            val titleKey = if (tour) "gui.tour.edit_text.title" else "gui.tour_sign.edit_text.title"
-            val bodyKey = if (tour) "gui.tour.edit_text.description" else "gui.tour_sign.edit_text.description"
+            val titleKey = if (tour) MyworldGuiCommonKeys.GUI_TOUR_EDIT_TEXT_TITLE else MyworldGuiCommonKeys.GUI_TOUR_SIGN_EDIT_TEXT_TITLE
+            val bodyKey = if (tour) MyworldGuiCommonKeys.GUI_TOUR_EDIT_TEXT_DESCRIPTION else MyworldGuiCommonKeys.GUI_TOUR_SIGN_EDIT_TEXT_DESCRIPTION
             CCSystem.getAPI().getMenuDialogService().show(
                 player,
                 MenuDialogRequest(
@@ -398,7 +398,7 @@ class TourDialogManager {
                             Component.text(
                                 lang.getMessage(
                                     player,
-                                    if (tour) "gui.tour.input.name" else "gui.tour_sign.input.title",
+                                    if (tour) MyworldGuiCommonKeys.GUI_TOUR_INPUT_NAME else MyworldGuiCommonKeys.GUI_TOUR_SIGN_INPUT_TITLE,
                                 ),
                             ),
                             currentName,
@@ -409,7 +409,7 @@ class TourDialogManager {
                             Component.text(
                                 lang.getMessage(
                                     player,
-                                    if (tour) "gui.tour.input.description" else "gui.tour_sign.input.description",
+                                    if (tour) MyworldGuiCommonKeys.GUI_TOUR_INPUT_DESCRIPTION else MyworldGuiCommonKeys.GUI_TOUR_SIGN_INPUT_DESCRIPTION,
                                 ),
                             ),
                             currentDescription,

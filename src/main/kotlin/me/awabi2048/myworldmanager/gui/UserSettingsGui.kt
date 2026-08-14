@@ -275,7 +275,11 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val options = TourNavigationMode.entries.map { mode ->
             GuiMenuEntryOption(
-                label = lang.getMessage(player, "gui.user_settings.tour_navigation.mode.${mode.name.lowercase()}"),
+                label = lang.getMessage(player, when (mode) {
+                    TourNavigationMode.BOSSBAR_ONLY -> MyworldGuiSettingsKeys.GUI_USER_SETTINGS_TOUR_NAVIGATION_MODE_BOSSBAR_ONLY
+                    TourNavigationMode.ALL -> MyworldGuiSettingsKeys.GUI_USER_SETTINGS_TOUR_NAVIGATION_MODE_ALL
+                    TourNavigationMode.NONE -> MyworldGuiSettingsKeys.GUI_USER_SETTINGS_TOUR_NAVIGATION_MODE_NONE
+                }),
                 selected = mode == currentMode,
             )
         }

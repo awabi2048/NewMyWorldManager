@@ -91,7 +91,12 @@ enum class CustomItem(val id: String) {
             val meta = item.itemMeta ?: return item
 
             meta.displayName(lang.getComponent(player, MyworldCustomItemKeys.CUSTOM_ITEM_WORLD_SEED_NAME))
-            meta.lore(actionLore(lang, player, "custom_item.world_seed"))
+            meta.lore(actionLore(
+                lang,
+                player,
+                MyworldCustomItemKeys.CUSTOM_ITEM_WORLD_SEED_DESCRIPTION,
+                MyworldCustomItemKeys.CUSTOM_ITEM_WORLD_SEED_ACTION,
+            ))
 
             meta.setMaxStackSize(1)
             // ワールドの種は独自リソースパックに依存せず、バニラの種モデルを表示します。
@@ -111,7 +116,12 @@ enum class CustomItem(val id: String) {
             val meta = item.itemMeta ?: return item
 
             meta.displayName(lang.getComponent(player, MyworldCustomItemKeys.CUSTOM_ITEM_TOUR_SIGN_NAME))
-            meta.lore(actionLore(lang, player, "custom_item.tour_sign"))
+            meta.lore(actionLore(
+                lang,
+                player,
+                MyworldCustomItemKeys.CUSTOM_ITEM_TOUR_SIGN_DESCRIPTION,
+                MyworldCustomItemKeys.CUSTOM_ITEM_TOUR_SIGN_ACTION,
+            ))
 
             meta.setMaxStackSize(16)
             meta.setItemModel(TourSignItemPolicy.itemModel)
@@ -136,7 +146,7 @@ enum class CustomItem(val id: String) {
         val item = ItemStack(Material.POISONOUS_POTATO)
         val meta = item.itemMeta ?: return item
 
-        val biomeName = lang.getMessage(player, "biomes.${biomeId.lowercase()}")
+        val biomeName = lang.getMessage(player, CatalogKeyResolver.biome(biomeId))
         meta.displayName(lang.getComponent(player, MyworldCustomItemKeys.CUSTOM_ITEM_BOTTLED_BIOME_AIR_NAME, mapOf("biome" to biomeName)))
         meta.lore(com.awabi2048.ccsystem.CCSystem.getAPI().getLoreService().render(
             com.awabi2048.ccsystem.api.gui.GuiLoreSpec.Rich(
@@ -161,16 +171,21 @@ enum class CustomItem(val id: String) {
     companion object {
         fun fromId(id: String): CustomItem? = values().find { it.id.equals(id, ignoreCase = true) }
 
-        private fun actionLore(lang: LanguageManager, player: Player?, key: String) =
+        private fun actionLore(
+            lang: LanguageManager,
+            player: Player?,
+            descriptionKey: com.awabi2048.ccsystem.api.localization.LocalizationKey<List<String>>,
+            actionKey: com.awabi2048.ccsystem.api.localization.LocalizationKey<String>,
+        ) =
             CCSystem.getAPI().getLoreService().render(
                 CCSystem.getAPI().getLoreService().compose(
                     GuiLoreSpec.Blocks(listOf(
-                        GuiLoreBlock(lang.getMessageList(player, "$key.description").map(GuiLoreLine::Text))
+                        GuiLoreBlock(lang.getMessageList(player, descriptionKey).map(GuiLoreLine::Text))
                     )),
                     listOf(GuiLoreLine.Interaction(
                     player,
                     MenuGesture.RIGHT,
-                    lang.getMessage(player, "$key.action")
+                    lang.getMessage(player, actionKey)
                     ))
                 )
             )

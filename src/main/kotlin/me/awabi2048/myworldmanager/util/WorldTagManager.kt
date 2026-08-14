@@ -66,12 +66,7 @@ class WorldTagManager(private val plugin: MyWorldManager) {
         val normalized = normalizeTagId(tagId) ?: return tagId
         val lang = plugin.languageManager
 
-        val fallbackKey = "world_tag.$normalized"
-        if (lang.hasKey(player, fallbackKey)) {
-            return lang.getMessage(player, fallbackKey)
-        }
-
-        return normalized.replace('_', ' ')
+        return lang.getMessage(player, CatalogKeyResolver.worldTag(normalized))
     }
 
     private fun loadFallbackDefinitions() {

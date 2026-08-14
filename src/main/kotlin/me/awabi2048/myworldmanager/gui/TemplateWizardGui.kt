@@ -292,9 +292,9 @@ class TemplateWizardGui(private val plugin: MyWorldManager) {
             plugin.languageManager.getMessage(
                 context.player,
                 if (valid) {
-                    "messages.template_wizard_validation_success"
+                    MyworldMessagesKeys.MESSAGES_TEMPLATE_WIZARD_VALIDATION_SUCCESS
                 } else {
-                    "messages.template_wizard_validation_failed"
+                    MyworldMessagesKeys.MESSAGES_TEMPLATE_WIZARD_VALIDATION_FAILED
                 },
             ),
         )

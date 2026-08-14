@@ -173,11 +173,11 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
 
         val confirmLabel = plugin.languageManager.getMessage(
             player,
-            if (intendedAction == false) "gui.pending_list.confirm.deny" else "gui.pending_list.confirm.accept"
+            if (intendedAction == false) MyworldGuiCommonKeys.GUI_PENDING_LIST_CONFIRM_DENY else MyworldGuiCommonKeys.GUI_PENDING_LIST_CONFIRM_ACCEPT
         )
         val cancelLabel = plugin.languageManager.getMessage(
             player,
-            if (intendedAction == null) "gui.pending_list.confirm.deny" else "gui.common.cancel"
+            if (intendedAction == null) MyworldGuiCommonKeys.GUI_PENDING_LIST_CONFIRM_DENY else CommonKeys.GUI_COMMON_CANCEL
         )
         val confirmAction = intendedAction ?: true
 
@@ -250,11 +250,11 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
 
         val confirmLabel = plugin.languageManager.getMessage(
             player,
-            if (intendedAction == false) "gui.pending_list.confirm.deny" else "gui.pending_list.confirm.accept"
+            if (intendedAction == false) MyworldGuiCommonKeys.GUI_PENDING_LIST_CONFIRM_DENY else MyworldGuiCommonKeys.GUI_PENDING_LIST_CONFIRM_ACCEPT
         )
         val cancelLabel = plugin.languageManager.getMessage(
             player,
-            if (intendedAction == null) "gui.pending_list.confirm.deny" else "gui.common.cancel"
+            if (intendedAction == null) MyworldGuiCommonKeys.GUI_PENDING_LIST_CONFIRM_DENY else CommonKeys.GUI_COMMON_CANCEL
         )
         val confirmAction = intendedAction ?: true
 

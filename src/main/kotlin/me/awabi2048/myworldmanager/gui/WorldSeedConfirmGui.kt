@@ -1,6 +1,8 @@
 package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiCreationKeys
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.LocalizationKey
 
 import me.awabi2048.myworldmanager.util.descriptionLine
 import me.awabi2048.myworldmanager.util.warningLine
@@ -103,8 +105,8 @@ class WorldSeedConfirmGui(private val plugin: MyWorldManager) {
             lang.getComponent(player, MyworldGuiCreationKeys.GUI_WORLD_SEED_CONFIRM_TITLE),
             listOf(
                 info,
-                button(player, 11, Material.LIME_CONCRETE, "gui.common.confirm", GuiElementRole.CONFIRM, ACTION_CONFIRM),
-                button(player, 15, Material.RED_CONCRETE, "gui.common.cancel", GuiElementRole.CANCEL, ACTION_CANCEL),
+                button(player, 11, Material.LIME_CONCRETE, CommonKeys.GUI_COMMON_CONFIRM, GuiElementRole.CONFIRM, ACTION_CONFIRM),
+                button(player, 15, Material.RED_CONCRETE, CommonKeys.GUI_COMMON_CANCEL, GuiElementRole.CANCEL, ACTION_CANCEL),
             ),
             category = MenuViewCategory.CONFIRMATION,
         )
@@ -122,7 +124,7 @@ class WorldSeedConfirmGui(private val plugin: MyWorldManager) {
         player: Player,
         slot: Int,
         material: Material,
-        key: String,
+        key: LocalizationKey<String>,
         role: GuiElementRole,
         actionId: String,
     ): MenuElement = guiElements.menuEntry(

@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.util
 
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiCreationKeys
+
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.WorldCreationOperation
 import me.awabi2048.myworldmanager.api.extension.WorldCreationRequest
@@ -29,9 +31,9 @@ object WorldCreationChecks {
         if (decision.allowed) return true
         if (notify) {
             val key = if (decision.reason == WorldCreationLimitDecision.Reason.TOTAL) {
-                "gui.creation.limit_reached_total"
+                MyworldGuiCreationKeys.GUI_CREATION_LIMIT_REACHED_TOTAL
             } else {
-                "gui.creation.limit_reached"
+                MyworldGuiCreationKeys.GUI_CREATION_LIMIT_REACHED
             }
             val placeholders = if (decision.reason == WorldCreationLimitDecision.Reason.TOTAL) {
                 mapOf("max" to plugin.config.getInt("creation.max_total_world_count", 50))

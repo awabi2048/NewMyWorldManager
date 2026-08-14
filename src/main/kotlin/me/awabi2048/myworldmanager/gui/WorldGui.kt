@@ -5,6 +5,7 @@ import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiAdminKeys
 import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiCommonKeys
 import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
 import com.awabi2048.ccsystem.api.localization.generated.MyworldPublishLevelKeys
+import com.awabi2048.ccsystem.api.localization.LocalizationKey
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiCycle
@@ -37,6 +38,7 @@ import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.model.WorldData
+import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.service.UnloadedWorldRegistry
 import me.awabi2048.myworldmanager.service.WorldLoadFailure
 import me.awabi2048.myworldmanager.session.*
@@ -162,8 +164,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                 session.currentPage = safePage
 
                 val lang = plugin.languageManager
-                val titleKey = "gui.admin.title"
-                val title = GuiHelper.inventoryTitle(lang.getComponent(player, titleKey))
+                val title = GuiHelper.inventoryTitle(lang.getComponent(player, MyworldGuiAdminKeys.GUI_ADMIN_TITLE))
 
                 val inventory = MenuViewBuilder(layout.size, title)
 
@@ -637,8 +638,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 "PRIVATE" -> lang.getMessage(player, MyworldPublishLevelKeys.PUBLISH_LEVEL_COLOR_PRIVATE)
                                 else -> lang.getMessage(player, MyworldPublishLevelKeys.PUBLISH_LEVEL_COLOR_LOCKED)
                         }
-                val publishName =
-                        lang.getMessage(player, "publish_level.${data.publishLevel.name.lowercase()}")
+                val publishName = lang.getMessage(player, publishLevelKey(data.publishLevel))
                 val generationMethod = getGenerationMethodLabel(player, data.sourceWorld)
 
                 var createdValue: String? = null
@@ -675,7 +675,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                 }
 
                 var expireValue: String? = null
-                var expireLabelKey = "gui.admin.world_item.expires_at"
+                var expireLabelKey: LocalizationKey<String> = MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_EXPIRES_AT
                 if (data.sourceWorld != "CONVERT") {
                         try {
                                 val formatter =
@@ -686,7 +686,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 if (data.isArchived) {
                                         val archiveDate = parseArchiveDate(data.archivedAt) ?: expireDate
                                         val archiveMode = resolveArchiveMode(player, data, expireDate)
-                                        expireLabelKey = "gui.admin.world_item.archived_at"
+                                        expireLabelKey = MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_ARCHIVED_AT
                                         expireValue = lang.getMessage(
                                                 player,
                                                 MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_ARCHIVED_VALUE,
@@ -727,7 +727,7 @@ class WorldGui(private val plugin: MyWorldManager) {
                         } catch (_: Exception) {
                                 if (data.isArchived) {
                                         val archiveMode = resolveArchiveMode(player, data, null)
-                                        expireLabelKey = "gui.admin.world_item.archived_at"
+                                        expireLabelKey = MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_ARCHIVED_AT
                                         expireValue = lang.getMessage(
                                                 player,
                                                 MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_ARCHIVED_VALUE,
@@ -1284,6 +1284,14 @@ class WorldGui(private val plugin: MyWorldManager) {
                                 interactionGuidance = GuiInteractionGuidance.LIST_SETTING,
                         ),
                 )
+        }
+
+        /** 公開範囲は有限集合なので、実行時にキー文字列を組み立てません。 */
+        private fun publishLevelKey(level: PublishLevel): LocalizationKey<String> = when (level) {
+                PublishLevel.PUBLIC -> MyworldPublishLevelKeys.PUBLISH_LEVEL_PUBLIC
+                PublishLevel.FRIEND -> MyworldPublishLevelKeys.PUBLISH_LEVEL_FRIEND
+                PublishLevel.PRIVATE -> MyworldPublishLevelKeys.PUBLISH_LEVEL_PRIVATE
+                PublishLevel.LOCKED -> MyworldPublishLevelKeys.PUBLISH_LEVEL_LOCKED
         }
 
 }

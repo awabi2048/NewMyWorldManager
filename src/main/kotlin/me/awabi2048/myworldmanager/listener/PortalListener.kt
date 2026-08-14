@@ -379,8 +379,8 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
 
         val infoLines = lang.getMessageList(
             player,
-            if (pointEconomyEnabled) "messages.world_gate_confirm_body"
-            else "messages.world_gate_confirm_body_without_points",
+            if (pointEconomyEnabled) MyworldMessagesKeys.MESSAGES_WORLD_GATE_CONFIRM_BODY
+            else MyworldMessagesKeys.MESSAGES_WORLD_GATE_CONFIRM_BODY_WITHOUT_POINTS,
             mapOf(
                 "min_x" to minX,
                 "min_y" to minY,

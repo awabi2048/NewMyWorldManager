@@ -2,6 +2,7 @@ package me.awabi2048.myworldmanager.listener
 
 import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
 import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiDiscoveryKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
@@ -44,9 +45,9 @@ class DiscoveryListener(private val plugin: MyWorldManager) {
             lang.getMessage(
                 player,
                 if (input.isEmpty()) {
-                    "messages.discovery_spotlight_description_reset"
+                    MyworldMessagesKeys.MESSAGES_DISCOVERY_SPOTLIGHT_DESCRIPTION_RESET
                 } else {
-                    "messages.discovery_spotlight_description_updated"
+                    MyworldMessagesKeys.MESSAGES_DISCOVERY_SPOTLIGHT_DESCRIPTION_UPDATED
                 },
             ),
         )
