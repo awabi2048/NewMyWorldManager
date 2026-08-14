@@ -187,11 +187,11 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
     private fun createGravityEntry(player: Player, worldData: WorldData, slot: Int): MenuElement {
         val lang = plugin.languageManager
         val gravityKey = when (worldData.gravityValue ?: 0.08) {
-            0.01 -> "moon"
-            0.02 -> "mars"
-            else -> "earth"
+            0.01 -> MyworldGuiSettingsKeys.GUI_ENVIRONMENT_GRAVITY_OPTIONS_MOON
+            0.02 -> MyworldGuiSettingsKeys.GUI_ENVIRONMENT_GRAVITY_OPTIONS_MARS
+            else -> MyworldGuiSettingsKeys.GUI_ENVIRONMENT_GRAVITY_OPTIONS_EARTH
         }
-        val currentName = lang.getMessage(player, "gui.environment.gravity.options.$gravityKey")
+        val currentName = lang.getMessage(player, gravityKey)
         val cost = WorldRuntimePolicies.environmentCost(plugin.config, "gravity")
         return menuEntry(
             player,

@@ -87,7 +87,7 @@ object GuiHelper {
         lore: GuiLoreSpec,
     ): GuiItemSpec {
         val lang = plugin.languageManager
-        val worldName = lang.getMessageStrict(player, worldData.name) ?: worldData.name
+        val worldName = worldData.name
         return GuiItemSpec(
             worldData.icon,
             GuiNameSpec.TargetIdentity(

@@ -26,7 +26,7 @@ class CurrentWorldMenuElementFactory(private val plugin: MyWorldManager) {
 
     private fun createManaged(player: Player, worldData: WorldData, slot: Int): MenuElement {
         val lang = plugin.languageManager
-        val worldName = lang.getMessageStrict(player, worldData.name) ?: worldData.name
+        val worldName = worldData.name
         val ownerName = PlayerNameUtil.getNameOrDefault(worldData.owner, lang.getMessage(player, CommonKeys.GENERAL_UNKNOWN))
         val tagNames = worldData.tags.takeIf(List<String>::isNotEmpty)?.joinToString(", ") {
             plugin.worldTagManager.getDisplayName(player, it)

@@ -60,11 +60,6 @@ class PortalGui(private val plugin: MyWorldManager) {
     }
 
     fun open(player: Player, portal: PortalData): Boolean {
-        val titleKey = "gui.portal.title"
-        if (!plugin.languageManager.hasKey(player, titleKey)) {
-            player.sendMessage("§c[MyWorldManager] Error: Missing translation key: $titleKey")
-            return false
-        }
         return runtime.openEphemeral(player, route(portal.id))
     }
 

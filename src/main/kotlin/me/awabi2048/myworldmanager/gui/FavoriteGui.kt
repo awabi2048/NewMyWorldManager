@@ -226,7 +226,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
 
     private fun createWorldEntry(player: Player, data: WorldData, slot: Int): MenuElement {
         val lang = plugin.languageManager
-        val worldName = lang.getMessageStrict(player, data.name) ?: data.name
+        val worldName = data.name
         val ownerName = PlayerNameUtil.getNameOrDefault(
             data.owner,
             lang.getMessage(player, CommonKeys.GENERAL_UNKNOWN),

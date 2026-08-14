@@ -532,13 +532,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 replaceCurrent: Boolean = false
         ) {
                 val lang = plugin.languageManager
-                val titleKey = "gui.settings.title"
-                if (!lang.hasKey(player, titleKey)) {
-                        player.sendMessage(
-                                "§c[MyWorldManager] Error: Missing translation key: $titleKey"
-                        )
-                }
-
                 // セッションの更新
                 if (showBackButton != null || isPlayerWorldFlow != null || parentShowBackButton != null) {
                         plugin.settingsSessionManager.updateSessionAction(

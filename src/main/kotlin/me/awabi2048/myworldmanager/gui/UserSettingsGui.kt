@@ -70,11 +70,6 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
             session.showBackButton = showBackButton
         }
 
-        val titleKey = "gui.user_settings.title"
-        if (!lang.hasKey(player, titleKey)) {
-            player.sendMessage("§c[MyWorldManager] Error: Missing translation key: $titleKey")
-            return null
-        }
         plugin.settingsSessionManager.updateSessionAction(player, UUID(0, 0), SettingsAction.VIEW_SETTINGS, isGui = true)
         return MenuRoute(OWNER, ROUTE_ID)
     }

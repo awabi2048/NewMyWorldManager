@@ -21,7 +21,7 @@ import me.awabi2048.myworldmanager.util.GuiSpecFactory
 class FavoriteConfirmGui(private val plugin: MyWorldManager) {
     fun open(player: Player, worldData: WorldData) {
         val lang = plugin.languageManager
-        val worldName = lang.getMessageStrict(player, worldData.name) ?: worldData.name
+        val worldName = worldData.name
         val worldItem = GuiHelper.createContextWorldIconItem(
             plugin,
             player,

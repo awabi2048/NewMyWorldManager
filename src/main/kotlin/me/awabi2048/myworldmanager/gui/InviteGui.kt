@@ -133,8 +133,7 @@ class InviteGui(private val plugin: MyWorldManager) {
                             player,
                             MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_NAME,
                             mapOf(
-                                "world" to (lang.getMessageStrict(player, currentWorldData.name)
-                                    ?: currentWorldData.name),
+                                "world" to currentWorldData.name,
                             ),
                         ).decoration(TextDecoration.ITALIC, false),
                     ),

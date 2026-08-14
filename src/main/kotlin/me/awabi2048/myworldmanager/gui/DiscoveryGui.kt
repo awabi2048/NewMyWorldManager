@@ -40,6 +40,7 @@ import me.awabi2048.myworldmanager.session.PreviewSessionManager
 import me.awabi2048.myworldmanager.session.PreviewSource
 import me.awabi2048.myworldmanager.session.DiscoverySpecialFilter
 import me.awabi2048.myworldmanager.session.DiscoverySort
+import com.awabi2048.ccsystem.api.localization.LocalizationKey
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.format.NamedTextColor
@@ -479,7 +480,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 val sortDesc = getSortDescription(player, currentSort)
                 val canEditSpotlight = currentSort == DiscoverySort.SPOTLIGHT && canManageSpotlight(player)
                 val options = DiscoverySort.values().map { sort ->
-                        sort to lang.getMessage(player, "gui.discovery.sort.type.${sort.name.lowercase()}")
+                        sort to lang.getMessage(player, sortNameKey(sort))
                 }
                 return CCSystem.getAPI().getGuiElementService().menuEntry(player, GuiMenuEntrySpec(
                         slot = slot,
@@ -519,7 +520,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
 
         private fun createSpecialFilterEntry(player: Player, filter: DiscoverySpecialFilter, slot: Int): MenuElement {
                 val lang = plugin.languageManager
-                val display = lang.getMessage(player, "gui.discovery.special_filter.type.${filter.name.lowercase()}")
+                val display = lang.getMessage(player, specialFilterKey(filter))
                 return cycleEntry(
                         player, slot, Material.COMPASS,
                         GuiNameSpec.FixedLabel(lang.getComponent(player, MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SPECIAL_FILTER_NAME)),
@@ -527,7 +528,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         display,
                         DiscoverySpecialFilter.values().map { option ->
                                 GuiMenuEntryOption(
-                                        lang.getMessage(player, "gui.discovery.special_filter.type.${option.name.lowercase()}"),
+                                        lang.getMessage(player, specialFilterKey(option)),
                                         option == filter,
                                 )
                         },
@@ -572,7 +573,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
         private fun getSortDescription(player: Player, sort: DiscoverySort): String {
                 val lang = plugin.languageManager
                 if (sort != DiscoverySort.SPOTLIGHT) {
-                        return lang.getMessage(player, "gui.discovery.sort_info.${sort.name.lowercase()}")
+                        return lang.getMessage(player, sortInfoKey(sort))
                 }
 
                 return plugin.spotlightRepository.getDescription()
@@ -601,7 +602,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 count: Int,
         ): MenuElement {
                 val lang = plugin.languageManager
-                val sortName = lang.getMessage(player, "gui.discovery.sort.type.${sort.name.lowercase()}")
+                val sortName = lang.getMessage(player, sortNameKey(sort))
                 val tagName = tag?.let { plugin.worldTagManager.getDisplayName(player, it) }
                         ?: lang.getMessage(player, MyworldGuiDiscoveryKeys.GUI_DISCOVERY_TAG_FILTER_ALL)
                 return CCSystem.getAPI().getGuiElementService().menuDisplay(
@@ -630,7 +631,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
         }
 
         private fun navigationEntry(player: Player, slot: Int, next: Boolean, targetPage: Int): MenuElement {
-                val key = if (next) "gui.common.next_page" else "gui.common.prev_page"
+                val key = if (next) CommonKeys.GUI_COMMON_NEXT_PAGE else CommonKeys.GUI_COMMON_PREV_PAGE
                 val iconId = if (next) "next_page" else "prev_page"
                 return CCSystem.getAPI().getGuiElementService().menuEntry(
                         player,
@@ -659,6 +660,27 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         slot,
                         plugin.menuConfigManager.getIconMaterial("world_settings", "back", Material.REDSTONE),
                 )
+
+        private fun sortNameKey(sort: DiscoverySort): LocalizationKey<String> = when (sort) {
+                DiscoverySort.HOT -> MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SORT_TYPE_HOT
+                DiscoverySort.NEW -> MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SORT_TYPE_NEW
+                DiscoverySort.FAVORITES -> MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SORT_TYPE_FAVORITES
+                DiscoverySort.SPOTLIGHT -> MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SORT_TYPE_SPOTLIGHT
+                DiscoverySort.RANDOM -> MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SORT_TYPE_RANDOM
+        }
+
+        private fun sortInfoKey(sort: DiscoverySort): LocalizationKey<String> = when (sort) {
+                DiscoverySort.HOT -> MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SORT_INFO_HOT
+                DiscoverySort.NEW -> MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SORT_INFO_NEW
+                DiscoverySort.FAVORITES -> MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SORT_INFO_FAVORITES
+                DiscoverySort.SPOTLIGHT -> MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SORT_INFO_SPOTLIGHT
+                DiscoverySort.RANDOM -> MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SORT_INFO_RANDOM
+        }
+
+        private fun specialFilterKey(filter: DiscoverySpecialFilter): LocalizationKey<String> = when (filter) {
+                DiscoverySpecialFilter.NONE -> MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SPECIAL_FILTER_TYPE_NONE
+                DiscoverySpecialFilter.UNVISITED -> MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SPECIAL_FILTER_TYPE_UNVISITED
+        }
 
         companion object {
                 private const val OWNER = "myworldmanager"

@@ -1,6 +1,7 @@
 package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+import com.awabi2048.ccsystem.api.localization.LocalizationKey
 
 import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
 import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiMeetKeys
@@ -67,11 +68,6 @@ class MeetGui(private val plugin: MyWorldManager) {
             session.showBackButton = showBackButton
         }
 
-        val titleKey = "gui.meet.title_list"
-        if (!lang.hasKey(player, titleKey)) {
-            player.sendMessage("§c[MyWorldManager] Error: Missing translation key: $titleKey")
-            return
-        }
         val route = MenuRoute(OWNER, ROUTE_ID, mapOf(PAGE to session.currentPage.toString()))
         if (GuiHelper.canGoBack(player)) {
             runtime.navigate(player, route)
@@ -102,8 +98,7 @@ class MeetGui(private val plugin: MyWorldManager) {
 
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
         val currentStatus = stats.meetStatus
-        val statusNameKey = "general.status.${currentStatus.lowercase()}"
-        val statusName = if (lang.hasKey(player, statusNameKey)) lang.getMessage(player, statusNameKey) else currentStatus
+        val statusName = lang.getMessage(player, statusNameKey(currentStatus))
         elements += CCSystem.getAPI().getGuiElementService().menuEntry(
             player,
             GuiMenuEntrySpec(
@@ -111,7 +106,7 @@ class MeetGui(private val plugin: MyWorldManager) {
                 material = Material.PLAYER_HEAD,
                 name = GuiNameSpec.FixedLabel(lang.getComponent(player, MyworldGuiMeetKeys.GUI_MEET_STATUS_BUTTON_DISPLAY, mapOf("player" to player.name))),
                 role = GuiElementRole.ACTION,
-                description = listOf(lang.getMessage(player, "general.status.description.${currentStatus.lowercase()}")),
+                description = listOf(lang.getMessage(player, statusDescriptionKey(currentStatus))),
                 data = listOf(GuiMenuEntryData(lang.getMessage(player, MyworldGuiMeetKeys.GUI_MEET_STATUS_BUTTON_CURRENT), statusName, GuiValueTone.PRIMARY)),
                 actions = listOf(menuGestureAction(ACTION_STATUS, MenuGesture.ANY, lang.getMessage(player, MyworldGuiMeetKeys.GUI_MEET_STATUS_BUTTON_ACTION), safety = MenuActionSafety.REVERSIBLE, reversibleContract = MwmMenuActionSemantics.contract("meet-status"))),
                 playerHeadOwner = player.uniqueId,
@@ -383,6 +378,18 @@ class MeetGui(private val plugin: MyWorldManager) {
         DIRECT,
         REQUEST,
         DENY,
+    }
+
+    private fun statusNameKey(status: String): LocalizationKey<String> = when (status.uppercase()) {
+        "JOIN_ME" -> CommonKeys.GENERAL_STATUS_JOIN_ME
+        "ASK_ME" -> CommonKeys.GENERAL_STATUS_ASK_ME
+        else -> CommonKeys.GENERAL_STATUS_BUSY
+    }
+
+    private fun statusDescriptionKey(status: String): LocalizationKey<String> = when (status.uppercase()) {
+        "JOIN_ME" -> CommonKeys.GENERAL_STATUS_DESCRIPTION_JOIN_ME
+        "ASK_ME" -> CommonKeys.GENERAL_STATUS_DESCRIPTION_ASK_ME
+        else -> CommonKeys.GENERAL_STATUS_DESCRIPTION_BUSY
     }
 
     companion object {

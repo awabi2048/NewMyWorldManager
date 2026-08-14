@@ -99,14 +99,11 @@ class VisitGui(private val plugin: MyWorldManager) {
 
                 val worldCount = targetWorlds.size
                 val lang = plugin.languageManager
-                val titleKey = "gui.visit.title"
-                check(lang.hasKey(player, titleKey)) { "Missing translation key: $titleKey" }
-
                 val pageLayout = CCSystem.getAPI().getGuiLayoutService().sevenColumnPage(worldCount, requestedPage)
                 val currentPage = pageLayout.page
                 val layout = pageLayout.layout
                 val targetName = PlayerNameUtil.getNameOrDefault(targetPlayerUuid, "Unknown")
-                val titleComp = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getComponent(player, titleKey, mapOf("player" to targetName)))
+                val titleComp = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(lang.getComponent(player, MyworldGuiPortalKeys.GUI_VISIT_TITLE, mapOf("player" to targetName)))
                 val elements = mutableListOf<MenuElement>()
                 targetWorlds.drop(pageLayout.startIndex).take(pageLayout.itemCount).forEachIndexed { index, worldData ->
                         elements += createWorldEntry(player, worldData, layout.itemSlots[index])
