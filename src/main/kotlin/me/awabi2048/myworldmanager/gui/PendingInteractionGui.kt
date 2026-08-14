@@ -375,7 +375,7 @@ class PendingInteractionGui(private val plugin: MyWorldManager) {
         )
 
     private fun navigationEntry(player: Player, slot: Int, next: Boolean, targetPage: Int): MenuElement {
-        val key = if (next) "gui.common.next_page" else "gui.common.prev_page"
+        val key = if (next) CommonKeys.GUI_COMMON_NEXT_PAGE else CommonKeys.GUI_COMMON_PREV_PAGE
         val iconId = if (next) "next_page" else "prev_page"
         return guiElements.menuEntry(
             player,

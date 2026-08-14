@@ -240,7 +240,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
     }
 
     private fun navigationEntry(player: Player, slot: Int, next: Boolean, targetPage: Int): MenuElement {
-        val key = if (next) "gui.common.next_page" else "gui.common.prev_page"
+        val key = if (next) CommonKeys.GUI_COMMON_NEXT_PAGE else CommonKeys.GUI_COMMON_PREV_PAGE
         return CCSystem.getAPI().getGuiElementService().menuEntry(
             player,
             GuiMenuEntrySpec(

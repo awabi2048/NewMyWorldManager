@@ -106,9 +106,9 @@ class FavoriteGui(private val plugin: MyWorldManager) {
         }
         if (worlds.isEmpty()) {
             val key = if (resolved.isEmpty()) {
-                "gui.favorite.empty_message_no_favorites"
+                MyworldGuiFavoriteKeys.GUI_FAVORITE_EMPTY_MESSAGE_NO_FAVORITES
             } else {
-                "gui.favorite.empty_message"
+                MyworldGuiFavoriteKeys.GUI_FAVORITE_EMPTY_MESSAGE
             }
             elements += CCSystem.getAPI().getGuiElementService().menuDisplay(
                 GuiMenuDisplaySpec(
@@ -323,8 +323,8 @@ class FavoriteGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
         val warningKey = when {
-            worldData == null -> "gui.favorite.favorite_menu.toggle.lore_restricted_not_managed"
-            worldData.owner == player.uniqueId -> "gui.favorite.favorite_menu.toggle.lore_restricted_owner"
+            worldData == null -> MyworldGuiFavoriteKeys.GUI_FAVORITE_FAVORITE_MENU_TOGGLE_LORE_RESTRICTED_NOT_MANAGED
+            worldData.owner == player.uniqueId -> MyworldGuiFavoriteKeys.GUI_FAVORITE_FAVORITE_MENU_TOGGLE_LORE_RESTRICTED_OWNER
             else -> null
         }
         if (warningKey != null) {
@@ -341,9 +341,9 @@ class FavoriteGui(private val plugin: MyWorldManager) {
         }
         val isFavorite = worldData!!.uuid in stats.favoriteWorlds
         val nameKey = if (isFavorite) {
-            "gui.favorite.favorite_menu.toggle.name_remove"
+            MyworldGuiFavoriteKeys.GUI_FAVORITE_FAVORITE_MENU_TOGGLE_NAME_REMOVE
         } else {
-            "gui.favorite.favorite_menu.toggle.name_add"
+            MyworldGuiFavoriteKeys.GUI_FAVORITE_FAVORITE_MENU_TOGGLE_NAME_ADD
         }
         return CCSystem.getAPI().getGuiElementService().menuEntry(
             player,
@@ -395,7 +395,7 @@ class FavoriteGui(private val plugin: MyWorldManager) {
     }
 
     private fun navigationEntry(player: Player, slot: Int, next: Boolean, targetPage: Int): MenuElement {
-        val key = if (next) "gui.common.next_page" else "gui.common.prev_page"
+        val key = if (next) CommonKeys.GUI_COMMON_NEXT_PAGE else CommonKeys.GUI_COMMON_PREV_PAGE
         val iconId = if (next) "next_page" else "prev_page"
         return CCSystem.getAPI().getGuiElementService().menuEntry(
             player,

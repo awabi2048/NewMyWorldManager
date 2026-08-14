@@ -1,5 +1,8 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import me.awabi2048.myworldmanager.util.MeetStatusLocalization
+
 import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiCommonKeys
 
 import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiMeetKeys
@@ -192,8 +195,7 @@ class InviteGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val colorCode = lang.getMessage(viewer, MyworldPublishLevelKeys.PUBLISH_LEVEL_COLOR_ONLINE)
         val status = plugin.playerStatsRepository.findByUuid(target.uniqueId).meetStatus
-        val statusKey = "general.status.${status.lowercase()}"
-        val statusName = if (lang.hasKey(viewer, statusKey)) lang.getMessage(viewer, statusKey) else status
+        val statusName = lang.getMessage(viewer, MeetStatusLocalization.name(status))
         return CCSystem.getAPI().getGuiElementService().menuEntry(
             viewer,
             GuiMenuEntrySpec(
@@ -229,7 +231,7 @@ class InviteGui(private val plugin: MyWorldManager) {
     }
 
     private fun navigationEntry(player: Player, slot: Int, next: Boolean, targetPage: Int): MenuElement {
-        val key = if (next) "gui.common.next_page" else "gui.common.prev_page"
+        val key = if (next) CommonKeys.GUI_COMMON_NEXT_PAGE else CommonKeys.GUI_COMMON_PREV_PAGE
         val iconId = if (next) "next_page" else "prev_page"
         return CCSystem.getAPI().getGuiElementService().menuEntry(
             player,

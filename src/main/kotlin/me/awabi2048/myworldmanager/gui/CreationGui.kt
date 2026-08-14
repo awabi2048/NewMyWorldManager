@@ -2,6 +2,7 @@ package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
 import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiCreationKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
 
 import me.awabi2048.myworldmanager.util.descriptionLine
 import me.awabi2048.myworldmanager.util.warningLine
@@ -63,16 +64,16 @@ import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
 import java.util.UUID
 
-internal data class CreationTypeAvailability(val enabled: Boolean, val reasonKey: String? = null)
+internal data class CreationTypeAvailability(val enabled: Boolean, val reasonKey: LocalizationKey<String>? = null)
 
 internal fun resolveCreationTypeAvailability(
     creationType: WorldCreationType,
     usableTemplateExists: Boolean,
     canAfford: Boolean,
 ): CreationTypeAvailability = when {
-    !canAfford -> CreationTypeAvailability(false, "messages.creation_insufficient_points")
+    !canAfford -> CreationTypeAvailability(false, MyworldMessagesKeys.MESSAGES_CREATION_INSUFFICIENT_POINTS)
     creationType == WorldCreationType.TEMPLATE && !usableTemplateExists ->
-        CreationTypeAvailability(false, "error.preview_template_not_found")
+        CreationTypeAvailability(false, CommonKeys.ERROR_PREVIEW_TEMPLATE_NOT_FOUND)
     else -> CreationTypeAvailability(true)
 }
 
@@ -546,9 +547,9 @@ class CreationGui(private val plugin: MyWorldManager) {
                 lang.getMessage(
                     player,
                     if (issue == null) {
-                        "gui.creation.template_detail.status_available"
+                        MyworldGuiCreationKeys.GUI_CREATION_TEMPLATE_DETAIL_STATUS_AVAILABLE
                     } else {
-                        "gui.creation.template_detail.status_unavailable"
+                        MyworldGuiCreationKeys.GUI_CREATION_TEMPLATE_DETAIL_STATUS_UNAVAILABLE
                     }
                 ),
                 if (issue == null) "§a" else "§c"
@@ -833,7 +834,7 @@ class CreationGui(private val plugin: MyWorldManager) {
         )
 
     private fun navigationEntry(player: Player, slot: Int, next: Boolean, targetPage: Int): MenuElement {
-        val key = if (next) "gui.common.next_page" else "gui.common.prev_page"
+        val key = if (next) CommonKeys.GUI_COMMON_NEXT_PAGE else CommonKeys.GUI_COMMON_PREV_PAGE
         val iconId = if (next) "next_page" else "prev_page"
         return CCSystem.getAPI().getGuiElementService().menuEntry(
             player,
@@ -941,12 +942,12 @@ class CreationGui(private val plugin: MyWorldManager) {
 
     private fun seedEnvironmentDisplay(player: Player, environment: World.Environment): String {
         val key = when (environment) {
-            World.Environment.NORMAL -> "normal"
-            World.Environment.NETHER -> "nether"
-            World.Environment.THE_END -> "the_end"
-            else -> "normal"
+            World.Environment.NORMAL -> MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_DIMENSION_OPTIONS_NORMAL
+            World.Environment.NETHER -> MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_DIMENSION_OPTIONS_NETHER
+            World.Environment.THE_END -> MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_DIMENSION_OPTIONS_THE_END
+            else -> MyworldGuiCreationKeys.GUI_CREATION_CONFIRM_DIMENSION_OPTIONS_NORMAL
         }
-        return plugin.languageManager.getMessage(player, "gui.creation.confirm.dimension.options.$key")
+        return plugin.languageManager.getMessage(player, key)
     }
 
     private fun seedEnvironmentLore(player: Player, current: World.Environment): GuiLoreSpec {
@@ -984,11 +985,11 @@ class CreationGui(private val plugin: MyWorldManager) {
         player: Player,
         issue: TemplateRepository.ValidationIssue
     ): String {
-        val key = when (issue) {
+        val key: LocalizationKey<String> = when (issue) {
             TemplateRepository.ValidationIssue.MISSING_DIRECTORY ->
-                "gui.creation.template_detail.error.missing_directory"
+                MyworldGuiCreationKeys.GUI_CREATION_TEMPLATE_DETAIL_ERROR_MISSING_DIRECTORY
             TemplateRepository.ValidationIssue.MISSING_ORIGIN ->
-                "gui.creation.template_detail.error.missing_origin"
+                MyworldGuiCreationKeys.GUI_CREATION_TEMPLATE_DETAIL_ERROR_MISSING_ORIGIN
         }
         return plugin.languageManager.getMessage(player, key)
     }

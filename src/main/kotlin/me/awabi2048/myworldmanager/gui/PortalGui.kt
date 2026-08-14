@@ -3,6 +3,8 @@ package me.awabi2048.myworldmanager.gui
 import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
 import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiPortalKeys
 import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+import com.awabi2048.ccsystem.api.localization.LocalizationKey
+import com.awabi2048.ccsystem.api.localization.generated.MyworldColorsKeys
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiCycle
@@ -84,7 +86,8 @@ class PortalGui(private val plugin: MyWorldManager) {
                     player,
                     11,
                     Material.OAK_SIGN,
-                    "gui.portal.toggle_text",
+                    MyworldGuiPortalKeys.GUI_PORTAL_TOGGLE_TEXT_NAME,
+                    MyworldGuiPortalKeys.GUI_PORTAL_TOGGLE_TEXT_ACTION,
                     data = listOf(GuiMenuEntryData(
                         lang.getMessage(player, MyworldGuiPortalKeys.GUI_PORTAL_TOGGLE_TEXT_CURRENT_LABEL),
                         textStatus,
@@ -96,14 +99,15 @@ class PortalGui(private val plugin: MyWorldManager) {
                     player,
                     13,
                     getWoolColor(portal.particleColor),
-                    "gui.portal.color",
+                    MyworldGuiPortalKeys.GUI_PORTAL_COLOR_NAME,
+                    MyworldGuiPortalKeys.GUI_PORTAL_COLOR_ACTION,
                     description = listOf(
-                        lang.getMessage(player, MyworldGuiPortalKeys.GUI_PORTAL_COLOR_PREVIOUS, mapOf("color" to lang.getMessage(player, "colors.${getColorKey(previousColor)}"))),
-                        lang.getMessage(player, MyworldGuiPortalKeys.GUI_PORTAL_COLOR_NEXT, mapOf("color" to lang.getMessage(player, "colors.${getColorKey(nextColor)}"))),
+                        lang.getMessage(player, MyworldGuiPortalKeys.GUI_PORTAL_COLOR_PREVIOUS, mapOf("color" to lang.getMessage(player, getColorKey(previousColor)))),
+                        lang.getMessage(player, MyworldGuiPortalKeys.GUI_PORTAL_COLOR_NEXT, mapOf("color" to lang.getMessage(player, getColorKey(nextColor)))),
                     ),
                     data = listOf(GuiMenuEntryData(
                         lang.getMessage(player, MyworldGuiPortalKeys.GUI_PORTAL_COLOR_CURRENT_LABEL),
-                        lang.getMessage(player, "colors.${getColorKey(portal.particleColor)}"),
+                        lang.getMessage(player, getColorKey(portal.particleColor)),
                         GuiValueTone.PRIMARY,
                     )),
                     actionId = ACTION_CYCLE_COLOR,
@@ -114,7 +118,8 @@ class PortalGui(private val plugin: MyWorldManager) {
                     player,
                     15,
                     Material.LAVA_BUCKET,
-                    "gui.portal.remove",
+                    MyworldGuiPortalKeys.GUI_PORTAL_REMOVE_NAME,
+                    MyworldGuiPortalKeys.GUI_PORTAL_REMOVE_ACTION,
                     dangers = listOf(lang.getMessage(player, MyworldGuiPortalKeys.GUI_PORTAL_REMOVE_DESCRIPTION)),
                     actionId = ACTION_REMOVE,
                 ),
@@ -210,7 +215,8 @@ class PortalGui(private val plugin: MyWorldManager) {
         player: Player,
         slot: Int,
         material: Material,
-        key: String,
+        nameKey: LocalizationKey<String>,
+        actionKey: LocalizationKey<String>,
         description: List<String> = emptyList(),
         data: List<GuiMenuEntryData> = emptyList(),
         dangers: List<String> = emptyList(),
@@ -224,7 +230,7 @@ class PortalGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = material,
-                name = GuiNameSpec.FixedLabel(lang.getComponent(player, "$key.name")),
+                name = GuiNameSpec.FixedLabel(lang.getComponent(player, nameKey)),
                 role = GuiElementRole.ACTION,
                 description = description,
                 data = data,
@@ -233,7 +239,7 @@ class PortalGui(private val plugin: MyWorldManager) {
                     menuGestureAction(
                         actionId,
                         gesture,
-                        lang.getMessage(player, "$key.action"),
+                        lang.getMessage(player, actionKey),
                         safety = portalActionSafety(actionId),
                         reversibleContract = when (actionId) {
                             ACTION_TOGGLE_TEXT -> MwmMenuActionSemantics.contract("portal-text")
@@ -284,25 +290,25 @@ class PortalGui(private val plugin: MyWorldManager) {
         else -> Material.WHITE_WOOL
     }
 
-    private fun getColorKey(color: Color): String = when (color) {
-        Color.WHITE -> "white"
-        Color.SILVER -> "silver"
-        Color.GRAY -> "gray"
-        Color.BLACK -> "black"
-        Color.RED -> "red"
-        Color.MAROON -> "maroon"
-        Color.YELLOW -> "yellow"
-        Color.OLIVE -> "olive"
-        Color.LIME -> "lime"
-        Color.GREEN -> "green"
-        Color.AQUA -> "aqua"
-        Color.TEAL -> "teal"
-        Color.BLUE -> "blue"
-        Color.NAVY -> "navy"
-        Color.FUCHSIA -> "fuchsia"
-        Color.PURPLE -> "purple"
-        Color.ORANGE -> "orange"
-        else -> "white"
+    private fun getColorKey(color: Color): LocalizationKey<String> = when (color) {
+        Color.WHITE -> MyworldColorsKeys.COLORS_WHITE
+        Color.SILVER -> MyworldColorsKeys.COLORS_SILVER
+        Color.GRAY -> MyworldColorsKeys.COLORS_GRAY
+        Color.BLACK -> MyworldColorsKeys.COLORS_BLACK
+        Color.RED -> MyworldColorsKeys.COLORS_RED
+        Color.MAROON -> MyworldColorsKeys.COLORS_MAROON
+        Color.YELLOW -> MyworldColorsKeys.COLORS_YELLOW
+        Color.OLIVE -> MyworldColorsKeys.COLORS_OLIVE
+        Color.LIME -> MyworldColorsKeys.COLORS_LIME
+        Color.GREEN -> MyworldColorsKeys.COLORS_GREEN
+        Color.AQUA -> MyworldColorsKeys.COLORS_AQUA
+        Color.TEAL -> MyworldColorsKeys.COLORS_TEAL
+        Color.BLUE -> MyworldColorsKeys.COLORS_BLUE
+        Color.NAVY -> MyworldColorsKeys.COLORS_NAVY
+        Color.FUCHSIA -> MyworldColorsKeys.COLORS_FUCHSIA
+        Color.PURPLE -> MyworldColorsKeys.COLORS_PURPLE
+        Color.ORANGE -> MyworldColorsKeys.COLORS_ORANGE
+        else -> MyworldColorsKeys.COLORS_WHITE
     }
 
     private companion object {

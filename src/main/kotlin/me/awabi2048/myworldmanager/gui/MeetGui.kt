@@ -1,10 +1,10 @@
 package me.awabi2048.myworldmanager.gui
 
 import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
-import com.awabi2048.ccsystem.api.localization.LocalizationKey
 
 import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
 import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiMeetKeys
+import me.awabi2048.myworldmanager.util.MeetStatusLocalization
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
@@ -98,7 +98,7 @@ class MeetGui(private val plugin: MyWorldManager) {
 
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
         val currentStatus = stats.meetStatus
-        val statusName = lang.getMessage(player, statusNameKey(currentStatus))
+        val statusName = lang.getMessage(player, MeetStatusLocalization.name(currentStatus))
         elements += CCSystem.getAPI().getGuiElementService().menuEntry(
             player,
             GuiMenuEntrySpec(
@@ -106,7 +106,7 @@ class MeetGui(private val plugin: MyWorldManager) {
                 material = Material.PLAYER_HEAD,
                 name = GuiNameSpec.FixedLabel(lang.getComponent(player, MyworldGuiMeetKeys.GUI_MEET_STATUS_BUTTON_DISPLAY, mapOf("player" to player.name))),
                 role = GuiElementRole.ACTION,
-                description = listOf(lang.getMessage(player, statusDescriptionKey(currentStatus))),
+                description = listOf(lang.getMessage(player, MeetStatusLocalization.description(currentStatus))),
                 data = listOf(GuiMenuEntryData(lang.getMessage(player, MyworldGuiMeetKeys.GUI_MEET_STATUS_BUTTON_CURRENT), statusName, GuiValueTone.PRIMARY)),
                 actions = listOf(menuGestureAction(ACTION_STATUS, MenuGesture.ANY, lang.getMessage(player, MyworldGuiMeetKeys.GUI_MEET_STATUS_BUTTON_ACTION), safety = MenuActionSafety.REVERSIBLE, reversibleContract = MwmMenuActionSemantics.contract("meet-status"))),
                 playerHeadOwner = player.uniqueId,
@@ -275,7 +275,7 @@ class MeetGui(private val plugin: MyWorldManager) {
         )
 
     private fun navigationEntry(viewer: Player, slot: Int, next: Boolean, page: Int): MenuElement {
-        val key = if (next) "gui.common.next_page" else "gui.common.prev_page"
+        val key = if (next) CommonKeys.GUI_COMMON_NEXT_PAGE else CommonKeys.GUI_COMMON_PREV_PAGE
         val iconId = if (next) "next_page" else "prev_page"
         return CCSystem.getAPI().getGuiElementService().menuEntry(
             viewer,
@@ -313,8 +313,7 @@ class MeetGui(private val plugin: MyWorldManager) {
     ): MenuElement {
         val lang = plugin.languageManager
         val stats = plugin.playerStatsRepository.findByUuid(target.uniqueId)
-        val statusKey = "general.status.${stats.meetStatus.lowercase()}"
-        val statusName = if (lang.hasKey(viewer, statusKey)) lang.getMessage(viewer, statusKey) else stats.meetStatus
+        val statusName = lang.getMessage(viewer, MeetStatusLocalization.name(stats.meetStatus))
         val world = target.world
         val worldName = world.name
         val worldData = plugin.worldConfigRepository.findByWorldName(worldName)
@@ -378,18 +377,6 @@ class MeetGui(private val plugin: MyWorldManager) {
         DIRECT,
         REQUEST,
         DENY,
-    }
-
-    private fun statusNameKey(status: String): LocalizationKey<String> = when (status.uppercase()) {
-        "JOIN_ME" -> CommonKeys.GENERAL_STATUS_JOIN_ME
-        "ASK_ME" -> CommonKeys.GENERAL_STATUS_ASK_ME
-        else -> CommonKeys.GENERAL_STATUS_BUSY
-    }
-
-    private fun statusDescriptionKey(status: String): LocalizationKey<String> = when (status.uppercase()) {
-        "JOIN_ME" -> CommonKeys.GENERAL_STATUS_DESCRIPTION_JOIN_ME
-        "ASK_ME" -> CommonKeys.GENERAL_STATUS_DESCRIPTION_ASK_ME
-        else -> CommonKeys.GENERAL_STATUS_DESCRIPTION_BUSY
     }
 
     companion object {
