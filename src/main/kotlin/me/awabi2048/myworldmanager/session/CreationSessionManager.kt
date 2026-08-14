@@ -79,9 +79,9 @@ class CreationSessionManager(private val plugin: MyWorldManager) {
     }
 
     fun updateSession(playerId: UUID, updater: (WorldCreationSession) -> Unit) {
-        sessions[playerId]?.let { 
+        sessions[playerId]?.let {
             it.touch()
-            updater(it) 
+            updater(it)
         }
     }
 

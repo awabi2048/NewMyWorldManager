@@ -18,7 +18,7 @@ class MeetCommand(private val plugin: MyWorldManager) : CommandExecutor, TabComp
             return true
         }
         if (sender !is Player) return true
-        
+
         if (args.contains("-menu")) {
             plugin.menuEntryRouter.openMeet(sender, true)
             return true
@@ -28,18 +28,18 @@ class MeetCommand(private val plugin: MyWorldManager) : CommandExecutor, TabComp
             plugin.menuEntryRouter.openMeet(sender)
             return true
         }
-        
+
         // Handling /meet accept <requester_name/uuid>
         if (args[0].equals("accept", ignoreCase = true)) {
             if (args.size < 2) return true
-            
+
             val targetName = args[1]
             val requesterUuid = try {
                  java.util.UUID.fromString(targetName)
              } catch (e: Exception) {
                 plugin.playerVisibilityService.resolveVisibleOnlinePlayer(sender, targetName)?.uniqueId
             } ?: return true
-            
+
             val pendingRequest = plugin.pendingDecisionManager.getPendingEntries(sender.uniqueId)
                 .firstOrNull {
                     it.type == PendingDecisionManager.PendingType.MEET_REQUEST &&
@@ -53,7 +53,7 @@ class MeetCommand(private val plugin: MyWorldManager) : CommandExecutor, TabComp
             plugin.pendingInteractionGui.openDecision(sender, pendingRequest.id)
             return true
         }
-        
+
         return true
     }
 

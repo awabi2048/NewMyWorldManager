@@ -183,7 +183,7 @@ class PortalManager(private val plugin: MyWorldManager) {
             updateTextDisplay(portal, true)
         }
     }
-    
+
     /**
      * 旧バージョンで保存されたTextDisplay UUIDをクリア
      */
@@ -579,7 +579,7 @@ class PortalManager(private val plugin: MyWorldManager) {
          displayToPortal[display.uniqueId] = portal.id
          updateDisplayText(display, portal, lang)
      }
-     
+
      /**
       * TextDisplayのテキストを更新
       */
@@ -591,7 +591,7 @@ class PortalManager(private val plugin: MyWorldManager) {
              val configName = plugin.config.getString("portal_targets.${portal.targetRuntimeName}")
              configName ?: portal.targetRuntimeName ?: "未知のワールド"
          }
-         
+
          val color = TextColor.color(portal.particleColor.asRGB())
          display.text(
              Component.text()
@@ -624,11 +624,11 @@ class PortalManager(private val plugin: MyWorldManager) {
 
         val worldName = player.world.key.toString()
         val worldPortals = portalCache[worldName] ?: return
-        
+
         val x = player.location.blockX
         val y = player.location.blockY
         val z = player.location.blockZ
-        
+
         // ポータルのフレームは足元のブロック (y-1)
         val key = getBlockKey(x, y - 1, z)
         val portal = worldPortals[key] ?: return
@@ -651,21 +651,21 @@ class PortalManager(private val plugin: MyWorldManager) {
 
      private fun executeWarp(player: Player, portal: PortalData) {
          val lang = plugin.languageManager
-            
+
         // クールタイムチェック (1秒)
         val lastWarp = warpCooldowns[player.uniqueId] ?: 0L
         if (System.currentTimeMillis() - lastWarp < 1000) return
 
         // ワープスキップチェック
         if (ignorePlayers.contains(player.uniqueId)) return
-        
+
         // ポータルごとの猶予期間チェック
         val playerGraces = portalGracePeriods[player.uniqueId]
         if (playerGraces != null) {
             val expiry = playerGraces[portal.id]
             if (expiry != null && expiry > System.currentTimeMillis()) return
         }
-        
+
         if (portal.worldUuid != null) {
             /*
             // マイワールドへのワープ
@@ -703,7 +703,7 @@ class PortalManager(private val plugin: MyWorldManager) {
 
                 // メンバー以外のみ統計加算 -> AccessControlListenerへ統合
                 /*
-                val isMember = destData.owner == player.uniqueId || 
+                val isMember = destData.owner == player.uniqueId ||
                               destData.moderators.contains(player.uniqueId) ||
                               destData.members.contains(player.uniqueId)
                 if (!isMember) {
@@ -763,14 +763,14 @@ class PortalManager(private val plugin: MyWorldManager) {
               removeTextDisplayForPortal(portalId)
           }
       }
-     
+
       /**
        * ポータルのビジュアル要素をすべて削除
        */
        fun removePortalVisuals(portalId: UUID) {
            // TextDisplay を削除
            removeTextDisplayForPortal(portalId)
-           
+
            // ポータルデータから紐付けUUIDを削除
            val portal = plugin.portalRepository.findById(portalId)
            if (portal != null) {
@@ -787,7 +787,7 @@ class PortalManager(private val plugin: MyWorldManager) {
           activeDisplayWorlds.remove(worldKey)
           val portalIdsToRemove = mutableListOf<UUID>()
           val displayUuidsToRemove = mutableListOf<UUID>()
-          
+
           for ((portalId, display) in textDisplays) {
               val portalWorld = plugin.portalRepository.findById(portalId)?.worldKey
               if (display.world.key.toString() == worldKey || portalWorld == worldKey) {
@@ -795,11 +795,11 @@ class PortalManager(private val plugin: MyWorldManager) {
                   displayUuidsToRemove.add(display.uniqueId)
               }
           }
-          
+
             for (portalId in portalIdsToRemove) {
                 textDisplays.remove(portalId)
             }
-          
+
           for (displayUuid in displayUuidsToRemove) {
               displayToPortal.remove(displayUuid)
           }

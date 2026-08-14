@@ -33,7 +33,7 @@ class WorldMenuCommand(private val plugin: MyWorldManager) : CommandExecutor {
 
     fun openCurrent(player: Player, showBackButton: Boolean): Boolean {
         val currentWorld = player.world
-        
+
         // ワールド名からマイワールドデータを取得
         val worldData = plugin.worldConfigRepository.findByWorldName(currentWorld.name)
         if (worldData == null) {

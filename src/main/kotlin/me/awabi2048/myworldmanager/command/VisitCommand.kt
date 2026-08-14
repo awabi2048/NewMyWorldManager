@@ -255,7 +255,7 @@ class VisitCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCom
     override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): List<String> {
         if (!PermissionManager.checkPermission(sender, PermissionManager.COMMAND_VISIT)) return emptyList()
         if (sender !is Player) return emptyList()
-        
+
         if (args.size == 1) {
             val search = args[0].lowercase()
             return plugin.playerVisibilityService.getVisibleOnlinePlayers(sender)

@@ -1246,7 +1246,7 @@ class WorldService(
         // 期限をリセット
         val initialDays = plugin.config.getLong("default_expiration.initial_days", 90)
         worldData.expireDate = java.time.LocalDate.now().plusDays(initialDays).toString()
-        
+
         repository.save(worldData)
         future.complete(true)
         return future
@@ -1694,7 +1694,7 @@ class WorldService(
         val worlds = repository.findAll()
         var updatedCount = 0
         var archivedCount = 0
-        
+
         val today = java.time.LocalDate.now()
         val dateFormatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
@@ -1719,7 +1719,7 @@ class WorldService(
             }
             // 今日のカウントをリセット
             visitors[0] = 0
-            
+
             repository.save(worldData)
             updatedCount++
 

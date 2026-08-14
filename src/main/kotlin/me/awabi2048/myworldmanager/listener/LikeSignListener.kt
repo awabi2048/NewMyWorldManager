@@ -43,7 +43,7 @@ class LikeSignListener(private val plugin: MyWorldManager) : Listener {
 
                 if (blockFace == BlockFace.UP) {
                     LikeSignDialogManager.startPlacementSession(player, plugin, block, blockFace, hand)
-                } else if (blockFace == BlockFace.NORTH || blockFace == BlockFace.SOUTH || 
+                } else if (blockFace == BlockFace.NORTH || blockFace == BlockFace.SOUTH ||
                            blockFace == BlockFace.EAST || blockFace == BlockFace.WEST) {
                     LikeSignDialogManager.startPlacementSession(player, plugin, block, blockFace, hand)
                 }
