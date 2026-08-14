@@ -166,6 +166,10 @@ class MyWorldManager : JavaPlugin() {
 
         // 言語設定の初期化
         languageManager = LanguageManager(this)
+        // 外部レジストリ由来の有限IDも有効化時に全件型付き解決し、表示時欠損を防ぎます。
+        me.awabi2048.myworldmanager.util.CatalogKeyResolver.validateBiomes(
+            org.bukkit.Registry.BIOME.map { it.key.key },
+        )
         CCSystem.getAPI().getItemGrantService().register(MyWorldItemGrantProvider(this))
         worldTagManager = WorldTagManager(this)
         worldTagManager.reload()

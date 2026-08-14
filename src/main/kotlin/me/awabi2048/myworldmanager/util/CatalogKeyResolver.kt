@@ -17,6 +17,14 @@ internal object CatalogKeyResolver {
 
     fun worldTag(id: String): LocalizationKey<String> = resolve(worldTagKeys, "world_tag", id)
 
+    /**
+     * サーバーが提供するbiome集合を有効化中に全件解決します。
+     * これにより、新規biomeのカタログ不足がGUI表示時まで遅延しません。
+     */
+    fun validateBiomes(ids: Iterable<String>) {
+        ids.forEach(::biome)
+    }
+
     private fun resolve(
         cache: ConcurrentHashMap<String, LocalizationKey<String>>,
         domain: String,
