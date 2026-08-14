@@ -4,6 +4,7 @@ import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
 import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiBedrockKeys
 import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiSettingsKeys
 import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+import com.awabi2048.ccsystem.api.localization.LocalizationKey
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
@@ -128,14 +129,14 @@ internal class WorldSettingsInputService(private val plugin: MyWorldManager) {
         val maxLength = plugin.config.getInt("announcement.max_line_length", 100)
         val blockedStrings = plugin.config.getStringList("announcement.blocked_strings")
         val trimmed = rawInputs.map { it.trim() }.filter { it.isNotEmpty() }
-        fun invalid(key: String, placeholders: Map<String, Any>) {
+        fun invalid(key: LocalizationKey<String>, placeholders: Map<String, Any>) {
             player.sendMessage(lang.getMessage(player, key, placeholders)); plugin.worldSettingsGui.open(player, worldData)
         }
-        if (trimmed.size > maxLines) { invalid("messages.announcement_invalid_length", mapOf("max_lines" to maxLines, "max_length" to maxLength)); return }
+        if (trimmed.size > maxLines) { invalid(MyworldMessagesKeys.MESSAGES_ANNOUNCEMENT_INVALID_LENGTH, mapOf("max_lines" to maxLines, "max_length" to maxLength)); return }
         for (line in trimmed) {
-            if (line.length > maxLength) { invalid("messages.announcement_invalid_length", mapOf("max_lines" to maxLines, "max_length" to maxLength)); return }
+            if (line.length > maxLength) { invalid(MyworldMessagesKeys.MESSAGES_ANNOUNCEMENT_INVALID_LENGTH, mapOf("max_lines" to maxLines, "max_length" to maxLength)); return }
             val blocked = blockedStrings.firstOrNull { line.contains(it, ignoreCase = true) }
-            if (blocked != null) { invalid("messages.announcement_blocked_string", mapOf("string" to blocked)); return }
+            if (blocked != null) { invalid(MyworldMessagesKeys.MESSAGES_ANNOUNCEMENT_BLOCKED_STRING, mapOf("string" to blocked)); return }
         }
         worldData.announcementMessages.clear()
         trimmed.forEach { worldData.announcementMessages.add("ﾂｧf${it.replace("&", "ﾂｧ")}") }

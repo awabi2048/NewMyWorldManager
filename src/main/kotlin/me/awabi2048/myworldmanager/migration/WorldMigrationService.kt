@@ -1,6 +1,8 @@
 package me.awabi2048.myworldmanager.migration
 
 import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiAdminKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+import com.awabi2048.ccsystem.api.localization.LocalizationKey
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
@@ -342,14 +344,14 @@ class WorldMigrationService(
         pending.forEach { candidate ->
             send(
                 sender,
-                "messages.migration.pending",
+                MyworldMessagesKeys.MESSAGES_MIGRATION_PENDING,
                 mapOf("world" to candidate.folderName, "uuid" to candidate.uuid)
             )
         }
         plugin.worldConfigRepository.quarantinedWorlds().forEach { data ->
             send(
                 sender,
-                "messages.migration.pending",
+                MyworldMessagesKeys.MESSAGES_MIGRATION_PENDING,
                 mapOf(
                     "world" to "metadata:${data.fileName}",
                     "uuid" to (data.uuid?.toString() ?: "-"),
@@ -359,7 +361,7 @@ class WorldMigrationService(
         plugin.templateRepository.quarantinedTemplates().forEach { data ->
             send(
                 sender,
-                "messages.migration.pending",
+                MyworldMessagesKeys.MESSAGES_MIGRATION_PENDING,
                 mapOf("world" to "template:${data.id}", "uuid" to "-")
             )
         }
@@ -369,7 +371,7 @@ class WorldMigrationService(
                 val status = participant.status()
                 send(
                     sender,
-                    "messages.migration.pending",
+                    MyworldMessagesKeys.MESSAGES_MIGRATION_PENDING,
                     mapOf(
                         "world" to "participant:${participant.getId()}",
                         "uuid" to (status.message ?: status.state.name),
@@ -377,24 +379,24 @@ class WorldMigrationService(
                 )
             }
         resolver.findConflictingWorlds().forEach {
-            send(sender, "messages.migration.conflict", mapOf("world" to it.folderName))
+            send(sender, MyworldMessagesKeys.MESSAGES_MIGRATION_CONFLICT, mapOf("world" to it.folderName))
         }
         return pending
     }
 
     internal fun requestExecute(sender: CommandSender, force: Boolean = false, confirmed: Boolean = false) {
         if (running || metadataMigrationRunning) {
-            send(sender, "messages.migration.already_running")
+            send(sender, MyworldMessagesKeys.MESSAGES_MIGRATION_ALREADY_RUNNING)
             return
         }
         stateFileUnreadableReason?.let { reason ->
             plugin.logger.warning("World migration is blocked because its state file is unreadable: $reason")
-            send(sender, "messages.migration.incomplete")
+            send(sender, MyworldMessagesKeys.MESSAGES_MIGRATION_INCOMPLETE)
             return
         }
         // 強制移行は確認状態をGUIへ持ち越さず、完全なコマンドの再入力だけを実行意図とします。
         if (force && !confirmed) {
-            send(sender, "messages.migration.force_console_confirm")
+            send(sender, MyworldMessagesKeys.MESSAGES_MIGRATION_FORCE_CONSOLE_CONFIRM)
             return
         }
         if (sender is Player && !confirmed) {
@@ -402,7 +404,7 @@ class WorldMigrationService(
             return
         }
         if (!confirmed) {
-            send(sender, if (force) "messages.migration.force_console_confirm" else "messages.migration.console_confirm")
+        send(sender, if (force) MyworldMessagesKeys.MESSAGES_MIGRATION_FORCE_CONSOLE_CONFIRM else MyworldMessagesKeys.MESSAGES_MIGRATION_CONSOLE_CONFIRM)
             return
         }
         execute(sender, force)
@@ -424,7 +426,7 @@ class WorldMigrationService(
             stateFileUnreadableReason.countIfPresent()
         send(
             sender,
-            "messages.migration.status_summary",
+            MyworldMessagesKeys.MESSAGES_MIGRATION_STATUS_SUMMARY,
             mapOf(
                 "state" to if (snapshot.running) "RUNNING" else "IDLE",
                 "total" to snapshot.worlds.size + quarantinedWorlds.size + quarantinedTemplates.size +
@@ -440,7 +442,7 @@ class WorldMigrationService(
         snapshot.worlds.sortedBy { it.folderName }.forEach {
             send(
                 sender,
-                "messages.migration.status_world",
+                MyworldMessagesKeys.MESSAGES_MIGRATION_STATUS_WORLD,
                 mapOf(
                     "world" to it.folderName,
                     "status" to it.status.name,
@@ -462,7 +464,7 @@ class WorldMigrationService(
                 val participantStatus = participant.status()
                 send(
                     sender,
-                    "messages.migration.status_world",
+                    MyworldMessagesKeys.MESSAGES_MIGRATION_STATUS_WORLD,
                     mapOf(
                         "world" to "participant:${participant.getId()}",
                         "status" to "QUARANTINED",
@@ -475,7 +477,7 @@ class WorldMigrationService(
         stateFileUnreadableReason?.let { reason ->
             send(
                 sender,
-                "messages.migration.status_world",
+                MyworldMessagesKeys.MESSAGES_MIGRATION_STATUS_WORLD,
                 mapOf(
                     "world" to "migration-state",
                     "status" to "FAILED",
@@ -492,7 +494,7 @@ class WorldMigrationService(
 
     private fun execute(sender: CommandSender, force: Boolean) {
         if (stateFileUnreadableReason != null) {
-            send(sender, "messages.migration.incomplete")
+            send(sender, MyworldMessagesKeys.MESSAGES_MIGRATION_INCOMPLETE)
             return
         }
         val metadataCount = metadataTargetCount()
@@ -508,15 +510,15 @@ class WorldMigrationService(
         }
         val candidates = pendingDirectoryTargets()
         if (candidates.isEmpty() && metadataCount == 0) {
-            send(sender, if (hasMigrationFailure()) "messages.migration.incomplete" else "messages.migration.none_pending")
+            send(sender, if (hasMigrationFailure()) MyworldMessagesKeys.MESSAGES_MIGRATION_INCOMPLETE else MyworldMessagesKeys.MESSAGES_MIGRATION_NONE_PENDING)
             return
         }
         if (candidates.isEmpty()) {
-            send(sender, "messages.migration.started", mapOf("count" to metadataCount))
+            send(sender, MyworldMessagesKeys.MESSAGES_MIGRATION_STARTED, mapOf("count" to metadataCount))
             if (hasMigrationFailure() || metadataResults.any { it.state == ApiMigrationParticipantResultState.FAILED }) {
-                send(sender, "messages.migration.incomplete")
+                send(sender, MyworldMessagesKeys.MESSAGES_MIGRATION_INCOMPLETE)
             } else {
-                send(sender, "messages.migration.completed")
+                send(sender, MyworldMessagesKeys.MESSAGES_MIGRATION_COMPLETED)
             }
             return
         }
@@ -538,7 +540,7 @@ class WorldMigrationService(
         }
         persistState()
         running = true
-        send(sender, "messages.migration.started", mapOf("count" to candidates.size + metadataCount))
+        send(sender, MyworldMessagesKeys.MESSAGES_MIGRATION_STARTED, mapOf("count" to candidates.size + metadataCount))
         scheduleNext()
     }
 
@@ -612,7 +614,7 @@ class WorldMigrationService(
                     val result = plugin.worldConfigRepository.migrateWorldData(uuid, dimension)
                     logMetadataResult("world:$uuid", result)
                     if (force && inferred == null && result.status == MetadataMigrationStatus.MIGRATED) {
-                        send(sender, "messages.migration.force_default_applied", mapOf("target" to "world:$uuid"))
+                        send(sender, MyworldMessagesKeys.MESSAGES_MIGRATION_FORCE_DEFAULT_APPLIED, mapOf("target" to "world:$uuid"))
                     }
                 } finally {
                     lease.close()
@@ -625,7 +627,7 @@ class WorldMigrationService(
             val result = plugin.templateRepository.migrateTemplate(data.id, dimension)
             logMetadataResult("template:${data.id}", result)
             if (force && inferred == null && result.status == MetadataMigrationStatus.MIGRATED) {
-                send(sender, "messages.migration.force_default_applied", mapOf("target" to "templates.yml"))
+                send(sender, MyworldMessagesKeys.MESSAGES_MIGRATION_FORCE_DEFAULT_APPLIED, mapOf("target" to "templates.yml"))
             }
             reloadMetadataRepositories()
         }
@@ -636,7 +638,7 @@ class WorldMigrationService(
                 val result = plugin.templateRepository.migrateTemplate(data.id, dimension)
                 logMetadataResult("template:${data.id}", result)
                 if (force && inferred == null && result.status == MetadataMigrationStatus.MIGRATED) {
-                    send(sender, "messages.migration.force_default_applied", mapOf("target" to "template:${data.id}"))
+                    send(sender, MyworldMessagesKeys.MESSAGES_MIGRATION_FORCE_DEFAULT_APPLIED, mapOf("target" to "template:${data.id}"))
                 }
             }
         }
@@ -712,9 +714,9 @@ class WorldMigrationService(
     ) {
         val key = when (result.status) {
             MetadataMigrationStatus.MIGRATED,
-            MetadataMigrationStatus.ALREADY_CURRENT -> "messages.migration.metadata_updated"
-            MetadataMigrationStatus.UNRESOLVED -> "messages.migration.metadata_pending"
-            MetadataMigrationStatus.FAILED -> "messages.migration.metadata_failed"
+            MetadataMigrationStatus.ALREADY_CURRENT -> MyworldMessagesKeys.MESSAGES_MIGRATION_METADATA_UPDATED
+            MetadataMigrationStatus.UNRESOLVED -> MyworldMessagesKeys.MESSAGES_MIGRATION_METADATA_PENDING
+            MetadataMigrationStatus.FAILED -> MyworldMessagesKeys.MESSAGES_MIGRATION_METADATA_FAILED
         }
         send(
             sender,
@@ -726,7 +728,7 @@ class WorldMigrationService(
     private fun sendQuarantinedWorld(sender: CommandSender, data: QuarantinedWorldData) {
         send(
             sender,
-            "messages.migration.status_world",
+            MyworldMessagesKeys.MESSAGES_MIGRATION_STATUS_WORLD,
             mapOf(
                 "world" to "metadata:${data.fileName}",
                 "status" to "QUARANTINED",
@@ -740,7 +742,7 @@ class WorldMigrationService(
     private fun sendQuarantinedTemplate(sender: CommandSender, data: QuarantinedTemplateData) {
         send(
             sender,
-            "messages.migration.status_world",
+            MyworldMessagesKeys.MESSAGES_MIGRATION_STATUS_WORLD,
             mapOf(
                 "world" to "template:${data.id}",
                 "status" to "QUARANTINED",
@@ -765,9 +767,9 @@ class WorldMigrationService(
             currentWorld = null
             persistState()
             val completionKey = if (hasMigrationFailure()) {
-                "messages.migration.incomplete"
+                MyworldMessagesKeys.MESSAGES_MIGRATION_INCOMPLETE
             } else {
-                "messages.migration.completed"
+                MyworldMessagesKeys.MESSAGES_MIGRATION_COMPLETED
             }
             plugin.server.consoleSender.sendMessage(plugin.languageManager.getMessage(completionKey))
             return
@@ -895,8 +897,8 @@ class WorldMigrationService(
                         ),
                     ),
                 ),
-                actionEntry(player, layout.confirmSlot, Material.LIME_CONCRETE, "gui.migration.confirm.execute", GuiElementRole.CONFIRM, ACTION_EXECUTE),
-                actionEntry(player, layout.cancelSlot, Material.RED_CONCRETE, "gui.migration.confirm.cancel", GuiElementRole.CANCEL, ACTION_CANCEL),
+                actionEntry(player, layout.confirmSlot, Material.LIME_CONCRETE, MyworldGuiAdminKeys.GUI_MIGRATION_CONFIRM_EXECUTE, GuiElementRole.CONFIRM, ACTION_EXECUTE),
+                actionEntry(player, layout.cancelSlot, Material.RED_CONCRETE, MyworldGuiAdminKeys.GUI_MIGRATION_CONFIRM_CANCEL, GuiElementRole.CANCEL, ACTION_CANCEL),
             ),
             category = MenuViewCategory.CONFIRMATION,
         )
@@ -1048,7 +1050,7 @@ class WorldMigrationService(
         player: Player,
         slot: Int,
         material: Material,
-        key: String,
+        key: LocalizationKey<String>,
         role: GuiElementRole,
         actionId: String,
     ): MenuElement = CCSystem.getAPI().getGuiElementService().menuEntry(
@@ -1075,7 +1077,7 @@ class WorldMigrationService(
 
     private fun send(
         sender: CommandSender?,
-        key: String,
+        key: LocalizationKey<String>,
         placeholders: Map<String, Any> = emptyMap()
     ) {
         val message = plugin.languageManager.getMessage(key, placeholders)

@@ -31,9 +31,9 @@ class PendingNotificationService(
         val body = plugin.languageManager.getComponent(target, MyworldMessagesKeys.MESSAGES_FAVORITE_GROUP_INVITE_RECIPIENT_BODY, placeholders)
         val presentation = favoriteGroupInvitePresentation(plugin.playerPlatformResolver.isBedrock(target))
         val actionKey = if (!presentation.interactiveRecipientAction) {
-            "messages.favorite_group_invite.recipient.bedrock_action"
+            MyworldMessagesKeys.MESSAGES_FAVORITE_GROUP_INVITE_RECIPIENT_BEDROCK_ACTION
         } else {
-            "messages.favorite_group_invite.recipient.java_action"
+            MyworldMessagesKeys.MESSAGES_FAVORITE_GROUP_INVITE_RECIPIENT_JAVA_ACTION
         }
         var action = plugin.languageManager.getComponent(target, actionKey, placeholders)
         if (presentation.interactiveRecipientAction) {
@@ -71,7 +71,7 @@ class PendingNotificationService(
         }
         val body = Component.text().append(prefix).append(count).append(suffix).build()
         val action = plugin.languageManager
-            .getComponent(sender, "messages.favorite_group_invite.sender.action", placeholders)
+            .getComponent(sender, MyworldMessagesKeys.MESSAGES_FAVORITE_GROUP_INVITE_SENDER_ACTION, placeholders)
             .clickEvent(ClickEvent.runCommand("/favorite cancel_batch $batchId"))
         sender.sendMessage(Component.text().append(body).append(Component.newline()).append(action).build())
     }
@@ -90,7 +90,23 @@ class PendingNotificationService(
             ?.name
             ?: plugin.languageManager.getMessage(target, CommonKeys.GENERAL_UNKNOWN)
         val command = "/myworld confirm $actionCode"
-        val key = type.name.lowercase()
+        val (bodyKey, actionKey) = when (type) {
+            PendingDecisionManager.PendingType.WORLD_INVITE ->
+                MyworldMessagesKeys.MESSAGES_PENDING_NOTIFICATION_WORLD_INVITE_BODY to
+                    MyworldMessagesKeys.MESSAGES_PENDING_NOTIFICATION_WORLD_INVITE_ACTION
+            PendingDecisionManager.PendingType.MEMBER_INVITE ->
+                MyworldMessagesKeys.MESSAGES_PENDING_NOTIFICATION_MEMBER_INVITE_BODY to
+                    MyworldMessagesKeys.MESSAGES_PENDING_NOTIFICATION_MEMBER_INVITE_ACTION
+            PendingDecisionManager.PendingType.MEMBER_REQUEST ->
+                MyworldMessagesKeys.MESSAGES_PENDING_NOTIFICATION_MEMBER_REQUEST_BODY to
+                    MyworldMessagesKeys.MESSAGES_PENDING_NOTIFICATION_MEMBER_REQUEST_ACTION
+            PendingDecisionManager.PendingType.MEET_REQUEST ->
+                MyworldMessagesKeys.MESSAGES_PENDING_NOTIFICATION_MEET_REQUEST_BODY to
+                    MyworldMessagesKeys.MESSAGES_PENDING_NOTIFICATION_MEET_REQUEST_ACTION
+            PendingDecisionManager.PendingType.VISIT_REQUEST ->
+                MyworldMessagesKeys.MESSAGES_PENDING_NOTIFICATION_VISIT_REQUEST_BODY to
+                    MyworldMessagesKeys.MESSAGES_PENDING_NOTIFICATION_VISIT_REQUEST_ACTION
+        }
         val placeholders = mapOf(
             "player" to actorName,
             "world" to worldName,
@@ -98,12 +114,12 @@ class PendingNotificationService(
         )
         val body = plugin.languageManager.getComponent(
             target,
-            "messages.pending_notification.$key.body",
+            bodyKey,
             placeholders
         )
         val actionText = plugin.languageManager.getComponent(
             target,
-            "messages.pending_notification.$key.action",
+            actionKey,
             placeholders
         )
         val hoverText = plugin.languageManager.getComponent(

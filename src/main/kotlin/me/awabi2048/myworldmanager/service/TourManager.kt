@@ -2,6 +2,7 @@ package me.awabi2048.myworldmanager.service
 
 import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
 import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+import com.awabi2048.ccsystem.api.localization.LocalizationKey
 
 import com.awabi2048.ccsystem.CCSystem
 import me.awabi2048.myworldmanager.MyWorldManager
@@ -192,7 +193,7 @@ class TourManager(private val plugin: MyWorldManager) {
         worldData.tours.sortBy { it.createdAt }
         plugin.worldConfigRepository.save(worldData)
         if (editedExisting) {
-            cancelActiveTourSessions(worldData.uuid, result.uuid, "messages.tour.cancelled_edited")
+            cancelActiveTourSessions(worldData.uuid, result.uuid, MyworldMessagesKeys.MESSAGES_TOUR_CANCELLED_EDITED)
         }
         if (closeSession) {
             plugin.tourSessionManager.clearEdit(player.uniqueId)
@@ -220,7 +221,7 @@ class TourManager(private val plugin: MyWorldManager) {
     fun deleteTour(worldData: WorldData, tourUuid: UUID) {
         worldData.tours.removeIf { it.uuid == tourUuid }
         plugin.worldConfigRepository.save(worldData)
-        cancelActiveTourSessions(worldData.uuid, tourUuid, "messages.tour.cancelled_deleted")
+        cancelActiveTourSessions(worldData.uuid, tourUuid, MyworldMessagesKeys.MESSAGES_TOUR_CANCELLED_DELETED)
     }
 
     fun createTourSign(worldData: WorldData, player: Player, block: Block, blockFace: BlockFace, title: String, description: String): TourSignData {
@@ -305,7 +306,7 @@ class TourManager(private val plugin: MyWorldManager) {
         worldData.tourSigns.removeIf { it.uuid == signData.uuid }
         plugin.worldConfigRepository.save(worldData)
         affectedTourUuids.forEach {
-            cancelActiveTourSessions(worldData.uuid, it, "messages.tour.cancelled_edited")
+            cancelActiveTourSessions(worldData.uuid, it, MyworldMessagesKeys.MESSAGES_TOUR_CANCELLED_EDITED)
         }
     }
 
@@ -380,7 +381,7 @@ class TourManager(private val plugin: MyWorldManager) {
         }
         worldData.tourSigns.removeIf { it.uuid == signUuid }
         plugin.worldConfigRepository.save(worldData)
-        affectedTourUuids.forEach { cancelActiveTourSessions(worldData.uuid, it, "messages.tour.cancelled_edited") }
+        affectedTourUuids.forEach { cancelActiveTourSessions(worldData.uuid, it, MyworldMessagesKeys.MESSAGES_TOUR_CANCELLED_EDITED) }
     }
 
     fun breakTourSign(worldData: WorldData, signUuid: UUID, location: Location) {
@@ -912,7 +913,11 @@ class TourManager(private val plugin: MyWorldManager) {
         return tour
     }
 
-    private fun cancelActiveTourSessions(worldUuid: UUID, tourUuid: UUID, messageKey: String) {
+    private fun cancelActiveTourSessions(
+        worldUuid: UUID,
+        tourUuid: UUID,
+        messageKey: LocalizationKey<String>,
+    ) {
         val worldData = plugin.worldConfigRepository.findByUuid(worldUuid)
         val tour = worldData?.let { getTour(it, tourUuid) }
         val progressUuids = tour?.activePlayerProgress?.keys?.toSet() ?: emptySet()

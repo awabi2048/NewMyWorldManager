@@ -2,6 +2,7 @@ package me.awabi2048.myworldmanager;
 
 import org.junit.jupiter.api.Test;
 import com.awabi2048.ccsystem.api.localization.LocalizationCatalogContract;
+import com.awabi2048.ccsystem.api.localization.LocalizationKey;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,6 +26,7 @@ class LanguageCallPlaceholderContractTest {
     );
     private static final Pattern MIGRATION_SEND_START = Pattern.compile("\\bsend\\s*\\(");
     private static final Pattern STRING_LITERAL = Pattern.compile("^\\s*\"([^\"]+)\"\\s*$", Pattern.DOTALL);
+    private static final Pattern GENERATED_KEY = Pattern.compile("^\\s*(\\w+Keys)\\.(\\w+)\\s*$");
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{([A-Za-z0-9_]+)}|%([A-Za-z0-9_]+)%");
     private static final Pattern MAP_KEY = Pattern.compile("\"([^\"]+)\"\\s+to\\b");
 
@@ -62,10 +64,10 @@ class LanguageCallPlaceholderContractTest {
                         continue;
                     }
                     List<String> arguments = splitTopLevel(source.substring(open + 1, close));
-                    int keyIndex = literalLanguageKeyIndex(arguments);
+                    int keyIndex = languageKeyIndex(arguments);
                     if (keyIndex < 0) continue;
 
-                    String key = literal(arguments.get(keyIndex));
+                    String key = languageKey(arguments.get(keyIndex));
                     // Kotlinの文字列テンプレートは列挙可能なリテラルキーではないため別の契約テストで扱います。
                     if (key.contains("$")) continue;
                     Set<String> required = LocalizationCatalogContract.INSTANCE.placeholders(key);
@@ -95,12 +97,29 @@ class LanguageCallPlaceholderContractTest {
         return checked;
     }
 
-    private static int literalLanguageKeyIndex(List<String> arguments) {
+    private static int languageKeyIndex(List<String> arguments) {
         for (int i = 0; i < arguments.size(); i++) {
-            String value = literal(arguments.get(i));
+            String value = languageKey(arguments.get(i));
             if (value != null && value.contains(".")) return i;
         }
         return -1;
+    }
+
+    private static String languageKey(String argument) {
+        String literal = literal(argument);
+        if (literal != null) return literal;
+
+        Matcher generated = GENERATED_KEY.matcher(argument);
+        if (!generated.matches()) return null;
+        try {
+            Class<?> owner = Class.forName(
+                "com.awabi2048.ccsystem.api.localization.generated." + generated.group(1)
+            );
+            Object value = owner.getField(generated.group(2)).get(null);
+            return ((LocalizationKey<?>) value).getId();
+        } catch (ReflectiveOperationException | ClassCastException error) {
+            throw new IllegalStateException("生成済み言語キーを解決できません: " + argument, error);
+        }
     }
 
     private static String literal(String argument) {

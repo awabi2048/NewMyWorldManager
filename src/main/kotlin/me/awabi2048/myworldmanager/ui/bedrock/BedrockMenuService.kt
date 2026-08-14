@@ -1,8 +1,12 @@
 package me.awabi2048.myworldmanager.ui.bedrock
 
+import com.awabi2048.ccsystem.api.localization.LocalizationKey
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
 import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiBedrockKeys
 import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiCommonKeys
 import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiSettingsKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldPublishLevelKeys
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
@@ -242,7 +246,7 @@ class BedrockMenuService(
     ): Boolean {
         val actions = mutableListOf<FormAction>()
 
-        actions += FormAction(tr(player, "gui.bedrock.world_action.button.warp"), Material.ENDER_PEARL) {
+        actions += FormAction(tr(player, MyworldGuiBedrockKeys.GUI_BEDROCK_WORLD_ACTION_BUTTON_WARP), Material.ENDER_PEARL) {
             val latest = plugin.worldConfigRepository.findByUuid(worldData.uuid)
                 ?: return@FormAction MenuActionResult.Rejected()
             warpToWorld(player, latest)
@@ -254,7 +258,7 @@ class BedrockMenuService(
                 FormAction(
                     tr(
                         player,
-                        "gui.bedrock.world_action.button.cycle_publish",
+                        MyworldGuiBedrockKeys.GUI_BEDROCK_WORLD_ACTION_BUTTON_CYCLE_PUBLISH,
                         mapOf("level" to publishDisplayText(player, worldData))
                     ),
                     Material.ENDER_EYE
@@ -273,9 +277,9 @@ class BedrockMenuService(
         if (canManageArchive(player, worldData)) {
             val label =
                 if (worldData.isArchived) {
-                    tr(player, "gui.bedrock.world_action.button.unarchive")
+                    tr(player, MyworldGuiBedrockKeys.GUI_BEDROCK_WORLD_ACTION_BUTTON_UNARCHIVE)
                 } else {
-                    tr(player, "gui.bedrock.world_action.button.archive")
+                    tr(player, MyworldGuiBedrockKeys.GUI_BEDROCK_WORLD_ACTION_BUTTON_ARCHIVE)
                 }
             actions += FormAction(label, Material.CHEST) {
                 val latest = plugin.worldConfigRepository.findByUuid(worldData.uuid)
@@ -293,33 +297,33 @@ class BedrockMenuService(
         }
 
         if (canAccessWorldSettings(player, worldData)) {
-            actions += FormAction(tr(player, "gui.bedrock.world_action.button.advanced_settings"), Material.COMPARATOR) {
+            actions += FormAction(tr(player, MyworldGuiBedrockKeys.GUI_BEDROCK_WORLD_ACTION_BUTTON_ADVANCED_SETTINGS), Material.COMPARATOR) {
                 val latest = plugin.worldConfigRepository.findByUuid(worldData.uuid)
                     ?: return@FormAction MenuActionResult.Rejected()
                 advancedSettingsResult(player, latest, showBackButton)
             }
         }
 
-        actions += FormAction(tr(player, "gui.bedrock.world_action.button.back_to_worlds"), Material.ARROW) {
+        actions += FormAction(tr(player, MyworldGuiBedrockKeys.GUI_BEDROCK_WORLD_ACTION_BUTTON_BACK_TO_WORLDS), Material.ARROW) {
             MenuActionResult.Success(
                 MenuUpdate.Replace(playerWorldRoute(returnPage, showBackButton)),
             )
         }
 
-        actions += FormAction(tr(player, "gui.bedrock.world_action.button.settings"), Material.WRITABLE_BOOK) {
+        actions += FormAction(tr(player, MyworldGuiBedrockKeys.GUI_BEDROCK_WORLD_ACTION_BUTTON_SETTINGS), Material.WRITABLE_BOOK) {
             MenuActionResult.Success(
                 MenuUpdate.Navigate(settingsRoute(showBackButton, returnPage)),
             )
         }
 
         if (GuiHelper.canGoBack(player)) {
-            actions += FormAction(tr(player, "gui.bedrock.world_action.button.return"), Material.BARRIER) {
+            actions += FormAction(tr(player, MyworldGuiBedrockKeys.GUI_BEDROCK_WORLD_ACTION_BUTTON_RETURN), Material.BARRIER) {
                 performConfiguredReturn(player)
                 MenuActionResult.Success(MenuUpdate.Close)
             }
         }
 
-        actions += FormAction(tr(player, "gui.bedrock.world_action.button.close"), Material.REDSTONE) {
+        actions += FormAction(tr(player, MyworldGuiBedrockKeys.GUI_BEDROCK_WORLD_ACTION_BUTTON_CLOSE), Material.REDSTONE) {
             MenuActionResult.Success(MenuUpdate.Close)
         }
 
@@ -327,24 +331,24 @@ class BedrockMenuService(
             listOf(
                     tr(
                         player,
-                        "gui.bedrock.world_action.content.owner",
+                        MyworldGuiBedrockKeys.GUI_BEDROCK_WORLD_ACTION_CONTENT_OWNER,
                         mapOf("owner" to worldData.owner)
                     ),
                     tr(
                         player,
-                        "gui.bedrock.world_action.content.status",
+                        MyworldGuiBedrockKeys.GUI_BEDROCK_WORLD_ACTION_CONTENT_STATUS,
                         mapOf("status" to worldStateText(player, worldData.isArchived))
                     ),
                     tr(
                         player,
-                        "gui.bedrock.world_action.content.publish",
+                        MyworldGuiBedrockKeys.GUI_BEDROCK_WORLD_ACTION_CONTENT_PUBLISH,
                         mapOf("publish" to publishDisplayText(player, worldData))
                     )
                 )
                 .joinToString("\n")
         return sendActionForm(
             player,
-            tr(player, "gui.bedrock.world_action.title", mapOf("world" to worldData.name)),
+            tr(player, MyworldGuiBedrockKeys.GUI_BEDROCK_WORLD_ACTION_TITLE, mapOf("world" to worldData.name)),
             content,
             actions
         )
@@ -410,7 +414,7 @@ class BedrockMenuService(
         val bypassLimits = PermissionManager.canBypassWorldLimits(player)
 
         val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(
-            tr(player, "gui.player_world.title"),
+            tr(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_TITLE),
         )
         val inventory = RuntimeItemBuffer()
 
@@ -465,7 +469,7 @@ class BedrockMenuService(
         if (page > 0) {
             inventory.setActionItem(
                 footerStart + 1,
-                createActionItem(Material.ARROW, tr(player, "gui.bedrock.player_world.button.prev"), "open_prev_page"),
+                createActionItem(Material.ARROW, tr(player, MyworldGuiBedrockKeys.GUI_BEDROCK_PLAYER_WORLD_BUTTON_PREV), "open_prev_page"),
                 "open_prev_page",
                 role = GuiElementRole.NAVIGATION,
                 safety = MenuActionSafety.NAVIGATION_ONLY,
@@ -474,7 +478,7 @@ class BedrockMenuService(
         if (start + pageWorlds.size < worlds.size) {
             inventory.setActionItem(
                 footerStart + 8,
-                createActionItem(Material.ARROW, tr(player, "gui.bedrock.player_world.button.next"), "open_next_page"),
+                createActionItem(Material.ARROW, tr(player, MyworldGuiBedrockKeys.GUI_BEDROCK_PLAYER_WORLD_BUTTON_NEXT), "open_next_page"),
                 "open_next_page",
                 role = GuiElementRole.NAVIGATION,
                 safety = MenuActionSafety.NAVIGATION_ONLY,
@@ -547,13 +551,13 @@ class BedrockMenuService(
             GuiMenuEntrySpec(
                 slot = footerStart + 6,
                 material = Material.WRITABLE_BOOK,
-                name = GuiNameSpec.Text(tr(player, "gui.user_settings.button.display"), GuiNameStyle.DEFAULT),
+                name = GuiNameSpec.Text(tr(player, MyworldGuiSettingsKeys.GUI_USER_SETTINGS_BUTTON_DISPLAY), GuiNameStyle.DEFAULT),
                 role = GuiElementRole.ACTION,
                 description = plugin.languageManager.getMessageList(player, MyworldGuiSettingsKeys.GUI_USER_SETTINGS_BUTTON_DESCRIPTION),
                 actions = listOf(menuGestureAction(
                     "open_settings",
                     MenuGesture.ANY,
-                    tr(player, "gui.user_settings.button.action"),
+                    tr(player, MyworldGuiSettingsKeys.GUI_USER_SETTINGS_BUTTON_ACTION),
                     safety = MenuActionSafety.NAVIGATION_ONLY,
                 )),
             ),
@@ -563,7 +567,7 @@ class BedrockMenuService(
         if (GuiHelper.canGoBack(player)) {
             inventory.setActionItem(
                 footerStart,
-                createActionItem(Material.BARRIER, tr(player, "gui.bedrock.player_world.button.return"), "return_command"),
+                createActionItem(Material.BARRIER, tr(player, MyworldGuiBedrockKeys.GUI_BEDROCK_PLAYER_WORLD_BUTTON_RETURN), "return_command"),
                 "return_command",
                 role = GuiElementRole.CANCEL,
                 safety = MenuActionSafety.NAVIGATION_ONLY,
@@ -587,7 +591,7 @@ class BedrockMenuService(
         // Runtime inspectと実メニューの両方で、policy横取り時の可逆契約を先に検証します。
         plugin.worldPublishService.requireReversibleCycleContract(worldData)
         val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(
-            tr(player, "gui.bedrock.world_action.title", mapOf("world" to worldData.name)),
+            tr(player, MyworldGuiBedrockKeys.GUI_BEDROCK_WORLD_ACTION_TITLE, mapOf("world" to worldData.name)),
         )
         val inventory = RuntimeItemBuffer()
 
@@ -598,7 +602,7 @@ class BedrockMenuService(
 
         inventory.setActionItem(
             10,
-            createActionItem(Material.ENDER_PEARL, tr(player, "gui.bedrock.world_action.button.warp"), "warp_world", worldData.uuid),
+            createActionItem(Material.ENDER_PEARL, tr(player, MyworldGuiBedrockKeys.GUI_BEDROCK_WORLD_ACTION_BUTTON_WARP), "warp_world", worldData.uuid),
             "warp_world",
             safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT,
         )
@@ -610,7 +614,7 @@ class BedrockMenuService(
                     Material.ENDER_EYE,
                     tr(
                         player,
-                        "gui.bedrock.world_action.button.cycle_publish",
+                        MyworldGuiBedrockKeys.GUI_BEDROCK_WORLD_ACTION_BUTTON_CYCLE_PUBLISH,
                         mapOf("level" to publishDisplayText(player, worldData))
                     ),
                     "cycle_publish",
@@ -625,9 +629,9 @@ class BedrockMenuService(
         if (canManageArchive(player, worldData)) {
             val label =
                 if (worldData.isArchived) {
-                    tr(player, "gui.bedrock.world_action.button.unarchive")
+                    tr(player, MyworldGuiBedrockKeys.GUI_BEDROCK_WORLD_ACTION_BUTTON_UNARCHIVE)
                 } else {
-                    tr(player, "gui.bedrock.world_action.button.archive")
+                    tr(player, MyworldGuiBedrockKeys.GUI_BEDROCK_WORLD_ACTION_BUTTON_ARCHIVE)
                 }
             inventory.setActionItem(
                 12,
@@ -642,7 +646,7 @@ class BedrockMenuService(
                 14,
                 createActionItem(
                     Material.COMPARATOR,
-                    tr(player, "gui.bedrock.world_action.button.advanced_settings"),
+                    tr(player, MyworldGuiBedrockKeys.GUI_BEDROCK_WORLD_ACTION_BUTTON_ADVANCED_SETTINGS),
                     "open_advanced_settings",
                     worldData.uuid
                 ),
@@ -653,14 +657,14 @@ class BedrockMenuService(
 
         inventory.setActionItem(
             15,
-            createActionItem(Material.WRITABLE_BOOK, tr(player, "gui.bedrock.world_action.button.settings"), "open_settings"),
+            createActionItem(Material.WRITABLE_BOOK, tr(player, MyworldGuiBedrockKeys.GUI_BEDROCK_WORLD_ACTION_BUTTON_SETTINGS), "open_settings"),
             "open_settings",
             safety = MenuActionSafety.NAVIGATION_ONLY,
         )
 
         inventory.setActionItem(
             16,
-            createActionItem(Material.ARROW, tr(player, "gui.bedrock.world_action.button.back_to_worlds"), "back_to_worlds"),
+            createActionItem(Material.ARROW, tr(player, MyworldGuiBedrockKeys.GUI_BEDROCK_WORLD_ACTION_BUTTON_BACK_TO_WORLDS), "back_to_worlds"),
             "back_to_worlds",
             role = GuiElementRole.NAVIGATION,
             safety = MenuActionSafety.NAVIGATION_ONLY,
@@ -669,7 +673,7 @@ class BedrockMenuService(
         if (GuiHelper.canGoBack(player)) {
             inventory.setActionItem(
                 22,
-                createActionItem(Material.BARRIER, tr(player, "gui.bedrock.world_action.button.return"), "return_command"),
+                createActionItem(Material.BARRIER, tr(player, MyworldGuiBedrockKeys.GUI_BEDROCK_WORLD_ACTION_BUTTON_RETURN), "return_command"),
                 "return_command",
                 role = GuiElementRole.CANCEL,
                 safety = MenuActionSafety.NAVIGATION_ONLY,
@@ -677,7 +681,7 @@ class BedrockMenuService(
         } else {
             inventory.setActionItem(
                 22,
-                createActionItem(Material.REDSTONE, tr(player, "gui.bedrock.world_action.button.close"), "close_menu"),
+                createActionItem(Material.REDSTONE, tr(player, MyworldGuiBedrockKeys.GUI_BEDROCK_WORLD_ACTION_BUTTON_CLOSE), "close_menu"),
                 "close_menu",
                 role = GuiElementRole.CANCEL,
                 safety = MenuActionSafety.NAVIGATION_ONLY,
@@ -697,7 +701,7 @@ class BedrockMenuService(
         showBackButton: Boolean,
         returnPage: Int,
     ): InventoryMenuView {
-        val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(tr(player, "gui.user_settings.title"))
+        val title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(tr(player, MyworldGuiSettingsKeys.GUI_USER_SETTINGS_TITLE))
         val inventory = RuntimeItemBuffer()
 
         val blackPane = createDecorationItem(Material.BLACK_STAINED_GLASS_PANE)
@@ -722,12 +726,13 @@ class BedrockMenuService(
                 player,
                 10,
                 Material.BELL,
-                "gui.user_settings.notification.display",
-                "notification",
+                MyworldGuiSettingsKeys.GUI_USER_SETTINGS_NOTIFICATION_DISPLAY,
+                MyworldGuiSettingsKeys.GUI_USER_SETTINGS_NOTIFICATION_BLOCKS_DESCRIPTION,
+                MyworldGuiSettingsKeys.GUI_USER_SETTINGS_NOTIFICATION_BLOCKS_CURRENT_LABEL,
                 notifyStatus,
                 if (stats.visitorNotificationEnabled) "§a" else "§c",
                 "toggle_notification",
-                "gui.user_settings.cycle_action.toggle",
+                MyworldGuiSettingsKeys.GUI_USER_SETTINGS_CYCLE_ACTION_TOGGLE,
                 glint = stats.visitorNotificationEnabled
             ),
         )
@@ -736,12 +741,13 @@ class BedrockMenuService(
                 player,
                 11,
                 Material.WRITABLE_BOOK,
-                "gui.user_settings.language.display",
-                "language",
+                MyworldGuiSettingsKeys.GUI_USER_SETTINGS_LANGUAGE_DISPLAY,
+                MyworldGuiSettingsKeys.GUI_USER_SETTINGS_LANGUAGE_BLOCKS_DESCRIPTION,
+                MyworldGuiSettingsKeys.GUI_USER_SETTINGS_LANGUAGE_BLOCKS_CURRENT_LABEL,
                 languageName,
                 "§f",
                 "cycle_language",
-                "gui.user_settings.cycle_action.next"
+                MyworldGuiSettingsKeys.GUI_USER_SETTINGS_CYCLE_ACTION_NEXT
             ),
         )
         inventory.setEntry(createCriticalVisibilityEntry(player, 12, stats.criticalSettingsEnabled))
@@ -750,15 +756,20 @@ class BedrockMenuService(
                 player,
                 13,
                 Material.COMPASS,
-                "gui.user_settings.tour_navigation.display",
-                "tour_navigation",
+                MyworldGuiSettingsKeys.GUI_USER_SETTINGS_TOUR_NAVIGATION_DISPLAY,
+                MyworldGuiSettingsKeys.GUI_USER_SETTINGS_TOUR_NAVIGATION_BLOCKS_DESCRIPTION,
+                null,
                 null,
                 "§f",
                 "cycle_tour_navigation",
-                "gui.user_settings.cycle_action.toggle",
+                MyworldGuiSettingsKeys.GUI_USER_SETTINGS_CYCLE_ACTION_TOGGLE,
                 TourNavigationMode.entries.map { mode ->
                     GuiMenuEntryOption(
-                        tr(player, "gui.user_settings.tour_navigation.mode.${mode.name.lowercase(Locale.ROOT)}"),
+                        tr(player, when (mode) {
+                            TourNavigationMode.BOSSBAR_ONLY -> MyworldGuiSettingsKeys.GUI_USER_SETTINGS_TOUR_NAVIGATION_MODE_BOSSBAR_ONLY
+                            TourNavigationMode.ALL -> MyworldGuiSettingsKeys.GUI_USER_SETTINGS_TOUR_NAVIGATION_MODE_ALL
+                            TourNavigationMode.NONE -> MyworldGuiSettingsKeys.GUI_USER_SETTINGS_TOUR_NAVIGATION_MODE_NONE
+                        }),
                         mode == stats.tourNavigationMode,
                     )
                 }
@@ -769,19 +780,20 @@ class BedrockMenuService(
                 player,
                 14,
                 Material.GOAT_HORN,
-                "gui.user_settings.favorite_group_invites.display",
-                "favorite_group_invites",
+                MyworldGuiSettingsKeys.GUI_USER_SETTINGS_FAVORITE_GROUP_INVITES_DISPLAY,
+                MyworldGuiSettingsKeys.GUI_USER_SETTINGS_FAVORITE_GROUP_INVITES_BLOCKS_DESCRIPTION,
+                MyworldGuiSettingsKeys.GUI_USER_SETTINGS_FAVORITE_GROUP_INVITES_BLOCKS_CURRENT_LABEL,
                 statusText(player, stats.favoriteGroupInvitesEnabled),
                 if (stats.favoriteGroupInvitesEnabled) "§a" else "§c",
                 "toggle_favorite_group_invites",
-                "gui.user_settings.cycle_action.toggle",
+                MyworldGuiSettingsKeys.GUI_USER_SETTINGS_CYCLE_ACTION_TOGGLE,
                 glint = stats.favoriteGroupInvitesEnabled,
             ),
         )
         if (GuiHelper.canGoBack(player)) {
             inventory.setActionItem(
                 22,
-                createActionItem(Material.REDSTONE, tr(player, "gui.common.return"), "return_command"),
+                createActionItem(Material.REDSTONE, tr(player, CommonKeys.GUI_COMMON_RETURN), "return_command"),
                 "return_command",
                 role = GuiElementRole.CANCEL,
                 safety = MenuActionSafety.NAVIGATION_ONLY,
@@ -993,14 +1005,14 @@ class BedrockMenuService(
 
     private fun warpToWorld(player: Player, worldData: WorldData) {
         if (worldData.isArchived) {
-            player.sendMessage(tr(player, "messages.archive_access_denied"))
+            player.sendMessage(tr(player, MyworldMessagesKeys.MESSAGES_ARCHIVE_ACCESS_DENIED))
             return
         }
 
         val folderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
         if (Bukkit.getWorld(folderName) == null) {
             runtime.close(player)
-            player.sendMessage(tr(player, "messages.world_loading"))
+            player.sendMessage(tr(player, MyworldMessagesKeys.MESSAGES_WORLD_LOADING))
             plugin.worldService.teleportToWorld(player, worldData.uuid) {
                 completeWarpToWorld(player, worldData)
             }
@@ -1014,7 +1026,7 @@ class BedrockMenuService(
     }
 
     private fun completeWarpToWorld(player: Player, worldData: WorldData) {
-        player.sendMessage(tr(player, "messages.warp_success", mapOf("world" to worldData.name)))
+        player.sendMessage(tr(player, MyworldMessagesKeys.MESSAGES_WARP_SUCCESS, mapOf("world" to worldData.name)))
         runtime.close(player)
     }
 
@@ -1025,7 +1037,7 @@ class BedrockMenuService(
         player.sendMessage(
             tr(
                 player,
-                "messages.publish_updated",
+                MyworldMessagesKeys.MESSAGES_PUBLISH_UPDATED,
                 mapOf("level" to publishLevelText(player, worldData.publishLevel))
             )
         )
@@ -1033,25 +1045,25 @@ class BedrockMenuService(
 
     private fun toggleArchiveState(player: Player, worldData: WorldData, onComplete: () -> Unit) {
         if (worldData.isArchived) {
-            player.sendMessage(tr(player, "messages.unarchive_start"))
+            player.sendMessage(tr(player, MyworldMessagesKeys.MESSAGES_UNARCHIVE_START))
             plugin.worldService.unarchiveWorld(worldData.uuid).thenAccept { success ->
                 Bukkit.getScheduler().runTask(plugin, Runnable {
                     if (success) {
-                        player.sendMessage(tr(player, "messages.unarchive_success"))
+                        player.sendMessage(tr(player, MyworldMessagesKeys.MESSAGES_UNARCHIVE_SUCCESS))
                     } else {
-                        player.sendMessage(tr(player, "messages.unarchive_failed"))
+                        player.sendMessage(tr(player, CommonKeys.ERROR_UNARCHIVE_FAILED))
                     }
                     onComplete()
                 })
             }
         } else {
-            player.sendMessage(tr(player, "messages.archive_start"))
+            player.sendMessage(tr(player, MyworldMessagesKeys.MESSAGES_ARCHIVE_START))
             plugin.worldService.archiveWorld(worldData.uuid).thenAccept { success ->
                 Bukkit.getScheduler().runTask(plugin, Runnable {
                     if (success) {
-                        player.sendMessage(tr(player, "messages.archive_success", mapOf("world" to worldData.name)))
+                        player.sendMessage(tr(player, MyworldMessagesKeys.MESSAGES_ARCHIVE_SUCCESS, mapOf("world" to worldData.name)))
                     } else {
-                        player.sendMessage(tr(player, "messages.archive_failed"))
+                        player.sendMessage(tr(player, MyworldMessagesKeys.MESSAGES_ARCHIVE_FAILED))
                     }
                     onComplete()
                 })
@@ -1060,17 +1072,19 @@ class BedrockMenuService(
     }
 
     private fun languageDisplay(player: Player, languageKey: String): String {
-        val message = runCatching {
-            plugin.languageManager.getMessage(player, "general.language.$languageKey")
-        }.getOrNull()
-        return if (message.isNullOrBlank()) languageKey else message
+        val key = when (languageKey.lowercase(Locale.ROOT)) {
+            "ja", "ja_jp" -> CommonKeys.GENERAL_LANGUAGE_JA_JP
+            "en", "en_us" -> CommonKeys.GENERAL_LANGUAGE_EN_US
+            else -> error("未対応の言語識別子です: $languageKey")
+        }
+        return plugin.languageManager.getMessage(player, key)
     }
 
     private fun statusText(player: Player, enabled: Boolean): String {
         return if (enabled) {
-            tr(player, "messages.status_on")
+            tr(player, MyworldMessagesKeys.MESSAGES_STATUS_ON)
         } else {
-            tr(player, "messages.status_off")
+            tr(player, MyworldMessagesKeys.MESSAGES_STATUS_OFF)
         }
     }
 
@@ -1134,9 +1148,9 @@ class BedrockMenuService(
     }
 
     private fun createWorldListEntry(player: Player, slot: Int, worldData: WorldData): MenuElement {
-        val ownerName = PlayerNameUtil.getNameOrDefault(worldData.owner, tr(player, "general.unknown"))
-        val publishLevelColor = tr(player, "publish_level.color.${worldData.publishLevel.name.lowercase()}")
-        val publishLevelName = tr(player, "publish_level.${worldData.publishLevel.name.lowercase()}")
+        val ownerName = PlayerNameUtil.getNameOrDefault(worldData.owner, tr(player, CommonKeys.GENERAL_UNKNOWN))
+        val publishLevelColor = tr(player, publishLevelColorKey(worldData.publishLevel))
+        val publishLevelName = tr(player, publishLevelKey(worldData.publishLevel))
         val tagNames =
             if (worldData.tags.isNotEmpty()) {
                 worldData.tags.joinToString(", ") { plugin.worldTagManager.getDisplayName(player, it) }
@@ -1161,14 +1175,14 @@ class BedrockMenuService(
                 }
                 tr(
                     player,
-                    "gui.player_world.world_item.expires_value",
+                    MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_WORLD_ITEM_EXPIRES_VALUE,
                     mapOf("days" to daysRemaining, "date" to displayFormatter.format(expireDate))
                 )
             } else {
                 null
             }
 
-        val warpAction = tr(player, "gui.player_world.world_item.warp")
+        val warpAction = tr(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_WORLD_ITEM_WARP)
         return CCSystem.getAPI().getGuiElementService().menuEntry(
             player,
             GuiMenuEntrySpec(
@@ -1178,18 +1192,18 @@ class BedrockMenuService(
                 role = GuiElementRole.ACTION,
                 description = if (worldData.description.isBlank()) emptyList() else listOf(worldData.description),
                 data = buildList {
-                    add(GuiMenuEntryData(tr(player, "gui.common.world_item.owner"), ownerName))
-                    add(GuiMenuEntryData(tr(player, "gui.common.world_item.publish"), publishLevelName, toneFor(publishLevelColor)))
-                    add(GuiMenuEntryData(tr(player, "gui.common.world_item.favorite"), worldData.favorite, GuiValueTone.DANGER))
+                    add(GuiMenuEntryData(tr(player, MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_OWNER), ownerName))
+                    add(GuiMenuEntryData(tr(player, MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_PUBLISH), publishLevelName, toneFor(publishLevelColor)))
+                    add(GuiMenuEntryData(tr(player, MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_FAVORITE), worldData.favorite, GuiValueTone.DANGER))
                     add(GuiMenuEntryData(
-                        tr(player, "gui.common.world_item.recent_visitors"),
-                        tr(player, "gui.common.world_item.recent_visitors_value", mapOf("count" to worldData.recentVisitors.sum())),
+                        tr(player, MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_RECENT_VISITORS),
+                        tr(player, MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_RECENT_VISITORS_VALUE, mapOf("count" to worldData.recentVisitors.sum())),
                         GuiValueTone.SUCCESS,
                     ))
-                    if (tagNames != null) add(GuiMenuEntryData(tr(player, "gui.common.world_item.tags"), tagNames, GuiValueTone.PRIMARY))
-                    if (expiresAtValue != null) add(GuiMenuEntryData(tr(player, "gui.player_world.world_item.expires_at"), expiresAtValue))
+                    if (tagNames != null) add(GuiMenuEntryData(tr(player, MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_TAGS), tagNames, GuiValueTone.PRIMARY))
+                    if (expiresAtValue != null) add(GuiMenuEntryData(tr(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_WORLD_ITEM_EXPIRES_AT), expiresAtValue))
                 },
-                warnings = if (worldData.isArchived) listOf(tr(player, "gui.player_world.world_item.expired")) else emptyList(),
+                warnings = if (worldData.isArchived) listOf(tr(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_WORLD_ITEM_EXPIRED)) else emptyList(),
                 actions = listOf(menuGestureAction(
                     "warp_world",
                     MenuGesture.ANY,
@@ -1214,7 +1228,7 @@ class BedrockMenuService(
                 actions = listOf(menuGestureAction(
                     "start_creation",
                     MenuGesture.ANY,
-                    tr(player, "gui.player_world.creation_button.action"),
+                    tr(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_CREATION_BUTTON_ACTION),
                     safety = MenuActionSafety.REVERSIBLE,
                     reversibleContract = me.awabi2048.myworldmanager.gui.MwmMenuActionSemantics.contract("bedrock-create"),
                 )),
@@ -1261,7 +1275,7 @@ class BedrockMenuService(
         maxSlot: Int,
         worldPoint: Int
     ): MenuElement {
-        val playerName = PlayerNameUtil.getNameOrDefault(player.uniqueId, tr(player, "general.unknown"))
+        val playerName = PlayerNameUtil.getNameOrDefault(player.uniqueId, tr(player, CommonKeys.GENERAL_UNKNOWN))
         val bypassLimits = PermissionManager.canBypassWorldLimits(player)
         return CCSystem.getAPI().getGuiElementService().menuEntry(
             player,
@@ -1271,17 +1285,17 @@ class BedrockMenuService(
                 name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_STATS_BUTTON_DISPLAY, mapOf("player" to playerName))),
                 role = GuiElementRole.CONTENT,
                 description = if (MyWorldManagerApi.isWorldSlotSystemEnabled()) {
-                    listOf(tr(player, if (bypassLimits) "gui.player_world.stats_button.slots_bypass_description" else "gui.player_world.stats_button.slots_description"))
+                    listOf(tr(player, if (bypassLimits) MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_STATS_BUTTON_SLOTS_BYPASS_DESCRIPTION else MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_STATS_BUTTON_SLOTS_DESCRIPTION))
                 } else emptyList(),
                 data = buildList {
-                    if (MyWorldManagerApi.isWorldPointEconomyEnabled()) add(GuiMenuEntryData(tr(player, "gui.player_world.stats_button.points_label"), worldPoint, GuiValueTone.WARNING))
+                    if (MyWorldManagerApi.isWorldPointEconomyEnabled()) add(GuiMenuEntryData(tr(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_STATS_BUTTON_POINTS_LABEL), worldPoint, GuiValueTone.WARNING))
                     if (MyWorldManagerApi.isWorldSlotSystemEnabled()) {
                         add(GuiMenuEntryData(
-                            tr(player, if (bypassLimits) "gui.player_world.stats_button.world_count_label" else "gui.player_world.stats_button.slots_label"),
+                            tr(player, if (bypassLimits) MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_STATS_BUTTON_WORLD_COUNT_LABEL else MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_STATS_BUTTON_SLOTS_LABEL),
                             if (bypassLimits) currentCreateCount else "$currentCreateCount/$maxSlot",
                             GuiValueTone.SUCCESS,
                         ))
-                    } else add(GuiMenuEntryData(tr(player, "gui.player_world.stats_button.world_count_label"), currentCreateCount, GuiValueTone.SUCCESS))
+                    } else add(GuiMenuEntryData(tr(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_STATS_BUTTON_WORLD_COUNT_LABEL), currentCreateCount, GuiValueTone.SUCCESS))
                 },
                 playerHeadOwner = player.uniqueId,
             ),
@@ -1297,7 +1311,7 @@ class BedrockMenuService(
                     .withZone(ZoneId.systemDefault())
                     .format(Instant.ofEpochMilli(it))
             }
-            ?: tr(player, "gui.player_world.pending_button.none")
+            ?: tr(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_PENDING_BUTTON_NONE)
         return CCSystem.getAPI().getGuiElementService().menuEntry(
             player,
             GuiMenuEntrySpec(
@@ -1308,16 +1322,16 @@ class BedrockMenuService(
                 description = plugin.languageManager.getMessageList(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_PENDING_BUTTON_DESCRIPTION),
                 data = listOf(
                     GuiMenuEntryData(
-                        tr(player, "gui.player_world.pending_button.count_label"),
+                        tr(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_PENDING_BUTTON_COUNT_LABEL),
                         pendingCount,
                         if (pendingCount > 0) GuiValueTone.PRIMARY else GuiValueTone.MUTED,
                     ),
-                    GuiMenuEntryData(tr(player, "gui.player_world.pending_button.latest_label"), latest, GuiValueTone.INFO),
+                    GuiMenuEntryData(tr(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_PENDING_BUTTON_LATEST_LABEL), latest, GuiValueTone.INFO),
                 ),
                 actions = listOf(menuGestureAction(
                     "open_pending_interactions",
                     MenuGesture.ANY,
-                    tr(player, "gui.player_world.pending_button.action"),
+                    tr(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_PENDING_BUTTON_ACTION),
                     safety = MenuActionSafety.NAVIGATION_ONLY,
                 )),
                 glint = pendingCount > 0,
@@ -1326,17 +1340,18 @@ class BedrockMenuService(
     }
 
     private fun createCriticalVisibilityEntry(player: Player, slot: Int, enabled: Boolean): MenuElement {
-        val status = if (enabled) tr(player, "messages.status_visible") else tr(player, "messages.status_hidden")
+        val status = if (enabled) tr(player, MyworldMessagesKeys.MESSAGES_STATUS_VISIBLE) else tr(player, MyworldMessagesKeys.MESSAGES_STATUS_HIDDEN)
         return createSettingActionEntry(
             player,
             slot,
             Material.RECOVERY_COMPASS,
-            "gui.user_settings.critical_settings_visibility.display",
-            "critical_settings_visibility",
+            MyworldGuiSettingsKeys.GUI_USER_SETTINGS_CRITICAL_SETTINGS_VISIBILITY_DISPLAY,
+            MyworldGuiSettingsKeys.GUI_USER_SETTINGS_CRITICAL_SETTINGS_VISIBILITY_BLOCKS_DESCRIPTION,
+            MyworldGuiSettingsKeys.GUI_USER_SETTINGS_CRITICAL_SETTINGS_VISIBILITY_BLOCKS_CURRENT_LABEL,
             status,
             if (enabled) "§a" else "§7",
             "toggle_critical",
-            "gui.user_settings.cycle_action.toggle"
+            MyworldGuiSettingsKeys.GUI_USER_SETTINGS_CYCLE_ACTION_TOGGLE
         )
     }
 
@@ -1344,16 +1359,16 @@ class BedrockMenuService(
         player: Player,
         slot: Int,
         material: Material,
-        displayKey: String,
-        setting: String,
+        displayKey: LocalizationKey<String>,
+        descriptionKey: LocalizationKey<List<String>>,
+        currentLabelKey: LocalizationKey<String>?,
         currentValue: String?,
         currentValueColor: String,
         actionId: String,
-        actionKey: String,
+        actionKey: LocalizationKey<String>,
         options: List<GuiMenuEntryOption> = emptyList(),
         glint: Boolean? = null
     ): MenuElement {
-        val prefix = "gui.user_settings.$setting.blocks"
         return CCSystem.getAPI().getGuiElementService().menuEntry(
             player,
             GuiMenuEntrySpec(
@@ -1361,9 +1376,9 @@ class BedrockMenuService(
                 material = material,
                 name = GuiNameSpec.Text(tr(player, displayKey), GuiNameStyle.DEFAULT),
                 role = GuiElementRole.ACTION,
-                description = plugin.languageManager.getMessageList(player, "$prefix.description"),
-                data = currentValue?.let {
-                    listOf(GuiMenuEntryData(tr(player, "$prefix.current_label"), it, toneFor(currentValueColor)))
+                description = plugin.languageManager.getMessageList(player, descriptionKey),
+                data = currentValue?.let { value ->
+                    listOf(GuiMenuEntryData(tr(player, requireNotNull(currentLabelKey)), value, toneFor(currentValueColor)))
                 }.orEmpty(),
                 options = options,
                 actions = listOf(menuGestureAction(
@@ -1416,7 +1431,11 @@ class BedrockMenuService(
             amount = 1,
         )
 
-    private fun tr(player: Player, key: String, placeholders: Map<String, Any> = emptyMap()): String {
+    private fun tr(
+        player: Player,
+        key: LocalizationKey<String>,
+        placeholders: Map<String, Any> = emptyMap(),
+    ): String {
         return if (placeholders.isEmpty()) {
             plugin.languageManager.getMessage(player, key)
         } else {
@@ -1425,7 +1444,21 @@ class BedrockMenuService(
     }
 
     private fun publishLevelText(player: Player, level: PublishLevel): String {
-        return tr(player, "publish_level.${level.name.lowercase()}")
+        return tr(player, publishLevelKey(level))
+    }
+
+    private fun publishLevelKey(level: PublishLevel): LocalizationKey<String> = when (level) {
+        PublishLevel.PUBLIC -> MyworldPublishLevelKeys.PUBLISH_LEVEL_PUBLIC
+        PublishLevel.FRIEND -> MyworldPublishLevelKeys.PUBLISH_LEVEL_FRIEND
+        PublishLevel.PRIVATE -> MyworldPublishLevelKeys.PUBLISH_LEVEL_PRIVATE
+        PublishLevel.LOCKED -> MyworldPublishLevelKeys.PUBLISH_LEVEL_LOCKED
+    }
+
+    private fun publishLevelColorKey(level: PublishLevel): LocalizationKey<String> = when (level) {
+        PublishLevel.PUBLIC -> MyworldPublishLevelKeys.PUBLISH_LEVEL_COLOR_PUBLIC
+        PublishLevel.FRIEND -> MyworldPublishLevelKeys.PUBLISH_LEVEL_COLOR_FRIEND
+        PublishLevel.PRIVATE -> MyworldPublishLevelKeys.PUBLISH_LEVEL_COLOR_PRIVATE
+        PublishLevel.LOCKED -> MyworldPublishLevelKeys.PUBLISH_LEVEL_COLOR_LOCKED
     }
 
     private fun publishDisplayText(player: Player, worldData: WorldData): String {
@@ -1435,9 +1468,9 @@ class BedrockMenuService(
 
     private fun worldStateText(player: Player, archived: Boolean): String {
         return if (archived) {
-            tr(player, "gui.bedrock.world_action.status.archived")
+            tr(player, MyworldGuiBedrockKeys.GUI_BEDROCK_WORLD_ACTION_STATUS_ARCHIVED)
         } else {
-            tr(player, "gui.bedrock.world_action.status.active")
+            tr(player, MyworldGuiBedrockKeys.GUI_BEDROCK_WORLD_ACTION_STATUS_ACTIVE)
         }
     }
 
@@ -1511,18 +1544,21 @@ class BedrockMenuService(
         )
     }
 
-    private enum class CreationBlockReason(val displayKey: String, val loreKey: String) {
+    private enum class CreationBlockReason(
+        val displayKey: LocalizationKey<String>,
+        val loreKey: LocalizationKey<List<String>>,
+    ) {
         POLICY_DENIED(
-            "gui.player_world.creation_unavailable.policy_denied.display",
-            "gui.player_world.creation_unavailable.policy_denied.lore"
+            MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_CREATION_UNAVAILABLE_POLICY_DENIED_DISPLAY,
+            MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_CREATION_UNAVAILABLE_POLICY_DENIED_LORE,
         ),
         NO_SLOT(
-            "gui.player_world.creation_unavailable.no_slot.display",
-            "gui.player_world.creation_unavailable.no_slot.lore"
+            MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_CREATION_UNAVAILABLE_NO_SLOT_DISPLAY,
+            MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_CREATION_UNAVAILABLE_NO_SLOT_LORE,
         ),
         NO_PERMISSION(
-            "gui.player_world.creation_unavailable.no_permission.display",
-            "gui.player_world.creation_unavailable.no_permission.lore"
+            MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_CREATION_UNAVAILABLE_NO_PERMISSION_DISPLAY,
+            MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_CREATION_UNAVAILABLE_NO_PERMISSION_LORE,
         )
     }
 }

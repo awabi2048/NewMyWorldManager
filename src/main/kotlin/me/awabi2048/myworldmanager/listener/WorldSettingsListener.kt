@@ -58,6 +58,7 @@ import me.awabi2048.myworldmanager.util.PermissionManager
 import me.awabi2048.myworldmanager.util.PlayerBlockTargetResolver
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import me.awabi2048.myworldmanager.util.WorldCreationChecks
+import me.awabi2048.myworldmanager.util.CatalogKeyResolver
 import me.awabi2048.myworldmanager.util.WorldNameValidation
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -294,15 +295,9 @@ class WorldSettingsListener : Listener {
                         WorldSettingsRuntimeOperation.EXPAND_DIRECTION -> {
                                 startExpansionDirectionSelection(player, session)
                                 CCSystem.getAPI().getMenuRuntimeService().suspendForExternal(player)
-                                val promptKey =
-                                        if (plugin.playerPlatformResolver.isBedrock(player)) {
-                                                "messages.expand_direction_prompt"
-                                        } else {
-                                                "messages.expand_direction_prompt"
-                                        }
                                 player.sendMessage(
                                         Component.text()
-                                                .append(Component.text(plugin.languageManager.getMessage(player, promptKey)))
+                                                .append(Component.text(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_EXPAND_DIRECTION_PROMPT)))
                                                 .append(Component.newline())
                                                 .append(
                                                         Component.text("§7ワールド設定メニューを開いてキャンセルします。")
@@ -1343,11 +1338,11 @@ class WorldSettingsListener : Listener {
                 val lang = plugin.languageManager
                 val directionKey =
                         when (direction) {
-                                org.bukkit.block.BlockFace.NORTH_WEST -> "general.direction.north_west"
-                                org.bukkit.block.BlockFace.NORTH_EAST -> "general.direction.north_east"
-                                org.bukkit.block.BlockFace.SOUTH_WEST -> "general.direction.south_west"
-                                org.bukkit.block.BlockFace.SOUTH_EAST -> "general.direction.south_east"
-                                else -> "general.direction.unknown"
+                                org.bukkit.block.BlockFace.NORTH_WEST -> CommonKeys.GENERAL_DIRECTION_NORTH_WEST
+                                org.bukkit.block.BlockFace.NORTH_EAST -> CommonKeys.GENERAL_DIRECTION_NORTH_EAST
+                                org.bukkit.block.BlockFace.SOUTH_WEST -> CommonKeys.GENERAL_DIRECTION_SOUTH_WEST
+                                org.bukkit.block.BlockFace.SOUTH_EAST -> CommonKeys.GENERAL_DIRECTION_SOUTH_EAST
+                                else -> CommonKeys.GENERAL_DIRECTION_UNKNOWN
                         }
                 val directionName = lang.getMessage(player, directionKey)
                 val methodText =
@@ -1412,21 +1407,21 @@ class WorldSettingsListener : Listener {
                 val lang = plugin.languageManager
                 val titleKey =
                         if (isDescriptionInput) {
-                                "gui.bedrock.input.description.title"
+                                MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_DESCRIPTION_TITLE
                         } else {
-                                "gui.bedrock.input.rename.title"
+                                MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_RENAME_TITLE
                         }
                 val labelKey =
                         if (isDescriptionInput) {
-                                "gui.bedrock.input.description.label"
+                                MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_DESCRIPTION_LABEL
                         } else {
-                                "gui.bedrock.input.rename.label"
+                                MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_RENAME_LABEL
                         }
                 val placeholderKey =
                         if (isDescriptionInput) {
-                                "gui.bedrock.input.description.placeholder"
+                                MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_DESCRIPTION_PLACEHOLDER
                         } else {
-                                "gui.bedrock.input.rename.placeholder"
+                                MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_RENAME_PLACEHOLDER
                         }
                 val initialValue = if (isDescriptionInput) worldData.description else worldData.name
                 val worldUuid = worldData.uuid
@@ -1588,9 +1583,9 @@ class WorldSettingsListener : Listener {
                 if (targetName.isEmpty()) {
                         val inputMessageKey =
                                 if (useForceAddMode) {
-                                        "messages.member_force_add_input"
+                                        MyworldMessagesKeys.MESSAGES_MEMBER_FORCE_ADD_INPUT
                                 } else {
-                                        "messages.member_invite_input"
+                                        MyworldMessagesKeys.MESSAGES_MEMBER_INVITE_INPUT
                                 }
                         player.sendMessage(lang.getMessage(player, inputMessageKey))
                         player.playSound(
@@ -2117,15 +2112,11 @@ player.sendMessage(
 
                                 val directionKey =
                                         when (direction) {
-                                                BlockFace.NORTH_WEST ->
-                                                        "general.direction.north_west"
-                                                BlockFace.NORTH_EAST ->
-                                                        "general.direction.north_east"
-                                                BlockFace.SOUTH_WEST ->
-                                                        "general.direction.south_west"
-                                                BlockFace.SOUTH_EAST ->
-                                                        "general.direction.south_east"
-                                                else -> "general.direction.unknown"
+                                                BlockFace.NORTH_WEST -> CommonKeys.GENERAL_DIRECTION_NORTH_WEST
+                                                BlockFace.NORTH_EAST -> CommonKeys.GENERAL_DIRECTION_NORTH_EAST
+                                                BlockFace.SOUTH_WEST -> CommonKeys.GENERAL_DIRECTION_SOUTH_WEST
+                                                BlockFace.SOUTH_EAST -> CommonKeys.GENERAL_DIRECTION_SOUTH_EAST
+                                                else -> CommonKeys.GENERAL_DIRECTION_UNKNOWN
                                         }
                                 val directionName =
                                         plugin.languageManager.getMessage(player, directionKey)
@@ -2459,7 +2450,7 @@ player.sendMessage(
 
                         removeFromInventory(player, confirmItem)
 
-                        val biomeName = lang.getMessage(player, "biomes.${biomeId.lowercase()}")
+                        val biomeName = lang.getMessage(player, CatalogKeyResolver.biome(biomeId))
                         player.sendMessage(
                                 lang.getMessage(
                                         player,
@@ -2699,13 +2690,7 @@ player.sendMessage(
                                         clearBorderPreview(player)
                                         session.action = SettingsAction.EXPAND_DIRECTION_WAIT
                                         startBorderDirectionPreview(player)
-                                        val promptKey =
-                                                if (plugin.playerPlatformResolver.isBedrock(player)) {
-                                                        "messages.expand_direction_prompt"
-                                                } else {
-                                                        "messages.expand_direction_prompt"
-                                                }
-                                        player.sendMessage(lang.getMessage(player, promptKey))
+                                        player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_EXPAND_DIRECTION_PROMPT))
                                 }
                         }
                         "mspt-sort" -> {
@@ -2823,8 +2808,11 @@ player.sendMessage(
                 forceAddMode: Boolean
         ) {
             val lang = plugin.languageManager
-            val inviteInputMessageKey =
-                if (forceAddMode) "messages.member_force_add_input" else "messages.member_invite_input"
+            val inviteInputMessageKey = if (forceAddMode) {
+                MyworldMessagesKeys.MESSAGES_MEMBER_FORCE_ADD_INPUT
+            } else {
+                MyworldMessagesKeys.MESSAGES_MEMBER_INVITE_INPUT
+            }
             CCSystem.getAPI().getMenuDialogService().show(
                 player,
                 MenuDialogRequest(
@@ -2979,7 +2967,12 @@ player.sendMessage(
         ) {
             val lang = plugin.languageManager
 
-            val titleKey = "gui.environment.$type.display" // e.g. gui.environment.gravity.display
+            val titleKey = when (type) {
+                "gravity" -> MyworldGuiSettingsKeys.GUI_ENVIRONMENT_GRAVITY_DISPLAY
+                "weather" -> MyworldGuiSettingsKeys.GUI_ENVIRONMENT_WEATHER_DISPLAY
+                "biome" -> MyworldGuiSettingsKeys.GUI_ENVIRONMENT_BIOME_DISPLAY
+                else -> error("未知の環境設定種別です: $type")
+            }
             val title = Component.text(lang.getMessage(player, titleKey), NamedTextColor.YELLOW)
 
             val centerMaterial = when (type) {
@@ -3141,7 +3134,7 @@ player.sendMessage(
                         plugin.playerStatsRepository.save(stats)
                         plugin.worldConfigRepository.save(worldData)
 
-                        val biomeName = lang.getMessage(player, "biomes.${biomeId.lowercase()}")
+                        val biomeName = lang.getMessage(player, CatalogKeyResolver.biome(biomeId))
                         player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_ENV_BIOME_CHANGED, mapOf("biome" to biomeName)))
                         sendEnvironmentCostPaid(player, cost, stats.worldPoint)
                         plugin.soundManager.playActionSound(player, "environment", "biome_change")
@@ -3337,9 +3330,9 @@ player.sendMessage(
                         plugin.languageManager.getMessage(
                                 player,
                                 if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
-                                        "messages.expansion_reset_success"
+                                        MyworldMessagesKeys.MESSAGES_EXPANSION_RESET_SUCCESS
                                 } else {
-                                        "messages.expansion_reset_success_without_points"
+                                        MyworldMessagesKeys.MESSAGES_EXPANSION_RESET_SUCCESS_WITHOUT_POINTS
                                 },
                                 mapOf("points" to refund)
                         )
@@ -3363,7 +3356,7 @@ player.sendMessage(
                                 )
                         )
                         val bodyTextLines = plugin.languageManager
-                                .getMessageList(player, "gui.confirm.reset_expansion_spawn_unsafe.lore")
+                                .getMessageList(player, MyworldGuiCommonKeys.GUI_CONFIRM_RESET_EXPANSION_SPAWN_UNSAFE_LORE)
                                 .toMutableList()
                         if (worldData.hasModifiedBorderExpansion()) {
                                 bodyTextLines.addAll(

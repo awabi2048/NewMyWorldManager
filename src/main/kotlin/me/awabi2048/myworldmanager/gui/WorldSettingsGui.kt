@@ -3835,7 +3835,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         name = me.awabi2048.myworldmanager.util.fixedLabelName(
                                 plugin.languageManager.getMessage(
                                         player,
-                                        if (previous) "gui.common.prev_page" else "gui.common.next_page",
+                                        if (previous) CommonKeys.GUI_COMMON_PREV_PAGE else CommonKeys.GUI_COMMON_NEXT_PAGE,
                                 ),
                                 GuiNameStyle.DEFAULT,
                         ),

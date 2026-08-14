@@ -169,7 +169,11 @@ class WorldSettingsActionService(private val plugin: MyWorldManager) {
         suspendRuntime: Boolean = true,
     ): MenuActionResult {
         val action = if (click.isLeftClick) SettingsAction.SET_SPAWN_GUEST else SettingsAction.SET_SPAWN_MEMBER
-        val typeKey = if (click.isLeftClick) "gui.settings.spawn.type.guest" else "gui.settings.spawn.type.member"
+        val typeKey = if (click.isLeftClick) {
+            MyworldGuiSettingsKeys.GUI_SETTINGS_SPAWN_TYPE_GUEST
+        } else {
+            MyworldGuiSettingsKeys.GUI_SETTINGS_SPAWN_TYPE_MEMBER
+        }
         val typeName = plugin.languageManager.getMessage(player, typeKey)
         player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_SPAWN_SET_START, mapOf("type" to typeName)))
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, action)
