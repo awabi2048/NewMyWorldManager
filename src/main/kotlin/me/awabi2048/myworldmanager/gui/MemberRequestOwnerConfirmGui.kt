@@ -1,5 +1,8 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiMeetKeys
+
 import me.awabi2048.myworldmanager.util.descriptionLine
 import me.awabi2048.myworldmanager.util.warningLine
 import me.awabi2048.myworldmanager.util.dangerLine
@@ -30,19 +33,19 @@ class MemberRequestOwnerConfirmGui(private val plugin: MyWorldManager) {
     fun prepareOpen(player: Player, info: MemberRequestInfo, key: String): MenuRoute? {
         val decisionId = runCatching { java.util.UUID.fromString(key) }.getOrNull() ?: return null
         val lang = plugin.languageManager
-        val approveLabel = lang.getMessage(player, "gui.member_request_owner_confirm.confirm")
-        val rejectLabel = lang.getMessage(player, "gui.member_request_owner_confirm.reject")
+        val approveLabel = lang.getMessage(player, MyworldGuiMeetKeys.GUI_MEMBER_REQUEST_OWNER_CONFIRM_CONFIRM)
+        val rejectLabel = lang.getMessage(player, MyworldGuiMeetKeys.GUI_MEMBER_REQUEST_OWNER_CONFIRM_REJECT)
         val infoItem = GuiSpecFactory.spec(
             Material.PAPER,
-            lang.getComponent(player, "gui.member_request_owner_confirm.title"),
+            lang.getComponent(player, MyworldGuiMeetKeys.GUI_MEMBER_REQUEST_OWNER_CONFIRM_TITLE),
             me.awabi2048.myworldmanager.util.semanticLore(
                 lang.getMessageList(
                     player,
-                    "gui.member_request_owner_confirm.lore",
+                    MyworldGuiMeetKeys.GUI_MEMBER_REQUEST_OWNER_CONFIRM_LORE,
                     mapOf(
                         "player" to PlayerNameUtil.getNameOrDefault(
                             info.requestorUuid,
-                            lang.getMessage(player, "general.unknown"),
+                            lang.getMessage(player, CommonKeys.GENERAL_UNKNOWN),
                         ),
                     ),
                 ).map(::descriptionLine),
@@ -54,7 +57,7 @@ class MemberRequestOwnerConfirmGui(private val plugin: MyWorldManager) {
         return plugin.confirmationMenuGui.prepareOpen(
             player = player,
             menuId = "member_request_owner_confirm",
-            title = GuiHelper.inventoryTitle(lang.getComponent(player, "gui.member_request_owner_confirm.title")),
+            title = GuiHelper.inventoryTitle(lang.getComponent(player, MyworldGuiMeetKeys.GUI_MEMBER_REQUEST_OWNER_CONFIRM_TITLE)),
             centerItem = infoItem,
             confirmItem = approveItem,
             cancelItem = rejectItem,

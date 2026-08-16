@@ -1,5 +1,8 @@
 package me.awabi2048.myworldmanager.command
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
@@ -43,7 +46,7 @@ class WorldCommand(
                 return true
             }
             if (sender !is Player) {
-                sender.sendMessage(plugin.languageManager.getMessage("error.player_only"))
+                sender.sendMessage(plugin.languageManager.getMessage(CommonKeys.ERROR_PLAYER_ONLY))
                 return true
             }
             plugin.adminCommandGui.open(sender)
@@ -51,7 +54,7 @@ class WorldCommand(
         }
 
         if (subCommand != null && !isSubCommandEnabled(sender, subCommand, args.toList())) {
-            sender.sendMessage(plugin.languageManager.getMessage(sender as? Player, "messages.command_disabled"))
+            sender.sendMessage(plugin.languageManager.getMessage(sender as? Player, MyworldMessagesKeys.MESSAGES_COMMAND_DISABLED))
             return true
         }
 
@@ -61,7 +64,7 @@ class WorldCommand(
                 return true
             }
             if (sender !is Player) {
-                sender.sendMessage(plugin.languageManager.getMessage("error.player_only"))
+                sender.sendMessage(plugin.languageManager.getMessage(CommonKeys.ERROR_PLAYER_ONLY))
                 return true
             }
             plugin.worldGui.open(sender, page = 0, fromAdminMenu = true)
@@ -80,7 +83,7 @@ class WorldCommand(
                     "execute" -> {
                         val options = MigrationExecuteOptions.parse(args.drop(2))
                         if (options == null) {
-                            sender.sendMessage(plugin.languageManager.getMessage("messages.migration.usage"))
+                            sender.sendMessage(plugin.languageManager.getMessage(MyworldMessagesKeys.MESSAGES_MIGRATION_USAGE))
                         } else {
                             plugin.worldMigrationService.requestExecute(
                                 sender,
@@ -90,7 +93,7 @@ class WorldCommand(
                         }
                     }
                     "status" -> plugin.worldMigrationService.status(sender)
-                    else -> sender.sendMessage(plugin.languageManager.getMessage("messages.migration.usage"))
+                    else -> sender.sendMessage(plugin.languageManager.getMessage(MyworldMessagesKeys.MESSAGES_MIGRATION_USAGE))
                 }
                 return true
             }
@@ -105,12 +108,12 @@ class WorldCommand(
                     return handler.handleCreateCommand(sender, args.drop(1))
                 }
                 if (args.size < 2) {
-                    sender.sendMessage(lang.getMessage("messages.usage_create"))
+                    sender.sendMessage(lang.getMessage(MyworldMessagesKeys.MESSAGES_USAGE_CREATE))
                     return true
                 }
                 val targetPlayer = Bukkit.getPlayer(args[1])
                 if (targetPlayer == null || !targetPlayer.isOnline) {
-                    sender.sendMessage(lang.getMessage("general.player_not_found"))
+                    sender.sendMessage(lang.getMessage(CommonKeys.GENERAL_PLAYER_NOT_FOUND))
                     return true
                 }
 
@@ -133,7 +136,7 @@ class WorldCommand(
                 sender.sendMessage(
                         lang.getMessage(
                                 sender as? Player,
-                                "messages.wizard_started_for",
+                                MyworldMessagesKeys.MESSAGES_WIZARD_STARTED_FOR,
                                 mapOf("player" to targetPlayer.name)
                         )
                 )
@@ -146,18 +149,18 @@ class WorldCommand(
                     return true
                 }
                 plugin.reloadSystem()
-                sender.sendMessage(lang.getMessage(sender as? Player, "messages.reload_success"))
+                sender.sendMessage(lang.getMessage(sender as? Player, MyworldMessagesKeys.MESSAGES_RELOAD_SUCCESS))
                 return true
             }
             "update-day" -> {
                 val lang = plugin.languageManager
                 if (sender !is org.bukkit.command.ConsoleCommandSender) {
-                    sender.sendMessage(lang.getMessage("error.console_only"))
+                    sender.sendMessage(lang.getMessage(CommonKeys.ERROR_CONSOLE_ONLY))
                     return true
                 }
                 val results = plugin.worldService.updateDailyData(); val updatedCount = results["updated"] ?: 0; val archivedCount = results["archived"] ?: 0
                 sender.sendMessage(
-                        lang.getMessage(sender as? Player, "messages.daily_update_success", mapOf("updated" to updatedCount, "archived" to archivedCount))
+                        lang.getMessage(sender as? Player, MyworldMessagesKeys.MESSAGES_DAILY_UPDATE_SUCCESS, mapOf("updated" to updatedCount, "archived" to archivedCount))
                 )
                 return true
             }
@@ -171,16 +174,16 @@ class WorldCommand(
                     return true
                 }
                 if (args.size < 4) {
-                    sender.sendMessage(lang.getMessage(sender as? Player, "messages.usage_stats"))
+                    sender.sendMessage(lang.getMessage(sender as? Player, MyworldMessagesKeys.MESSAGES_USAGE_STATS))
                     sender.sendMessage(
-                            lang.getMessage(sender as? Player, "messages.usage_stats_fields")
+                            lang.getMessage(sender as? Player, MyworldMessagesKeys.MESSAGES_USAGE_STATS_FIELDS)
                     )
                     return true
                 }
 
                 val targetOffline = PlayerNameUtil.resolveOfflinePlayer(plugin, args[1])
                 if (targetOffline == null) {
-                    sender.sendMessage(lang.getMessage(sender as? Player, "general.player_not_found"))
+                    sender.sendMessage(lang.getMessage(sender as? Player, CommonKeys.GENERAL_PLAYER_NOT_FOUND))
                     return true
                 }
                 val field = args[2].lowercase()
@@ -200,7 +203,7 @@ class WorldCommand(
                                         sender.sendMessage(
                                                 lang.getMessage(
                                                         sender as? Player,
-                                                        "messages.invalid_field"
+                                                        MyworldMessagesKeys.MESSAGES_INVALID_FIELD
                                                 )
                                         )
                                         return true
@@ -211,7 +214,7 @@ class WorldCommand(
                         sender.sendMessage(
                                 lang.getMessage(
                                         sender as? Player,
-                                        "messages.stats_get",
+                                        MyworldMessagesKeys.MESSAGES_STATS_GET,
                                         mapOf(
                                                 "player" to PlayerNameUtil.getNameOrDefault(targetOffline.uniqueId, "不明"),
 
@@ -224,13 +227,13 @@ class WorldCommand(
                     "set" -> {
                         if (value == null) {
                             sender.sendMessage(
-                                    lang.getMessage(sender as? Player, "messages.value_required")
+                                    lang.getMessage(sender as? Player, MyworldMessagesKeys.MESSAGES_VALUE_REQUIRED)
                             )
                             return true
                         }
                         if (value < 0) {
                             sender.sendMessage(
-                                    lang.getMessage(sender as? Player, "messages.value_negative")
+                                    lang.getMessage(sender as? Player, MyworldMessagesKeys.MESSAGES_VALUE_NEGATIVE)
                             )
                             return true
                         }
@@ -240,7 +243,7 @@ class WorldCommand(
                             "world-slots" -> stats.unlockedWorldSlot = value
                             else -> {
                                 sender.sendMessage(
-                                        lang.getMessage(sender as? Player, "messages.invalid_field")
+                                        lang.getMessage(sender as? Player, MyworldMessagesKeys.MESSAGES_INVALID_FIELD)
                                 )
                                 return true
                             }
@@ -250,7 +253,7 @@ class WorldCommand(
                         sender.sendMessage(
                                 lang.getMessage(
                                         sender as? Player,
-                                        "messages.stats_set",
+                                        MyworldMessagesKeys.MESSAGES_STATS_SET,
                                         mapOf(
                                                 "player" to PlayerNameUtil.getNameOrDefault(targetOffline.uniqueId, "不明"),
 
@@ -263,7 +266,7 @@ class WorldCommand(
                     "add" -> {
                         if (value == null) {
                             sender.sendMessage(
-                                    lang.getMessage(sender as? Player, "messages.value_required")
+                                    lang.getMessage(sender as? Player, MyworldMessagesKeys.MESSAGES_VALUE_REQUIRED)
                             )
                             return true
                         }
@@ -273,7 +276,7 @@ class WorldCommand(
                             "world-slots" -> stats.unlockedWorldSlot += value
                             else -> {
                                 sender.sendMessage(
-                                        lang.getMessage(sender as? Player, "messages.invalid_field")
+                                        lang.getMessage(sender as? Player, MyworldMessagesKeys.MESSAGES_INVALID_FIELD)
                                 )
                                 return true
                             }
@@ -283,7 +286,7 @@ class WorldCommand(
                         sender.sendMessage(
                                 lang.getMessage(
                                         sender as? Player,
-                                        "messages.stats_add",
+                                        MyworldMessagesKeys.MESSAGES_STATS_ADD,
                                         mapOf(
                                                 "player" to PlayerNameUtil.getNameOrDefault(targetOffline.uniqueId, "不明"),
 
@@ -296,7 +299,7 @@ class WorldCommand(
                     "remove" -> {
                         if (value == null) {
                             sender.sendMessage(
-                                    lang.getMessage(sender as? Player, "messages.value_required")
+                                    lang.getMessage(sender as? Player, MyworldMessagesKeys.MESSAGES_VALUE_REQUIRED)
                             )
                             return true
                         }
@@ -309,7 +312,7 @@ class WorldCommand(
                                         sender.sendMessage(
                                                 lang.getMessage(
                                                         sender as? Player,
-                                                        "messages.invalid_field"
+                                                        MyworldMessagesKeys.MESSAGES_INVALID_FIELD
                                                 )
                                         )
                                         return true
@@ -319,7 +322,7 @@ class WorldCommand(
                             sender.sendMessage(
                                     lang.getMessage(
                                             sender as? Player,
-                                            "messages.stats_remove_error",
+                                            MyworldMessagesKeys.MESSAGES_STATS_REMOVE_ERROR,
                                             mapOf("value" to current)
                                     )
                             )
@@ -335,7 +338,7 @@ class WorldCommand(
                         sender.sendMessage(
                                 lang.getMessage(
                                         sender as? Player,
-                                        "messages.stats_remove",
+                                        MyworldMessagesKeys.MESSAGES_STATS_REMOVE,
                                         mapOf(
                                                 "player" to PlayerNameUtil.getNameOrDefault(targetOffline.uniqueId, "不明"),
 
@@ -347,13 +350,13 @@ class WorldCommand(
                     }
                     else ->
                             sender.sendMessage(
-                                    lang.getMessage(sender as? Player, "messages.invalid_action")
+                                    lang.getMessage(sender as? Player, MyworldMessagesKeys.MESSAGES_INVALID_ACTION)
                             )
                 }
                 return true
             }
             else -> {
-                sender.sendMessage(plugin.languageManager.getMessage("error.unknown_subcommand"))
+                sender.sendMessage(plugin.languageManager.getMessage(CommonKeys.ERROR_UNKNOWN_SUBCOMMAND))
                 return true
             }
         }

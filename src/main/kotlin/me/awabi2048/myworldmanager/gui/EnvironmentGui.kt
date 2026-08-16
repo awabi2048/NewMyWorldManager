@@ -1,5 +1,10 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiSettingsKeys
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiMenuActionIntent
@@ -72,7 +77,7 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         return InventoryMenuView(
             size = layout.size,
             title = GuiHelper.inventoryTitle(
-                plugin.languageManager.getMessage(player, "gui.environment.title"),
+                plugin.languageManager.getMessage(player, MyworldGuiSettingsKeys.GUI_ENVIRONMENT_TITLE),
             ),
             elements = listOf(
                 createGravityEntry(player, worldData, layout.leftSlot),
@@ -109,7 +114,7 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
 
     private fun biome(context: MenuActionContext): MenuActionResult {
         context.player.sendMessage(
-            plugin.languageManager.getMessage(context.player, "gui.environment.biome.click_bottle_hint"),
+            plugin.languageManager.getMessage(context.player, MyworldGuiSettingsKeys.GUI_ENVIRONMENT_BIOME_CLICK_BOTTLE_HINT),
         )
         return MenuActionResult.Success(MenuUpdate.None)
     }
@@ -166,7 +171,7 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
         if (worldData.customWorldName != null) {
             return plugin.languageManager.getComponent(
                 player,
-                "messages.custom_item.biome_bottle_disabled",
+                MyworldMessagesKeys.MESSAGES_CUSTOM_ITEM_BIOME_BOTTLE_DISABLED,
             )
         }
         val isMember = player.uniqueId == worldData.owner ||
@@ -174,7 +179,7 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
             player.uniqueId in worldData.members ||
             isAdminFlow
         if (!isMember) {
-            return plugin.languageManager.getComponent(player, "error.custom_item.no_permission")
+            return plugin.languageManager.getComponent(player, CommonKeys.ERROR_CUSTOM_ITEM_NO_PERMISSION)
         }
         return null
     }
@@ -182,31 +187,31 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
     private fun createGravityEntry(player: Player, worldData: WorldData, slot: Int): MenuElement {
         val lang = plugin.languageManager
         val gravityKey = when (worldData.gravityValue ?: 0.08) {
-            0.01 -> "moon"
-            0.02 -> "mars"
-            else -> "earth"
+            0.01 -> MyworldGuiSettingsKeys.GUI_ENVIRONMENT_GRAVITY_OPTIONS_MOON
+            0.02 -> MyworldGuiSettingsKeys.GUI_ENVIRONMENT_GRAVITY_OPTIONS_MARS
+            else -> MyworldGuiSettingsKeys.GUI_ENVIRONMENT_GRAVITY_OPTIONS_EARTH
         }
-        val currentName = lang.getMessage(player, "gui.environment.gravity.options.$gravityKey")
+        val currentName = lang.getMessage(player, gravityKey)
         val cost = WorldRuntimePolicies.environmentCost(plugin.config, "gravity")
         return menuEntry(
             player,
             GuiMenuEntrySpec(
                 slot = slot,
                 material = Material.FEATHER,
-                name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.environment.gravity.display")),
+                name = GuiNameSpec.FixedLabel(lang.getComponent(player, MyworldGuiSettingsKeys.GUI_ENVIRONMENT_GRAVITY_DISPLAY)),
                 role = GuiElementRole.ACTION,
-                description = listOf(lang.getMessage(player, "gui.environment.gravity.requirement")),
+                description = listOf(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_ENVIRONMENT_GRAVITY_REQUIREMENT)),
                 data = buildList {
-                    add(GuiMenuEntryData(lang.getMessage(player, "gui.environment.gravity.current"), currentName, GuiValueTone.WARNING))
+                    add(GuiMenuEntryData(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_ENVIRONMENT_GRAVITY_CURRENT), currentName, GuiValueTone.WARNING))
                     if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
-                        add(GuiMenuEntryData(lang.getMessage(player, "gui.environment.gravity.cost"), cost, GuiValueTone.WARNING))
+                        add(GuiMenuEntryData(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_ENVIRONMENT_GRAVITY_COST), cost, GuiValueTone.WARNING))
                     }
                 },
                 actions = listOf(
                     menuGestureAction(
                         ACTION_GRAVITY,
                         MenuGesture.ANY,
-                        lang.getMessage(player, "gui.environment.gravity.action"),
+                        lang.getMessage(player, MyworldGuiSettingsKeys.GUI_ENVIRONMENT_GRAVITY_ACTION),
                         safety = MenuActionSafety.CONFIRM_ENTRY,
                     ),
                 ),
@@ -224,27 +229,27 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = Material.WHITE_WOOL,
-                name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.environment.weather.display")),
+                name = GuiNameSpec.FixedLabel(lang.getComponent(player, MyworldGuiSettingsKeys.GUI_ENVIRONMENT_WEATHER_DISPLAY)),
                 role = GuiElementRole.ACTION,
-                description = listOf(lang.getMessage(player, "gui.environment.weather.desc")),
+                description = listOf(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_ENVIRONMENT_WEATHER_DESC)),
                 data = buildList {
-                    add(GuiMenuEntryData(lang.getMessage(player, "gui.environment.weather.current"), currentWeather, GuiValueTone.INFO))
+                    add(GuiMenuEntryData(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_ENVIRONMENT_WEATHER_CURRENT), currentWeather, GuiValueTone.INFO))
                     if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
-                        add(GuiMenuEntryData(lang.getMessage(player, "gui.environment.weather.cost"), cost, GuiValueTone.WARNING))
+                        add(GuiMenuEntryData(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_ENVIRONMENT_WEATHER_COST), cost, GuiValueTone.WARNING))
                     }
                 },
                 actions = listOf(
                     menuGestureAction(
                         ACTION_WEATHER,
                         MenuGesture.LEFT,
-                        lang.getMessage(player, "gui.environment.weather.action.cycle"),
+                        lang.getMessage(player, MyworldGuiSettingsKeys.GUI_ENVIRONMENT_WEATHER_ACTION_CYCLE),
                         safety = MenuActionSafety.REVERSIBLE,
                         reversibleContract = MwmMenuActionSemantics.contract("environment-weather"),
                     ),
                     menuGestureAction(
                         ACTION_WEATHER,
                         MenuGesture.RIGHT,
-                        lang.getMessage(player, "gui.environment.weather.action.confirm"),
+                        lang.getMessage(player, MyworldGuiSettingsKeys.GUI_ENVIRONMENT_WEATHER_ACTION_CONFIRM),
                         safety = MenuActionSafety.CONFIRM_ENTRY,
                     ),
                 ),
@@ -261,23 +266,23 @@ class EnvironmentGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = Material.GRASS_BLOCK,
-                name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.environment.biome.display")),
+                name = GuiNameSpec.FixedLabel(lang.getComponent(player, MyworldGuiSettingsKeys.GUI_ENVIRONMENT_BIOME_DISPLAY)),
                 role = GuiElementRole.ACTION,
                 description = listOf(
-                    lang.getMessage(player, "gui.environment.biome.desc"),
-                    lang.getMessage(player, "gui.environment.biome.requirement"),
+                    lang.getMessage(player, MyworldGuiSettingsKeys.GUI_ENVIRONMENT_BIOME_DESC),
+                    lang.getMessage(player, MyworldGuiSettingsKeys.GUI_ENVIRONMENT_BIOME_REQUIREMENT),
                 ),
                 data = buildList {
-                    add(GuiMenuEntryData(lang.getMessage(player, "gui.environment.biome.current"), currentBiome, GuiValueTone.SUCCESS))
+                    add(GuiMenuEntryData(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_ENVIRONMENT_BIOME_CURRENT), currentBiome, GuiValueTone.SUCCESS))
                     if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
-                        add(GuiMenuEntryData(lang.getMessage(player, "gui.environment.biome.cost"), cost, GuiValueTone.WARNING))
+                        add(GuiMenuEntryData(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_ENVIRONMENT_BIOME_COST), cost, GuiValueTone.WARNING))
                     }
                 },
                 actions = listOf(
                     menuGestureAction(
                         ACTION_BIOME,
                         MenuGesture.ANY,
-                        lang.getMessage(player, "gui.environment.biome.action"),
+                        lang.getMessage(player, MyworldGuiSettingsKeys.GUI_ENVIRONMENT_BIOME_ACTION),
                         safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT,
                     ),
                 ),

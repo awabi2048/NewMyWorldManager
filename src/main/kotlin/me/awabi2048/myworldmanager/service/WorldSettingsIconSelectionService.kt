@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.service
 
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
@@ -17,7 +19,7 @@ internal class WorldSettingsIconSelectionService(private val plugin: MyWorldMana
     fun start(player: Player, worldData: WorldData): MenuActionResult {
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.SELECT_ICON)
         plugin.settingsSessionManager.getSession(player)?.beginExternalInput(MenuExternalInput.SELECT_ICON)
-        player.sendMessage(plugin.languageManager.getMessage("messages.icon_prompt"))
+        player.sendMessage(plugin.languageManager.getMessage(MyworldMessagesKeys.MESSAGES_ICON_PROMPT))
         return MenuActionResult.Success(MenuUpdate.Replace(plugin.worldSettingsGui.iconSelectionRoute(worldData.uuid)))
     }
 
@@ -27,14 +29,14 @@ internal class WorldSettingsIconSelectionService(private val plugin: MyWorldMana
         val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return MenuActionResult.Ignored
         if (clickedItem.type == Material.BLACK_STAINED_GLASS_PANE || clickedItem.type == Material.GRAY_STAINED_GLASS_PANE) {
             player.playSound(player.location, org.bukkit.Sound.BLOCK_NOTE_BLOCK_BIT, 1.0f, 0.5f)
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.icon_forbidden"))
+            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_ICON_FORBIDDEN))
             return MenuActionResult.Rejected()
         }
         worldData.icon = clickedItem.type
         plugin.worldConfigRepository.save(worldData)
         val marker = "\uE000mwm_icon\uE001"
         val name = clickedItem.effectiveName().decoration(TextDecoration.ITALIC, false)
-        player.sendMessage(plugin.languageManager.getComponent(player, "messages.icon_changed", mapOf("icon" to marker)).replaceText { it.matchLiteral(marker).replacement(name) })
+        player.sendMessage(plugin.languageManager.getComponent(player, MyworldMessagesKeys.MESSAGES_ICON_CHANGED, mapOf("icon" to marker)).replaceText { it.matchLiteral(marker).replacement(name) })
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.VIEW_SETTINGS, isGui = true)
         val restored = plugin.settingsSessionManager.getSession(player)
         val route = MyWorldManagerApi.prepareWorldSettingsRoute(player, worldData.uuid, me.awabi2048.myworldmanager.api.extension.WorldSettingsNavigationRequest(showBackButton = restored?.showBackButton ?: true, isAdminFlow = restored?.isAdminFlow ?: false, isPlayerWorldFlow = restored?.isPlayerWorldFlow, parentShowBackButton = restored?.parentShowBackButton)) ?: return MenuActionResult.Rejected()

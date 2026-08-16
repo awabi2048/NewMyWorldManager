@@ -1,5 +1,8 @@
 package me.awabi2048.myworldmanager.listener
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.event.MwmLikeSignLikeSource
 import me.awabi2048.myworldmanager.api.event.MwmLikeSignLikedEvent
@@ -40,7 +43,7 @@ class LikeSignListener(private val plugin: MyWorldManager) : Listener {
 
                 if (blockFace == BlockFace.UP) {
                     LikeSignDialogManager.startPlacementSession(player, plugin, block, blockFace, hand)
-                } else if (blockFace == BlockFace.NORTH || blockFace == BlockFace.SOUTH || 
+                } else if (blockFace == BlockFace.NORTH || blockFace == BlockFace.SOUTH ||
                            blockFace == BlockFace.EAST || blockFace == BlockFace.WEST) {
                     LikeSignDialogManager.startPlacementSession(player, plugin, block, blockFace, hand)
                 }
@@ -69,7 +72,7 @@ class LikeSignListener(private val plugin: MyWorldManager) : Listener {
             }
 
             if (plugin.likeSignManager.isOnCooldown(player.uniqueId)) {
-                player.sendMessage(plugin.languageManager.getMessage(player, "error.like_sign.cooldown"))
+                player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_LIKE_SIGN_COOLDOWN))
                 return
             }
 
@@ -92,7 +95,7 @@ class LikeSignListener(private val plugin: MyWorldManager) : Listener {
                     )
                 )
 
-                player.sendMessage(plugin.languageManager.getMessage(player, "messages.like_sign.liked"))
+                player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_LIKE_SIGN_LIKED))
                 player.playSound(player.location, Sound.ENTITY_PLAYER_LEVELUP, 0.5f, 1.5f)
                 player.world.spawnParticle(
                     org.bukkit.Particle.HEART,
@@ -127,7 +130,7 @@ class LikeSignListener(private val plugin: MyWorldManager) : Listener {
         }
 
         if (plugin.likeSignManager.isOnCooldown(player.uniqueId)) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "error.like_sign.cooldown"))
+            player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_LIKE_SIGN_COOLDOWN))
             return
         }
 
@@ -150,7 +153,7 @@ class LikeSignListener(private val plugin: MyWorldManager) : Listener {
                 )
             )
 
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.like_sign.liked"))
+            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_LIKE_SIGN_LIKED))
             player.playSound(player.location, Sound.ENTITY_PLAYER_LEVELUP, 0.5f, 1.5f)
             player.world.spawnParticle(
                 org.bukkit.Particle.HEART,

@@ -1,5 +1,8 @@
 package me.awabi2048.myworldmanager.listener
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
@@ -50,13 +53,13 @@ class AdminCommandListener {
 
         if (uuid == null) {
             player.sendMessage(
-                    plugin.languageManager.getMessage(player, "error.unlink_not_myworld")
+                    plugin.languageManager.getMessage(player, CommonKeys.ERROR_UNLINK_NOT_MYWORLD)
             )
             return
         }
 
         plugin.worldConfigRepository.delete(uuid)
-        player.sendMessage(plugin.languageManager.getMessage(player, "messages.unlink_success"))
+        player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_UNLINK_SUCCESS))
     }
 
     private fun performUpdateData(player: Player, plugin: MyWorldManager) {
@@ -99,7 +102,7 @@ class AdminCommandListener {
                             player.sendMessage(
                                     plugin.languageManager.getMessage(
                                             player,
-                                            "messages.data_update_success",
+                                            MyworldMessagesKeys.MESSAGES_DATA_UPDATE_SUCCESS,
                                             mapOf(
                                                     "world_count" to worlds.size,
                                                     "player_count" to count
@@ -178,7 +181,7 @@ class AdminCommandListener {
         player.sendMessage(
                 plugin.languageManager.getMessage(
                         player,
-                        "messages.daily_update_success",
+                        MyworldMessagesKeys.MESSAGES_DAILY_UPDATE_SUCCESS,
                         mapOf("updated" to updatedCount, "archived" to archivedCount)
                 )
         )
@@ -238,7 +241,7 @@ class AdminCommandListener {
             return
         }
 
-        player.sendMessage(plugin.languageManager.getMessage(player, "messages.export_started"))
+        player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_EXPORT_STARTED))
         plugin.worldService.exportWorld(uuid).thenAccept { file: java.io.File? ->
             Bukkit.getScheduler()
                     .runTask(
@@ -248,7 +251,7 @@ class AdminCommandListener {
                                     player.sendMessage(
                                             plugin.languageManager.getMessage(
                                                     player,
-                                                    "messages.export_success",
+                                                    MyworldMessagesKeys.MESSAGES_EXPORT_SUCCESS,
                                                     mapOf("file" to file.name)
                                             )
                                     )
@@ -256,7 +259,7 @@ class AdminCommandListener {
                                     player.sendMessage(
                                             plugin.languageManager.getMessage(
                                                     player,
-                                                    "messages.export_failed"
+                                                    MyworldMessagesKeys.MESSAGES_EXPORT_FAILED
                                             )
                                     )
                                 }
@@ -268,7 +271,7 @@ class AdminCommandListener {
     private fun performArchiveWorld(player: Player, plugin: MyWorldManager, uuid: UUID) {
         val worldData = plugin.worldConfigRepository.findByUuid(uuid) ?: return
 
-        player.sendMessage(plugin.languageManager.getMessage(player, "messages.archive_start"))
+        player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_ARCHIVE_START))
         plugin.worldService.archiveWorld(uuid).thenAccept { success: Boolean ->
             Bukkit.getScheduler()
                     .runTask(
@@ -278,7 +281,7 @@ class AdminCommandListener {
                                     player.sendMessage(
                                             plugin.languageManager.getMessage(
                                                     player,
-                                                    "messages.archive_success",
+                                                    MyworldMessagesKeys.MESSAGES_ARCHIVE_SUCCESS,
                                                     mapOf("world" to worldData.name)
                                             )
                                     )
@@ -291,7 +294,7 @@ class AdminCommandListener {
                                     player.sendMessage(
                                             plugin.languageManager.getMessage(
                                                     player,
-                                                    "messages.archive_failed"
+                                                    MyworldMessagesKeys.MESSAGES_ARCHIVE_FAILED
                                             )
                                     )
                                 }
@@ -303,7 +306,7 @@ class AdminCommandListener {
     private fun performUnarchiveWorld(player: Player, plugin: MyWorldManager, uuid: UUID) {
         val worldData = plugin.worldConfigRepository.findByUuid(uuid) ?: return
 
-        player.sendMessage(plugin.languageManager.getMessage(player, "messages.unarchive_start"))
+        player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_UNARCHIVE_START))
         plugin.worldService.unarchiveWorld(uuid).thenAccept { success: Boolean ->
             Bukkit.getScheduler()
                     .runTask(
@@ -313,7 +316,7 @@ class AdminCommandListener {
                                     player.sendMessage(
                                             plugin.languageManager.getMessage(
                                                     player,
-                                                    "messages.unarchive_success"
+                                                    MyworldMessagesKeys.MESSAGES_UNARCHIVE_SUCCESS
                                             )
                                     )
                                     plugin.worldGui.open(
@@ -325,7 +328,7 @@ class AdminCommandListener {
                                     player.sendMessage(
                                             plugin.languageManager.getMessage(
                                                     player,
-                                                    "error.unarchive_failed"
+                                                    CommonKeys.ERROR_UNARCHIVE_FAILED
                                             )
                                     )
                                 }

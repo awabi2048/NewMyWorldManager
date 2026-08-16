@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.util
 
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiCommonKeys
+
 
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiConfirmationLayout
@@ -85,11 +87,11 @@ object GuiHelper {
         lore: GuiLoreSpec,
     ): GuiItemSpec {
         val lang = plugin.languageManager
-        val worldName = lang.getMessageStrict(player, worldData.name) ?: worldData.name
+        val worldName = worldData.name
         return GuiItemSpec(
             worldData.icon,
             GuiNameSpec.TargetIdentity(
-                lang.getComponent(player, "gui.common.world_item_name", mapOf("world" to worldName))
+                lang.getComponent(player, MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_NAME, mapOf("world" to worldName))
                     .decoration(TextDecoration.ITALIC, false),
             ),
             lore,

@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.util
 
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiPortalKeys
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiLoreBlock
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
@@ -19,7 +21,7 @@ object PortalItemUtil {
     fun createBasePortalItem(lang: me.awabi2048.myworldmanager.util.LanguageManager, player: org.bukkit.entity.Player?): ItemStack {
         val item = ItemStack(Material.END_PORTAL_FRAME)
         val meta = item.itemMeta ?: return item
-        meta.displayName(lang.getComponent(player, "gui.portal_item.name"))
+        meta.displayName(lang.getComponent(player, MyworldGuiPortalKeys.GUI_PORTAL_ITEM_NAME))
         meta.lore(portalLore(lang, player, null))
         try { meta.setMaxStackSize(1) } catch (e: Exception) {}
 
@@ -79,7 +81,7 @@ object PortalItemUtil {
         val blocks = buildList {
             if (destination != null) {
                 add(GuiLoreBlock(listOf(GuiLoreLine.Data(
-                    lang.getMessage(player, "gui.portal_item.destination"),
+                    lang.getMessage(player, MyworldGuiPortalKeys.GUI_PORTAL_ITEM_DESTINATION),
                     destination,
                     "§f§n"
                 ))))
@@ -92,9 +94,9 @@ object PortalItemUtil {
                     GuiLoreLine.Interaction(
                         player,
                         MenuGesture.RIGHT,
-                        lang.getMessage(player, if (destination == null) "gui.portal_item.action.link" else "gui.portal_item.action.place")
+                        lang.getMessage(player, if (destination == null) MyworldGuiPortalKeys.GUI_PORTAL_ITEM_ACTION_LINK else MyworldGuiPortalKeys.GUI_PORTAL_ITEM_ACTION_PLACE)
                     ),
-                    GuiLoreLine.Interaction(player, MenuGesture.SHIFT_RIGHT, lang.getMessage(player, "gui.portal_item.action.unlink"))
+                    GuiLoreLine.Interaction(player, MenuGesture.SHIFT_RIGHT, lang.getMessage(player, MyworldGuiPortalKeys.GUI_PORTAL_ITEM_ACTION_UNLINK))
                 )
             )
         )

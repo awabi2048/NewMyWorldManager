@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.service
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiSettingsKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
 import com.awabi2048.ccsystem.api.gui.MenuGesture
@@ -113,7 +117,7 @@ class WorldSettingsActionService(private val plugin: MyWorldManager) {
         CCSystem.getAPI().getMenuRuntimeService().suspendForExternal(player)
         plugin.worldService.teleportToWorld(player, worldData.uuid, closeInventoryOnLoad = false) {
             if (!player.isOnline) return@teleportToWorld
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
+            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WARP_SUCCESS, mapOf("world" to worldData.name)))
             CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
         }
         return MenuActionResult.Success(MenuUpdate.None)
@@ -135,12 +139,12 @@ class WorldSettingsActionService(private val plugin: MyWorldManager) {
         runtime.suspendForExternal(player)
         val sent = plugin.floodgateFormBridge.sendSimpleForm(
             player,
-            plugin.languageManager.getMessage(player, "gui.settings.spawn.display"),
-            plugin.languageManager.getMessage(player, "gui.settings.spawn.form.content"),
+            plugin.languageManager.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_SPAWN_DISPLAY),
+            plugin.languageManager.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_SPAWN_FORM_CONTENT),
             listOf(
-                plugin.languageManager.getMessage(player, "gui.settings.spawn.type.guest"),
-                plugin.languageManager.getMessage(player, "gui.settings.spawn.type.member"),
-                plugin.languageManager.getMessage(player, "gui.common.back"),
+                plugin.languageManager.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_SPAWN_TYPE_GUEST),
+                plugin.languageManager.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_SPAWN_TYPE_MEMBER),
+                plugin.languageManager.getMessage(player, CommonKeys.GUI_COMMON_BACK),
             ),
             { index ->
                 when (index) {
@@ -165,9 +169,13 @@ class WorldSettingsActionService(private val plugin: MyWorldManager) {
         suspendRuntime: Boolean = true,
     ): MenuActionResult {
         val action = if (click.isLeftClick) SettingsAction.SET_SPAWN_GUEST else SettingsAction.SET_SPAWN_MEMBER
-        val typeKey = if (click.isLeftClick) "gui.settings.spawn.type.guest" else "gui.settings.spawn.type.member"
+        val typeKey = if (click.isLeftClick) {
+            MyworldGuiSettingsKeys.GUI_SETTINGS_SPAWN_TYPE_GUEST
+        } else {
+            MyworldGuiSettingsKeys.GUI_SETTINGS_SPAWN_TYPE_MEMBER
+        }
         val typeName = plugin.languageManager.getMessage(player, typeKey)
-        player.sendMessage(plugin.languageManager.getMessage(player, "messages.spawn_set_start", mapOf("type" to typeName)))
+        player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_SPAWN_SET_START, mapOf("type" to typeName)))
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, action)
         if (suspendRuntime) {
             CCSystem.getAPI().getMenuRuntimeService().suspendForExternal(player)

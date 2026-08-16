@@ -1,5 +1,8 @@
 package me.awabi2048.myworldmanager.service
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import com.awabi2048.ccsystem.CCSystem
 
 import java.io.File
@@ -98,7 +101,7 @@ class WorldService(
             }
         }
         if (repository.hasDisplayNameConflict(player.uniqueId, worldName)) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_name_duplicate"))
+            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_NAME_DUPLICATE))
             return false
         }
 
@@ -110,7 +113,7 @@ class WorldService(
                         worldFolderExists(worldFolderName)
         ) {
             player.sendMessage(
-                    plugin.languageManager.getMessage(player, "error.world_already_exists")
+                    plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_ALREADY_EXISTS)
             )
             return false
         }
@@ -118,7 +121,7 @@ class WorldService(
         // 作成中フラグ
         if (creatingWorlds.contains(player.uniqueId.toString())) {
             player.sendMessage(
-                    plugin.languageManager.getMessage(player, "error.world_creation_in_progress")
+                    plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_CREATION_IN_PROGRESS)
             )
             return false
         }
@@ -157,7 +160,7 @@ class WorldService(
 
             if (world == null) {
                 player.sendMessage(
-                        plugin.languageManager.getMessage(player, "error.world_creation_failed")
+                        plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_CREATION_FAILED)
                 )
                 creatingWorlds.remove(player.uniqueId.toString())
                 return false
@@ -183,7 +186,7 @@ class WorldService(
             return true
         } catch (e: Exception) {
             plugin.logger.log(Level.SEVERE, "Failed to create world: $worldName", e)
-            player.sendMessage(plugin.languageManager.getMessage(player, "error.internal_error"))
+            player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_INTERNAL_ERROR))
             repository.delete(uuid)
             cleanupFailedCreatedWorld(worldFolderName, preferredActiveWorldDirectory(worldFolderName))
             creatingWorlds.remove(player.uniqueId.toString())
@@ -222,13 +225,13 @@ class WorldService(
             }
         }
         if (repository.hasDisplayNameConflict(request.ownerUuid, request.worldName)) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_name_duplicate"))
+            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_NAME_DUPLICATE))
             future.complete(false)
             return future
         }
         val creationKey = player.uniqueId.toString()
         if (!creatingWorlds.add(creationKey)) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "error.world_creation_in_progress"))
+            player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_CREATION_IN_PROGRESS))
             future.complete(false)
             return future
         }
@@ -237,7 +240,7 @@ class WorldService(
         val folderName = "my_world.$uuid"
         try {
             if (Bukkit.getWorld(folderName) != null || worldFolderExists(folderName)) {
-                player.sendMessage(plugin.languageManager.getMessage(player, "error.world_already_exists"))
+                player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_ALREADY_EXISTS))
                 future.complete(false)
                 return future
             }
@@ -278,7 +281,7 @@ class WorldService(
             future.complete(true)
         } catch (error: Exception) {
             plugin.logger.log(Level.SEVERE, "Failed to create managed world: ${request.worldName}", error)
-            player.sendMessage(plugin.languageManager.getMessage(player, "error.internal_error"))
+            player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_INTERNAL_ERROR))
             repository.delete(uuid)
             cleanupFailedCreatedWorld(folderName, preferredActiveWorldDirectory(folderName))
             future.complete(false)
@@ -367,13 +370,13 @@ class WorldService(
             surroundingSafe
         ) ?: run {
             plugin.logger.warning("シード指定ワールド ${worldData.uuid} の安全な初回スポーン地点を見つけられませんでした")
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.seed_spawn.safe_location_not_found"))
+            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_SEED_SPAWN_SAFE_LOCATION_NOT_FOUND))
             return false
         }
 
         if (chosen != requestedPosition) {
             plugin.logger.warning("シード指定ワールド ${worldData.uuid} の危険なスポーンを ${chosen.x},${chosen.y},${chosen.z} に補正しました")
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.seed_spawn.corrected", mapOf("x" to chosen.x, "y" to chosen.y, "z" to chosen.z)))
+            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_SEED_SPAWN_CORRECTED, mapOf("x" to chosen.x, "y" to chosen.y, "z" to chosen.z)))
             val corrected = Location(world, chosen.x + 0.5, chosen.y.toDouble(), chosen.z + 0.5, requested.yaw, requested.pitch)
             worldData.spawnPosMember = corrected
             world.setSpawnLocation(chosen.x, chosen.y, chosen.z)
@@ -454,7 +457,7 @@ class WorldService(
                 player.sendMessage(
                     plugin.languageManager.getMessage(
                         player,
-                        "messages.template_creation_cost_paid",
+                        MyworldMessagesKeys.MESSAGES_TEMPLATE_CREATION_COST_PAID,
                         mapOf("cost" to cost, "remaining" to remaining)
                     )
                 )
@@ -474,7 +477,7 @@ class WorldService(
             player.sendMessage(
                     plugin.languageManager.getMessage(
                             player,
-                            "messages.world_creation_success",
+                            MyworldMessagesKeys.MESSAGES_WORLD_CREATION_SUCCESS,
                             mapOf("world" to worldName)
                     )
             )
@@ -566,25 +569,25 @@ class WorldService(
             }
         }
         if (repository.hasDisplayNameConflict(ownerUuid, worldName)) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_name_duplicate"))
+            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_NAME_DUPLICATE))
             future.complete(false)
             return future
         }
 
         val template = plugin.templateRepository.findById(templateId)
         if (template == null) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "error.preview_template_not_found"))
+            player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_PREVIEW_TEMPLATE_NOT_FOUND))
             future.complete(false)
             return future
         }
         when (plugin.templateRepository.validationIssue(template)) {
             me.awabi2048.myworldmanager.repository.TemplateRepository.ValidationIssue.MISSING_DIRECTORY -> {
-                player.sendMessage(plugin.languageManager.getMessage(player, "error.template_directory_missing"))
+                player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_TEMPLATE_DIRECTORY_MISSING))
                 future.complete(false)
                 return future
             }
             me.awabi2048.myworldmanager.repository.TemplateRepository.ValidationIssue.MISSING_ORIGIN -> {
-                player.sendMessage(plugin.languageManager.getMessage(player, "error.template_origin_missing"))
+                player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_TEMPLATE_ORIGIN_MISSING))
                 future.complete(false)
                 return future
             }
@@ -592,7 +595,7 @@ class WorldService(
         }
         val currentStats = playerStatsRepository.findByUuid(ownerUuid)
         if (currentStats.worldPoint < chargedCost) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.creation_insufficient_points"))
+            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_CREATION_INSUFFICIENT_POINTS))
             future.complete(false)
             return future
         }
@@ -604,7 +607,7 @@ class WorldService(
                         worldFolderExists(worldFolderName)
         ) {
             player.sendMessage(
-                    plugin.languageManager.getMessage(player, "error.world_already_exists")
+                    plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_ALREADY_EXISTS)
             )
             future.complete(false)
             return future
@@ -612,7 +615,7 @@ class WorldService(
 
         if (creatingWorlds.contains(player.uniqueId.toString())) {
             player.sendMessage(
-                    plugin.languageManager.getMessage(player, "error.world_creation_in_progress")
+                    plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_CREATION_IN_PROGRESS)
             )
             future.complete(false)
             return future
@@ -621,7 +624,7 @@ class WorldService(
 
         val templateFolder = plugin.worldDirectoryResolver.inspect(template.path)?.existingPath?.toFile()
         if (templateFolder == null || !templateFolder.exists() || !templateFolder.isDirectory) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "error.template_directory_missing"))
+            player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_TEMPLATE_DIRECTORY_MISSING))
             creatingWorlds.remove(player.uniqueId.toString())
             future.complete(false)
             return future
@@ -662,7 +665,7 @@ class WorldService(
                         val world = plugin.server.createWorld(creator)
 
                         if (world == null) {
-                            player.sendMessage(plugin.languageManager.getMessage(player, "error.world_creation_failed"))
+                            player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_CREATION_FAILED))
                             creatingWorlds.remove(player.uniqueId.toString())
                             cleanupFailedTemplateWorld(worldFolderName, targetFolder)
                             future.complete(false)
@@ -675,7 +678,7 @@ class WorldService(
                         if (latestStats.worldPoint < chargedCost) {
                             cleanupFailedTemplateWorld(worldFolderName, targetFolder)
                             creatingWorlds.remove(player.uniqueId.toString())
-                            player.sendMessage(plugin.languageManager.getMessage(player, "messages.creation_insufficient_points"))
+                            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_CREATION_INSUFFICIENT_POINTS))
                             future.complete(false)
                             return@Runnable
                         }
@@ -690,7 +693,7 @@ class WorldService(
                         future.complete(true)
                     } catch (e: Exception) {
                         plugin.logger.log(Level.SEVERE, "Failed to load copied world: $worldName", e)
-                        player.sendMessage(plugin.languageManager.getMessage(player, "error.internal_error"))
+                        player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_INTERNAL_ERROR))
                         repository.delete(uuid)
                         creatingWorlds.remove(player.uniqueId.toString())
                         cleanupFailedTemplateWorld(worldFolderName, targetFolder)
@@ -700,7 +703,7 @@ class WorldService(
             } catch (e: Exception) {
                 plugin.logger.log(Level.SEVERE, "Failed to copy template: ${template.id}", e)
                 Bukkit.getScheduler().runTask(plugin, Runnable {
-                    player.sendMessage(plugin.languageManager.getMessage(player, "error.template_copy_failed"))
+                    player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_TEMPLATE_COPY_FAILED))
                     creatingWorlds.remove(player.uniqueId.toString())
                     cleanupFailedTemplateWorld(worldFolderName, targetFolder)
                     future.complete(false)
@@ -858,7 +861,7 @@ class WorldService(
                     p.sendMessage(
                             plugin.languageManager.getMessage(
                                     p,
-                                    "messages.world_unloading_evacuation"
+                                    MyworldMessagesKeys.MESSAGES_WORLD_UNLOADING_EVACUATION
                             )
                     )
                 }
@@ -914,7 +917,7 @@ class WorldService(
             player.sendMessage(
                     plugin.languageManager.getMessage(
                             player,
-                            "messages.world_unloading_evacuation"
+                            MyworldMessagesKeys.MESSAGES_WORLD_UNLOADING_EVACUATION
                     )
             )
         }
@@ -1017,7 +1020,7 @@ class WorldService(
         if (plugin.worldMigrationService.isPending(worldUuid)) {
             plugin.logger.info("World warp rejected because migration is pending: $worldUuid")
             player.sendMessage(
-                plugin.languageManager.getMessage(player, "messages.migration.required")
+                plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_MIGRATION_REQUIRED)
             )
             return
         }
@@ -1025,7 +1028,7 @@ class WorldService(
             plugin.logger.info(
                 "World warp rejected while operation ${MyWorldManagerApi.getActiveWorldOperation(worldUuid)} is active: $worldUuid"
             )
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_operation_locked"))
+            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_OPERATION_LOCKED))
             return
         }
         val worldData = repository.findByUuid(worldUuid) ?: return
@@ -1040,7 +1043,7 @@ class WorldService(
             if (closeInventoryOnLoad) {
                 CCSystem.getAPI().getMenuRuntimeService().close(player)
             }
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_loading"))
+            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_LOADING))
             val loadResult = loadWorldDetailed(worldUuid)
             if (!loadResult.isSuccess) {
                 val failure = loadResult.failure ?: WorldLoadFailure.BUKKIT_LOAD_FAILED
@@ -1051,7 +1054,7 @@ class WorldService(
         }
 
         if (world == null) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "error.world_load_failed"))
+            player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_LOAD_FAILED))
             return
         }
 
@@ -1089,7 +1092,7 @@ class WorldService(
 
             // ロード待機中にアンロードされた場合やBukkitが移動を拒否した場合は、成功後処理を実行しません。
             if (Bukkit.getWorld(world.key) == null || !player.teleport(targetLoc)) {
-                player.sendMessage(plugin.languageManager.getMessage(player, "error.world_teleport_failed"))
+                player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_TELEPORT_FAILED))
                 plugin.logger.warning(
                     "World teleport did not complete: player=${player.uniqueId} world=$worldUuid reason=$reason"
                 )
@@ -1243,7 +1246,7 @@ class WorldService(
         // 期限をリセット
         val initialDays = plugin.config.getLong("default_expiration.initial_days", 90)
         worldData.expireDate = java.time.LocalDate.now().plusDays(initialDays).toString()
-        
+
         repository.save(worldData)
         future.complete(true)
         return future
@@ -1691,7 +1694,7 @@ class WorldService(
         val worlds = repository.findAll()
         var updatedCount = 0
         var archivedCount = 0
-        
+
         val today = java.time.LocalDate.now()
         val dateFormatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
@@ -1716,7 +1719,7 @@ class WorldService(
             }
             // 今日のカウントをリセット
             visitors[0] = 0
-            
+
             repository.save(worldData)
             updatedCount++
 

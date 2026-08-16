@@ -1,5 +1,8 @@
 package me.awabi2048.myworldmanager.command
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.*
@@ -23,13 +26,13 @@ class InviteCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCo
         }
         val lang = plugin.languageManager
         if (sender !is Player) {
-            sender.sendMessage(lang.getMessage("general.player_only"))
+            sender.sendMessage(lang.getMessage(CommonKeys.GENERAL_PLAYER_ONLY))
             return true
         }
 
         val player = sender
         val worldData = resolveCurrentWorldData(player) ?: run {
-            player.sendMessage(lang.getMessage(player, "messages.invite_not_in_myworld"))
+            player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_INVITE_NOT_IN_MYWORLD))
             return true
         }
 
@@ -38,7 +41,7 @@ class InviteCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCo
             worldData.moderators.contains(player.uniqueId) ||
             worldData.members.contains(player.uniqueId)
         if (!isMember) {
-            player.sendMessage(lang.getMessage(player, "messages.invite_not_member"))
+            player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_INVITE_NOT_MEMBER))
             return true
         }
 
@@ -57,14 +60,14 @@ class InviteCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCo
         val target = plugin.playerVisibilityService.resolveVisibleOnlinePlayer(player, targetName)
 
         if (target == null) {
-            player.sendMessage(lang.getMessage(player, "messages.invite_target_offline", mapOf("player" to targetName)))
+            player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_INVITE_TARGET_OFFLINE, mapOf("player" to targetName)))
             return true
         }
 
         when (val reason = InviteTargetResolver.getRejectionReason(plugin, player, worldData, target)) {
             null -> Unit
             else -> {
-                val messageKey = InviteTargetResolver.getRejectionMessageKey(reason) ?: return true
+                val messageKey = InviteTargetResolver.getRejectionMessageKey(reason)
                 player.sendMessage(lang.getMessage(player, messageKey, mapOf("player" to target.name)))
                 return true
             }
@@ -88,7 +91,7 @@ class InviteCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCo
         )
 
         // 実行者へのメッセージ送信
-        player.sendMessage(lang.getMessage(player, "messages.invite_sent_success", mapOf("player" to target.name, "world" to worldData.name)))
+        player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_INVITE_SENT_SUCCESS, mapOf("player" to target.name, "world" to worldData.name)))
 
         return true
     }
@@ -137,7 +140,7 @@ class InviteCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCo
         val latestInvite = plugin.pendingDecisionManager.getPendingEntries(player.uniqueId)
             .firstOrNull { it.type == me.awabi2048.myworldmanager.service.PendingDecisionManager.PendingType.WORLD_INVITE }
         if (latestInvite == null) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "error.invite_expired"))
+            player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_INVITE_EXPIRED))
             return
         }
         plugin.pendingInteractionGui.openDecision(player, latestInvite.id)

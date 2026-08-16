@@ -1,5 +1,6 @@
 package me.awabi2048.myworldmanager.util
 
+import com.awabi2048.ccsystem.api.localization.LocalizationKey
 import me.awabi2048.myworldmanager.MyWorldManager
 import org.bukkit.entity.Player
 import java.util.Locale
@@ -8,15 +9,19 @@ class WorldTagManager(private val plugin: MyWorldManager) {
 
     private val configuredTagIds = mutableListOf<String>()
     private val knownTagIds = linkedSetOf<String>()
+    private val localizedTagKeys = linkedMapOf<String, LocalizationKey<String>>()
 
     fun reload() {
         configuredTagIds.clear()
         knownTagIds.clear()
+        localizedTagKeys.clear()
 
         plugin.config.getStringList("world_tags")
             .mapNotNull { normalizeTagId(it) }
             .forEach { tagId ->
                 if (knownTagIds.add(tagId)) {
+                    // 運用設定由来のキーはreload時に解決し、表示処理へStringキーを持ち越しません。
+                    localizedTagKeys[tagId] = CatalogKeyResolver.worldTag(tagId)
                     configuredTagIds.add(tagId)
                 }
             }
@@ -66,17 +71,15 @@ class WorldTagManager(private val plugin: MyWorldManager) {
         val normalized = normalizeTagId(tagId) ?: return tagId
         val lang = plugin.languageManager
 
-        val fallbackKey = "world_tag.$normalized"
-        if (lang.hasKey(player, fallbackKey)) {
-            return lang.getMessage(player, fallbackKey)
-        }
-
-        return normalized.replace('_', ' ')
+        val key = localizedTagKeys[normalized]
+        // 旧データにだけ残る任意タグは翻訳キーではなくユーザーデータとして表示します。
+        return key?.let { lang.getMessage(player, it) } ?: normalized
     }
 
     private fun loadFallbackDefinitions() {
         listOf("shop", "minigame", "building", "facility", "streaming").forEach { id ->
             knownTagIds.add(id)
+            localizedTagKeys[id] = CatalogKeyResolver.worldTag(id)
             configuredTagIds.add(id)
         }
     }

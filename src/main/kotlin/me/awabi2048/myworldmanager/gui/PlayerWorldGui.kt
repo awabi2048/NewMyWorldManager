@@ -1,5 +1,14 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiAdminKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiBedrockKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiCommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiSettingsKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldPublishLevelKeys
+import com.awabi2048.ccsystem.api.localization.LocalizationKey
+
 import com.awabi2048.ccsystem.api.gui.InventoryMenuDefinition
 import com.awabi2048.ccsystem.api.gui.InventoryMenuView
 import com.awabi2048.ccsystem.api.gui.MenuActionContext
@@ -23,6 +32,7 @@ import me.awabi2048.myworldmanager.api.extension.PlayerWorldCapabilityContract
 import me.awabi2048.myworldmanager.api.extension.PlayerWorldCapabilitySubject
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsNavigationRequest
 import me.awabi2048.myworldmanager.model.PlayerStats
+import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
@@ -297,7 +307,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 return InventoryMenuView(
                         layout.size,
                         GuiHelper.inventoryTitle(
-                                plugin.languageManager.getMessage(player, "gui.player_world.title"),
+                                plugin.languageManager.getMessage(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_TITLE),
                         ),
                         elements,
                 )
@@ -390,7 +400,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
         private fun unarchive(player: Player, worldData: WorldData): MenuActionResult {
                 if (worldData.owner != player.uniqueId) {
                         player.sendMessage(
-                                plugin.languageManager.getMessage(player, "messages.archive_access_denied"),
+                                plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_ARCHIVE_ACCESS_DENIED),
                         )
                         return MenuActionResult.Rejected()
                 }
@@ -412,13 +422,13 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
 
         private fun warp(player: Player, worldData: WorldData): MenuActionResult {
                 if (Bukkit.getWorld(worldData.customWorldName ?: "my_world.${worldData.uuid}") == null) {
-                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_loading"))
+                        player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_LOADING))
                 }
                 plugin.worldService.teleportToWorld(player, worldData.uuid) {
                         player.sendMessage(
                                 plugin.languageManager.getMessage(
                                         player,
-                                        "messages.warp_success",
+                                        MyworldMessagesKeys.MESSAGES_WARP_SUCCESS,
                                         mapOf("world" to worldData.name),
                                 ),
                         )
@@ -499,8 +509,13 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 slot: Int,
         ): MenuElement {
                 val lang = plugin.languageManager
-                val ownerName = PlayerNameUtil.getNameOrDefault(world.owner, lang.getMessage(player, "general.unknown"))
-                val publishLevelName = lang.getMessage(player, "publish_level.${world.publishLevel.name.lowercase()}")
+                val ownerName = PlayerNameUtil.getNameOrDefault(world.owner, lang.getMessage(player, CommonKeys.GENERAL_UNKNOWN))
+                val publishLevelName = lang.getMessage(player, when (world.publishLevel) {
+                        PublishLevel.PUBLIC -> MyworldPublishLevelKeys.PUBLISH_LEVEL_PUBLIC
+                        PublishLevel.FRIEND -> MyworldPublishLevelKeys.PUBLISH_LEVEL_FRIEND
+                        PublishLevel.PRIVATE -> MyworldPublishLevelKeys.PUBLISH_LEVEL_PRIVATE
+                        PublishLevel.LOCKED -> MyworldPublishLevelKeys.PUBLISH_LEVEL_LOCKED
+                })
                 val favorites = world.favorite
                 val visitors = world.recentVisitors.sum()
                 val tagNames = if (world.tags.isNotEmpty()) {
@@ -520,11 +535,11 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 val daysRemaining = ChronoUnit.DAYS.between(now, expireDate)
 
                 val expiresAtValue = if (expireDate.year < 2900) {
-                        lang.getMessage(player, "gui.player_world.world_item.expires_value", mapOf("days" to daysRemaining, "date" to displayFormatter.format(expireDate)))
+                        lang.getMessage(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_WORLD_ITEM_EXPIRES_VALUE, mapOf("days" to daysRemaining, "date" to displayFormatter.format(expireDate)))
                 } else null
                 val isArchived = world.isArchived
-                val warpAction = lang.getMessage(player, "gui.player_world.world_item.warp")
-                val settingsAction = lang.getMessage(player, "gui.player_world.world_item.settings")
+                val warpAction = lang.getMessage(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_WORLD_ITEM_WARP)
+                val settingsAction = lang.getMessage(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_WORLD_ITEM_SETTINGS)
                 val isCurrentWorld = isCurrentWorld(player, world)
                 val payload = mapOf(WORLD_UUID to world.uuid.toString())
                 val ownMenu = playerUuid == player.uniqueId
@@ -534,7 +549,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                 add(menuGestureAction(
                                         ACTION_WORLD,
                                         MenuGesture.SHIFT_LEFT,
-                                        lang.getMessage(player, "gui.player_world.world_item.move_to_top"),
+                                        lang.getMessage(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_WORLD_ITEM_MOVE_TO_TOP),
                                         payload,
                                         safety = MenuActionSafety.REVERSIBLE,
                                         reversibleContract = MwmMenuActionSemantics.contract("player-world-priority"),
@@ -544,7 +559,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                 isArchived -> add(menuGestureAction(
                                         ACTION_WORLD,
                                         MenuGesture.PLAIN_LEFT,
-                                        lang.getMessage(player, "gui.unarchive_confirm.action"),
+                                        lang.getMessage(player, MyworldGuiAdminKeys.GUI_UNARCHIVE_CONFIRM_ACTION),
                                         payload,
                                         safety = MenuActionSafety.CONFIRM_ENTRY,
                                 ))
@@ -569,16 +584,16 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                 slot = slot,
                                 material = world.icon,
                                 name = GuiNameSpec.TargetIdentity(
-                                        lang.getComponent(player, "gui.common.world_item_name", mapOf("world" to world.name)),
+                                        lang.getComponent(player, MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_NAME, mapOf("world" to world.name)),
                                 ),
                                 role = if (actions.isEmpty()) GuiElementRole.CONTENT else GuiElementRole.ACTION,
                                 // Shift操作が同時に存在する場合は共通層が複数操作として扱い、単一時だけ案内を一般化します。
                                 interactionGuidance = GuiInteractionGuidance.SINGLE_ACTION_CLICK,
                                 description = listOfNotNull(world.description.takeIf(String::isNotBlank)),
                                 data = buildList {
-                                        add(GuiMenuEntryData(lang.getMessage(player, "gui.common.world_item.owner"), ownerName))
+                                        add(GuiMenuEntryData(lang.getMessage(player, MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_OWNER), ownerName))
                                         add(GuiMenuEntryData(
-                                                lang.getMessage(player, "gui.common.world_item.publish"),
+                                                lang.getMessage(player, MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_PUBLISH),
                                                 publishLevelName,
                                                 when (world.publishLevel.name) {
                                                         "PUBLIC" -> GuiValueTone.SUCCESS
@@ -586,19 +601,19 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                                         else -> GuiValueTone.DANGER
                                                 },
                                         ))
-                                        add(GuiMenuEntryData(lang.getMessage(player, "gui.common.world_item.favorite"), favorites, GuiValueTone.DANGER))
+                                        add(GuiMenuEntryData(lang.getMessage(player, MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_FAVORITE), favorites, GuiValueTone.DANGER))
                                         add(GuiMenuEntryData(
-                                                lang.getMessage(player, "gui.common.world_item.recent_visitors"),
-                                                lang.getMessage(player, "gui.common.world_item.recent_visitors_value", mapOf("count" to visitors)),
+                                                lang.getMessage(player, MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_RECENT_VISITORS),
+                                                lang.getMessage(player, MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_RECENT_VISITORS_VALUE, mapOf("count" to visitors)),
                                                 GuiValueTone.SUCCESS,
                                         ))
-                                        tagNames?.let { add(GuiMenuEntryData(lang.getMessage(player, "gui.common.world_item.tags"), it, GuiValueTone.PRIMARY)) }
+                                        tagNames?.let { add(GuiMenuEntryData(lang.getMessage(player, MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_TAGS), it, GuiValueTone.PRIMARY)) }
                                         expiresAtValue?.let {
-                                                add(GuiMenuEntryData(lang.getMessage(player, "gui.player_world.world_item.expires_at"), it))
+                                                add(GuiMenuEntryData(lang.getMessage(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_WORLD_ITEM_EXPIRES_AT), it))
                                         }
                                 },
                                 warnings = if (isArchived) {
-                                        listOf(lang.getMessage(player, "gui.player_world.world_item.expired"))
+                                        listOf(lang.getMessage(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_WORLD_ITEM_EXPIRED))
                                 } else {
                                         emptyList()
                                 },
@@ -619,14 +634,14 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         GuiMenuEntrySpec(
                                 slot = slot,
                                 material = Material.WRITABLE_BOOK,
-                                name = me.awabi2048.myworldmanager.util.fixedLabelName(lang.getMessage(player, "gui.user_settings.button.display"), GuiNameStyle.PRIMARY),
+                                name = me.awabi2048.myworldmanager.util.fixedLabelName(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_USER_SETTINGS_BUTTON_DISPLAY), GuiNameStyle.PRIMARY),
                                 role = GuiElementRole.ACTION,
-                                description = lang.getMessageList(player, "gui.user_settings.button.description"),
+                                description = lang.getMessageList(player, MyworldGuiSettingsKeys.GUI_USER_SETTINGS_BUTTON_DESCRIPTION),
                                 actions = listOf(
                                         menuGestureAction(
                                                 ACTION_SETTINGS,
                                                 MenuGesture.ANY,
-                                                lang.getMessage(player, "gui.user_settings.button.action"),
+                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_USER_SETTINGS_BUTTON_ACTION),
                                                 safety = MenuActionSafety.NAVIGATION_ONLY,
                                         ),
                                 ),
@@ -641,14 +656,14 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                         GuiMenuEntrySpec(
                                 slot = slot,
                                 material = Material.NETHER_STAR,
-                                name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.player_world.creation_button.display")),
+                                name = GuiNameSpec.FixedLabel(lang.getComponent(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_CREATION_BUTTON_DISPLAY)),
                                 role = GuiElementRole.ACTION,
-                                description = lang.getMessageList(player, "gui.player_world.creation_button.description"),
+                                description = lang.getMessageList(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_CREATION_BUTTON_DESCRIPTION),
                                 actions = listOf(
                                         menuGestureAction(
                                                 ACTION_CREATE,
                                                 MenuGesture.ANY,
-                                                lang.getMessage(player, "gui.player_world.creation_button.action"),
+                                                lang.getMessage(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_CREATION_BUTTON_ACTION),
                                                 safety = MenuActionSafety.NAVIGATION_ONLY,
                                         ),
                                 ),
@@ -709,11 +724,11 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                         GuiLoreBlock(
                                                 listOf(
                                                         GuiLoreLine.Data(
-                                                                lang.getMessage(player, "gui.player_world.stats_button.points_label"),
+                                                                lang.getMessage(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_STATS_BUTTON_POINTS_LABEL),
                                                                 "$pointIcon${stats.worldPoint}",
                                                                 "§6",
                                                         ),
-                                                        GuiLoreLine.Text(lang.getMessage(player, "gui.player_world.stats_button.points_description")),
+                                                        GuiLoreLine.Text(lang.getMessage(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_STATS_BUTTON_POINTS_DESCRIPTION)),
                                                 ),
                                         ),
                                 )
@@ -724,20 +739,20 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                                 if (bypassLimits) {
                                                         listOf(
                                                                 GuiLoreLine.Data(
-                                                                        lang.getMessage(player, "gui.player_world.stats_button.world_count_label"),
+                                                                        lang.getMessage(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_STATS_BUTTON_WORLD_COUNT_LABEL),
                                                                         currentCreateCount,
                                                                         "§a§l",
                                                                 ),
-                                                                GuiLoreLine.Text(lang.getMessage(player, "gui.player_world.stats_button.slots_bypass_description")),
+                                                                GuiLoreLine.Text(lang.getMessage(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_STATS_BUTTON_SLOTS_BYPASS_DESCRIPTION)),
                                                         )
                                                 } else {
                                                         listOf(
                                                                 GuiLoreLine.Data(
-                                                                        lang.getMessage(player, "gui.player_world.stats_button.slots_label"),
+                                                                        lang.getMessage(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_STATS_BUTTON_SLOTS_LABEL),
                                                                         "$currentCreateCount/$maxSlot",
                                                                         "§a§l",
                                                                 ),
-                                                                GuiLoreLine.Text(lang.getMessage(player, "gui.player_world.stats_button.slots_description")),
+                                                                GuiLoreLine.Text(lang.getMessage(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_STATS_BUTTON_SLOTS_DESCRIPTION)),
                                                         )
                                                 },
                                         ),
@@ -747,7 +762,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                         GuiLoreBlock(
                                                 listOf(
                                                         GuiLoreLine.Data(
-                                                                lang.getMessage(player, "gui.player_world.stats_button.world_count_label"),
+                                                                lang.getMessage(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_STATS_BUTTON_WORLD_COUNT_LABEL),
                                                                 currentCreateCount,
                                                                 "§a§l",
                                                         ),
@@ -764,13 +779,13 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                         GuiNameSpec.FixedLabel(
                                                 lang.getComponent(
                                                         player,
-                                                        "gui.player_world.stats_button.display",
+                                                        MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_STATS_BUTTON_DISPLAY,
                                                         mapOf(
                                                                 "player" to (
                                                                         targetPlayerName
                                                                                 ?: PlayerNameUtil.getNameOrDefault(
                                                                                         targetPlayerUuid,
-                                                                                        lang.getMessage(player, "general.unknown"),
+                                                                                        lang.getMessage(player, CommonKeys.GENERAL_UNKNOWN),
                                                                                 )
                                                                         ),
                                                         ),
@@ -786,7 +801,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
         }
 
         private fun navigationEntry(player: Player, slot: Int, next: Boolean, targetPage: Int): MenuElement {
-                val key = if (next) "gui.common.next_page" else "gui.common.prev_page"
+                val key = if (next) CommonKeys.GUI_COMMON_NEXT_PAGE else CommonKeys.GUI_COMMON_PREV_PAGE
                 val iconId = if (next) "next_page" else "prev_page"
                 return CCSystem.getAPI().getGuiElementService().menuEntry(
                         player,
@@ -825,23 +840,23 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                         .withZone(ZoneId.systemDefault())
                                         .format(Instant.ofEpochMilli(it))
                         }
-                        ?: lang.getMessage(player, "gui.player_world.pending_button.none")
+                        ?: lang.getMessage(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_PENDING_BUTTON_NONE)
                 return CCSystem.getAPI().getGuiElementService().menuEntry(
                         player,
                         GuiMenuEntrySpec(
                                 slot = slot,
                                 material = Material.WRITABLE_BOOK,
-                                name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.player_world.pending_button.display")),
+                                name = GuiNameSpec.FixedLabel(lang.getComponent(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_PENDING_BUTTON_DISPLAY)),
                                 role = GuiElementRole.ACTION,
-                                description = lang.getMessageList(player, "gui.player_world.pending_button.description"),
+                                description = lang.getMessageList(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_PENDING_BUTTON_DESCRIPTION),
                                 data = listOf(
                                         GuiMenuEntryData(
-                                                lang.getMessage(player, "gui.player_world.pending_button.count_label"),
+                                                lang.getMessage(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_PENDING_BUTTON_COUNT_LABEL),
                                                 pendingCount,
                                                 if (pendingCount > 0) GuiValueTone.PRIMARY else GuiValueTone.MUTED,
                                         ),
                                         GuiMenuEntryData(
-                                                lang.getMessage(player, "gui.player_world.pending_button.latest_label"),
+                                                lang.getMessage(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_PENDING_BUTTON_LATEST_LABEL),
                                                 latestPendingText,
                                                 GuiValueTone.INFO,
                                         ),
@@ -850,7 +865,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                         menuGestureAction(
                                                 ACTION_PENDING,
                                                 MenuGesture.ANY,
-                                                lang.getMessage(player, "gui.player_world.pending_button.action"),
+                                                lang.getMessage(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_PENDING_BUTTON_ACTION),
                                                 safety = MenuActionSafety.NAVIGATION_ONLY,
                                         ),
                                 ),
@@ -868,18 +883,21 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 }
         }
 
-        private enum class CreationBlockReason(val displayKey: String, val loreKey: String) {
+        private enum class CreationBlockReason(
+                val displayKey: LocalizationKey<String>,
+                val loreKey: LocalizationKey<List<String>>,
+        ) {
                 POLICY_DENIED(
-                        "gui.player_world.creation_unavailable.policy_denied.display",
-                        "gui.player_world.creation_unavailable.policy_denied.lore"
+                        MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_CREATION_UNAVAILABLE_POLICY_DENIED_DISPLAY,
+                        MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_CREATION_UNAVAILABLE_POLICY_DENIED_LORE,
                 ),
                 NO_SLOT(
-                        "gui.player_world.creation_unavailable.no_slot.display",
-                        "gui.player_world.creation_unavailable.no_slot.lore"
+                        MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_CREATION_UNAVAILABLE_NO_SLOT_DISPLAY,
+                        MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_CREATION_UNAVAILABLE_NO_SLOT_LORE,
                 ),
                 NO_PERMISSION(
-                        "gui.player_world.creation_unavailable.no_permission.display",
-                        "gui.player_world.creation_unavailable.no_permission.lore"
+                        MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_CREATION_UNAVAILABLE_NO_PERMISSION_DISPLAY,
+                        MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_CREATION_UNAVAILABLE_NO_PERMISSION_LORE,
                 )
         }
 

@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiMeetKeys
+
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
@@ -17,7 +19,7 @@ import me.awabi2048.myworldmanager.util.GuiSpecFactory
 class MemberRequestConfirmGui(private val plugin: MyWorldManager) {
     fun open(player: Player, worldData: WorldData) {
         val lang = plugin.languageManager
-        val worldName = lang.getMessageStrict(player, worldData.name) ?: worldData.name
+        val worldName = worldData.name
         val worldItem = GuiHelper.createContextWorldIconItem(
             plugin,
             player,
@@ -25,20 +27,20 @@ class MemberRequestConfirmGui(private val plugin: MyWorldManager) {
             me.awabi2048.myworldmanager.util.semanticLore(
                 lang.getMessageList(
                     player,
-                    "gui.member_request_confirm.lore",
+                    MyworldGuiMeetKeys.GUI_MEMBER_REQUEST_CONFIRM_LORE,
                     mapOf("world" to worldName),
                 ).map(GuiLoreLine::Warning),
                 GuiLoreFrame.BOTH,
             ),
         )
-        val confirmLabel = lang.getMessage(player, "gui.member_request_confirm.confirm")
-        val cancelLabel = lang.getMessage(player, "gui.member_request_confirm.cancel")
+        val confirmLabel = lang.getMessage(player, MyworldGuiMeetKeys.GUI_MEMBER_REQUEST_CONFIRM_CONFIRM)
+        val cancelLabel = lang.getMessage(player, MyworldGuiMeetKeys.GUI_MEMBER_REQUEST_CONFIRM_CANCEL)
         val confirmItem = GuiSpecFactory.spec(Material.LIME_CONCRETE, confirmLabel, GuiLoreSpec.None, GuiElementRole.CONFIRM)
         val cancelItem = GuiSpecFactory.spec(Material.RED_CONCRETE, cancelLabel, GuiLoreSpec.None, GuiElementRole.CANCEL)
         plugin.confirmationMenuGui.open(
             player = player,
             menuId = "member_request",
-            title = GuiHelper.inventoryTitle(lang.getMessage(player, "gui.member_request_confirm.title")),
+            title = GuiHelper.inventoryTitle(lang.getMessage(player, MyworldGuiMeetKeys.GUI_MEMBER_REQUEST_CONFIRM_TITLE)),
             centerItem = worldItem,
             confirmItem = confirmItem,
             cancelItem = cancelItem,

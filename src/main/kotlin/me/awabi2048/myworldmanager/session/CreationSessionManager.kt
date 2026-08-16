@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.session
 
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import com.awabi2048.ccsystem.CCSystem
 
 import me.awabi2048.myworldmanager.MyWorldManager
@@ -77,9 +79,9 @@ class CreationSessionManager(private val plugin: MyWorldManager) {
     }
 
     fun updateSession(playerId: UUID, updater: (WorldCreationSession) -> Unit) {
-        sessions[playerId]?.let { 
+        sessions[playerId]?.let {
             it.touch()
-            updater(it) 
+            updater(it)
         }
     }
 
@@ -109,7 +111,7 @@ class CreationSessionManager(private val plugin: MyWorldManager) {
                 val player = Bukkit.getPlayer(playerId)
                 if (player != null && player.isOnline) {
                     CCSystem.getAPI().getMenuRuntimeService().close(player)
-                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.creation_timeout"))
+                    player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_CREATION_TIMEOUT))
                 }
             }
         }, 20L * 60, 20L * 60) // 1分ごと

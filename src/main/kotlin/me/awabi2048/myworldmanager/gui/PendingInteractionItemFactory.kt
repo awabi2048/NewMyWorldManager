@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiCommonKeys
+import com.awabi2048.ccsystem.api.localization.LocalizationKey
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.service.PendingDecisionManager
 import com.awabi2048.ccsystem.CCSystem
@@ -115,26 +119,26 @@ object PendingInteractionItemFactory {
     ): GuiMenuEntrySpec {
         val lang = plugin.languageManager
         val subject = Bukkit.getOfflinePlayer(subjectUuid)
-        val subjectName = PlayerNameUtil.getNameOrDefault(subjectUuid, lang.getMessage(viewer, "general.unknown"))
+        val subjectName = PlayerNameUtil.getNameOrDefault(subjectUuid, lang.getMessage(viewer, CommonKeys.GENERAL_UNKNOWN))
         return GuiMenuEntrySpec(
             slot = slot,
             material = org.bukkit.Material.PLAYER_HEAD,
             name = GuiNameSpec.TargetIdentity(
                 lang.getComponent(
                     viewer,
-                    "gui.pending_list.item.name",
+                    MyworldGuiCommonKeys.GUI_PENDING_LIST_ITEM_NAME,
                     mapOf("player" to subjectName, "type" to typeLabel(plugin, viewer, type)),
                 ),
             ),
             role = if (showAction) GuiElementRole.ACTION else GuiElementRole.CONTENT,
             data = listOf(
-                GuiMenuEntryData(lang.getMessage(viewer, "gui.pending_list.item.type_label"), typeLabel(plugin, viewer, type), GuiValueTone.PRIMARY),
-                GuiMenuEntryData(lang.getMessage(viewer, "gui.pending_list.item.world_label"), worldName, GuiValueTone.SUCCESS),
+                GuiMenuEntryData(lang.getMessage(viewer, MyworldGuiCommonKeys.GUI_PENDING_LIST_ITEM_TYPE_LABEL), typeLabel(plugin, viewer, type), GuiValueTone.PRIMARY),
+                GuiMenuEntryData(lang.getMessage(viewer, MyworldGuiCommonKeys.GUI_PENDING_LIST_ITEM_WORLD_LABEL), worldName, GuiValueTone.SUCCESS),
                 GuiMenuEntryData(
-                    lang.getMessage(viewer, "gui.pending_list.item.status_label"),
-                    lang.getMessage(viewer, if (subject.isOnline) "gui.pending_list.item.status_online" else "gui.pending_list.item.status_offline"),
+                    lang.getMessage(viewer, MyworldGuiCommonKeys.GUI_PENDING_LIST_ITEM_STATUS_LABEL),
+                    lang.getMessage(viewer, if (subject.isOnline) MyworldGuiCommonKeys.GUI_PENDING_LIST_ITEM_STATUS_ONLINE else MyworldGuiCommonKeys.GUI_PENDING_LIST_ITEM_STATUS_OFFLINE),
                 ),
-                GuiMenuEntryData(lang.getMessage(viewer, "gui.pending_list.item.received_label"), formatDateTime(plugin, viewer, createdAt)),
+                GuiMenuEntryData(lang.getMessage(viewer, MyworldGuiCommonKeys.GUI_PENDING_LIST_ITEM_RECEIVED_LABEL), formatDateTime(plugin, viewer, createdAt)),
             ),
             actions = if (showAction) {
                 listOf(
@@ -157,14 +161,14 @@ object PendingInteractionItemFactory {
     private fun actionLineKey(
         actionMode: PendingInteractionActionMode,
         type: PendingDecisionManager.PendingType
-    ): String {
+    ): LocalizationKey<String> {
         return when (actionMode) {
-            PendingInteractionActionMode.REVIEW -> "gui.pending_list.item.action_review"
+            PendingInteractionActionMode.REVIEW -> MyworldGuiCommonKeys.GUI_PENDING_LIST_ITEM_ACTION_REVIEW
             PendingInteractionActionMode.CANCEL -> {
                 if (type == PendingDecisionManager.PendingType.MEMBER_REQUEST) {
-                    "gui.pending_list.item.action_review_request"
+                    MyworldGuiCommonKeys.GUI_PENDING_LIST_ITEM_ACTION_REVIEW_REQUEST
                 } else {
-                    "gui.pending_list.item.action_cancel"
+                    MyworldGuiCommonKeys.GUI_PENDING_LIST_ITEM_ACTION_CANCEL
                 }
             }
         }
@@ -172,11 +176,11 @@ object PendingInteractionItemFactory {
 
     private fun typeLabel(plugin: MyWorldManager, viewer: Player, type: PendingDecisionManager.PendingType): String {
         return when (type) {
-            PendingDecisionManager.PendingType.WORLD_INVITE -> plugin.languageManager.getMessage(viewer, "gui.pending_list.type.world_invite")
-            PendingDecisionManager.PendingType.MEMBER_INVITE -> plugin.languageManager.getMessage(viewer, "gui.pending_list.type.member_invite")
-            PendingDecisionManager.PendingType.MEMBER_REQUEST -> plugin.languageManager.getMessage(viewer, "gui.pending_list.type.member_request")
-            PendingDecisionManager.PendingType.MEET_REQUEST -> plugin.languageManager.getMessage(viewer, "gui.pending_list.type.meet_request")
-            PendingDecisionManager.PendingType.VISIT_REQUEST -> plugin.languageManager.getMessage(viewer, "gui.pending_list.type.visit_request")
+            PendingDecisionManager.PendingType.WORLD_INVITE -> plugin.languageManager.getMessage(viewer, MyworldGuiCommonKeys.GUI_PENDING_LIST_TYPE_WORLD_INVITE)
+            PendingDecisionManager.PendingType.MEMBER_INVITE -> plugin.languageManager.getMessage(viewer, MyworldGuiCommonKeys.GUI_PENDING_LIST_TYPE_MEMBER_INVITE)
+            PendingDecisionManager.PendingType.MEMBER_REQUEST -> plugin.languageManager.getMessage(viewer, MyworldGuiCommonKeys.GUI_PENDING_LIST_TYPE_MEMBER_REQUEST)
+            PendingDecisionManager.PendingType.MEET_REQUEST -> plugin.languageManager.getMessage(viewer, MyworldGuiCommonKeys.GUI_PENDING_LIST_TYPE_MEET_REQUEST)
+            PendingDecisionManager.PendingType.VISIT_REQUEST -> plugin.languageManager.getMessage(viewer, MyworldGuiCommonKeys.GUI_PENDING_LIST_TYPE_VISIT_REQUEST)
         }
     }
 

@@ -1,11 +1,15 @@
 package me.awabi2048.myworldmanager.listener
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.util.BiomeResolver
 import me.awabi2048.myworldmanager.util.CustomItem
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
+import me.awabi2048.myworldmanager.util.CatalogKeyResolver
 import net.kyori.adventure.text.Component
 import org.bukkit.Material
 import org.bukkit.Sound
@@ -72,8 +76,8 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
                  }
 
                  player.playSound(player.location, Sound.ITEM_BOTTLE_FILL, 1.0f, 1.0f)
-                 val biomeName = plugin.languageManager.getMessage(player, "biomes.$biomeId")
-                 player.sendMessage(plugin.languageManager.getMessage(player, "messages.custom_item.bottle_fill", mapOf("biome" to biomeName)))
+                 val biomeName = plugin.languageManager.getMessage(player, CatalogKeyResolver.biome(biomeId))
+                 player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_CUSTOM_ITEM_BOTTLE_FILL, mapOf("biome" to biomeName)))
             }
         }
 
@@ -85,7 +89,7 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
                 // Correct World Check
                 val worldName = player.world.name
                 if (!worldName.startsWith("my_world.")) {
-                    player.sendMessage(plugin.languageManager.getMessage(player, "error.custom_item.biome_world_only"))
+                    player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_CUSTOM_ITEM_BIOME_WORLD_ONLY))
                     return
                 }
 
@@ -109,7 +113,7 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
 
                 // Permission Check (Owner or Moderator)
                 if (worldData.owner != player.uniqueId && !worldData.moderators.contains(player.uniqueId) && !player.hasPermission("myworldmanager.admin")) {
-                    player.sendMessage(plugin.languageManager.getMessage(player, "error.custom_item.no_permission"))
+                    player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_CUSTOM_ITEM_NO_PERMISSION))
                     return
                 }
 
@@ -154,8 +158,8 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
                 player.playSound(player.location, Sound.ITEM_BOTTLE_FILL, 1.0f, 0.5f) // Open sound pitch lower
                 player.world.spawnParticle(org.bukkit.Particle.CLOUD, player.location, 50, 2.0, 1.0, 2.0, 0.1)
 
-                val biomeName = plugin.languageManager.getMessage(player, "biomes.${biomeId.lowercase()}")
-                player.sendMessage(plugin.languageManager.getMessage(player, "messages.custom_item.partial_biome_applied", mapOf("biome" to biomeName)))
+                val biomeName = plugin.languageManager.getMessage(player, CatalogKeyResolver.biome(biomeId))
+                player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_CUSTOM_ITEM_PARTIAL_BIOME_APPLIED, mapOf("biome" to biomeName)))
 
                 // Consume Item
                  item.amount -= 1
@@ -173,7 +177,7 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
                   event.isCancelled = true
                   if (!me.awabi2048.myworldmanager.api.MyWorldManagerApi.isWorldSlotSystemEnabled()) {
                       // 定義・配布は維持しますが、スロット機能が無効な環境では使用だけを拒否します。
-                      player.sendMessage(plugin.languageManager.getMessage(player, "error.custom_item.world_seed_disabled"))
+                      player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_CUSTOM_ITEM_WORLD_SEED_DISABLED))
                       return
                   }
 
@@ -185,7 +189,7 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
                  val limit = WorldRuntimePolicies.maxWorldSlotLimit(plugin.config)
 
                  if (!bypassLimits && currentSlots >= limit) {
-                     player.sendMessage(plugin.languageManager.getMessage(player, "error.custom_item.world_seed_limit_reached", mapOf("limit" to limit)))
+                     player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_CUSTOM_ITEM_WORLD_SEED_LIMIT_REACHED, mapOf("limit" to limit)))
                      player.playSound(player.location, Sound.BLOCK_NOTE_BLOCK_BASS, 1.0f, 0.5f)
                      return
                  }

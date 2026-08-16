@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiAdminKeys
+import com.awabi2048.ccsystem.api.localization.LocalizationKey
+
 import me.awabi2048.myworldmanager.util.descriptionLine
 import me.awabi2048.myworldmanager.util.warningLine
 import me.awabi2048.myworldmanager.util.dangerLine
@@ -42,7 +46,6 @@ import org.bukkit.inventory.ItemStack
 import java.util.UUID
 
 class AdminCommandGui(private val plugin: MyWorldManager) {
-    private val titleKey = "gui.admin_menu.title"
     private val runtime = CCSystem.getAPI().getMenuRuntimeService()
 
     init {
@@ -112,33 +115,33 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         val elements = mutableListOf<MenuElement>()
         elements += actionElement(19, createActionItem(player,
             Material.COMMAND_BLOCK,
-            lang.getMessage(player, "gui.admin_menu.update_data.display"),
-            textLore(player, "gui.admin_menu.update_data.lore"),
-            lang.getMessage(player, "gui.admin_menu.update_data.action"),
+            lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_UPDATE_DATA_DISPLAY),
+            textLore(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_UPDATE_DATA_LORE),
+            lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_UPDATE_DATA_ACTION),
             ItemTag.TYPE_GUI_ADMIN_UPDATE_DATA
         ), ACTION_UPDATE_DATA)
 
         elements += actionElement(20, createActionItem(player,
             Material.ANVIL,
-            lang.getMessage(player, "gui.admin_menu.repair_templates.display"),
-            textLore(player, "gui.admin_menu.repair_templates.lore"),
-            lang.getMessage(player, "gui.admin_menu.repair_templates.action"),
+            lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_REPAIR_TEMPLATES_DISPLAY),
+            textLore(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_REPAIR_TEMPLATES_LORE),
+            lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_REPAIR_TEMPLATES_ACTION),
             ItemTag.TYPE_GUI_ADMIN_REPAIR_TEMPLATES
         ), ACTION_REPAIR_TEMPLATES)
 
         elements += actionElement(21, createActionItem(player,
             Material.CRAFTING_TABLE,
-            lang.getMessage(player, "gui.admin_menu.create_template.display"),
-            textLore(player, "gui.admin_menu.create_template.lore"),
-            lang.getMessage(player, "gui.admin_menu.create_template.action"),
+            lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_CREATE_TEMPLATE_DISPLAY),
+            textLore(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_CREATE_TEMPLATE_LORE),
+            lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_CREATE_TEMPLATE_ACTION),
             ItemTag.TYPE_GUI_ADMIN_CREATE_TEMPLATE
         ), ACTION_CREATE_TEMPLATE)
 
         elements += actionElement(23, createActionItem(player,
             Material.CHEST,
-            lang.getMessage(player, "gui.admin_menu.archive.display"),
-            textLore(player, "gui.admin_menu.archive.lore"),
-            lang.getMessage(player, "gui.admin_menu.archive.action"),
+            lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_ARCHIVE_DISPLAY),
+            textLore(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_ARCHIVE_LORE),
+            lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_ARCHIVE_ACTION),
             ItemTag.TYPE_GUI_ADMIN_ARCHIVE_ALL
         ), ACTION_ARCHIVE_ALL)
 
@@ -148,18 +151,18 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         if (isMyWorld) {
             elements += actionElement(24, createActionItem(player,
                 Material.LEAD,
-                lang.getMessage(player, "gui.admin_menu.unlink.display"),
-                textLore(player, "gui.admin_menu.unlink.lore"),
-                lang.getMessage(player, "gui.admin_menu.unlink.action"),
+                lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_UNLINK_DISPLAY),
+                textLore(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_UNLINK_LORE),
+                lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_UNLINK_ACTION),
                 ItemTag.TYPE_GUI_ADMIN_UNLINK
             ), ACTION_UNLINK)
         } else {
             elements += actionElement(24, createDualActionItem(player,
                 Material.WRITABLE_BOOK,
-                lang.getMessage(player, "gui.admin_menu.convert.display"),
-                textLore(player, "gui.admin_menu.convert.lore"),
-                lang.getMessage(player, "gui.admin_menu.convert.action.normal"),
-                lang.getMessage(player, "gui.admin_menu.convert.action.admin"),
+                lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_CONVERT_DISPLAY),
+                textLore(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_CONVERT_LORE),
+                lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_CONVERT_ACTION_NORMAL),
+                lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_CONVERT_ACTION_ADMIN),
                 ItemTag.TYPE_GUI_ADMIN_CONVERT
             ), ACTION_CONVERT)
         }
@@ -167,32 +170,32 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         if (isMyWorld) {
             elements += actionElement(25, createActionItem(player,
                 Material.DISPENSER,
-                lang.getMessage(player, "gui.admin_menu.export.display"),
-                textLore(player, "gui.admin_menu.export.lore"),
-                lang.getMessage(player, "gui.admin_menu.export.action"),
+                lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_EXPORT_DISPLAY),
+                textLore(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_EXPORT_LORE),
+                lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_EXPORT_ACTION),
                 ItemTag.TYPE_GUI_ADMIN_EXPORT
             ), ACTION_EXPORT)
         } else {
             val loreLines = mutableListOf<GuiLoreLine>()
-            lang.getMessageList(player, "gui.admin_menu.export.lore").forEach { line ->
+            lang.getMessageList(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_EXPORT_LORE).forEach { line ->
                 val trimmed = line.trim()
                 if (trimmed.isEmpty()) loreLines.add(GuiLoreLine.Spacer) else loreLines.add(GuiLoreLine.Text(trimmed))
             }
             loreLines.add(GuiLoreLine.Spacer)
-            loreLines.add(GuiLoreLine.Warning(lang.getMessage(player, "gui.admin_menu.export.unavailable_warning")))
+            loreLines.add(GuiLoreLine.Warning(lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_EXPORT_UNAVAILABLE_WARNING)))
             elements += CCSystem.getAPI().getGuiElementService().menuDisplay(
                 GuiMenuDisplaySpec(
                     25,
                     GuiItemSpec(
                         Material.BARRIER,
                         me.awabi2048.myworldmanager.util.fixedLabelName(
-                            lang.getMessage(player, "gui.admin_menu.export.display"),
+                            lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_EXPORT_DISPLAY),
                             com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT,
                         ),
                         GuiLoreSpec.Blocks(
                             listOf(
                                 GuiLoreBlock(loreLines.filterIsInstance<GuiLoreLine.Text>()),
-                                GuiLoreBlock(listOf(GuiLoreLine.Warning(lang.getMessage(player, "gui.admin_menu.export.unavailable_warning")))),
+                                GuiLoreBlock(listOf(GuiLoreLine.Warning(lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_EXPORT_UNAVAILABLE_WARNING)))),
                             ),
                         ),
                         GuiElementRole.CONTENT,
@@ -211,9 +214,9 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         } else {
             actionElement(38, createActionItem(player,
                 Material.FILLED_MAP,
-                lang.getMessage(player, "gui.admin_menu.info.display"),
-                textLore(player, "gui.admin_menu.info.lore"),
-                lang.getMessage(player, "gui.admin_menu.info.action"),
+                lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_INFO_DISPLAY),
+                textLore(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_INFO_LORE),
+                lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_INFO_ACTION),
                 ItemTag.TYPE_GUI_ADMIN_INFO
             ), ACTION_INFO)
         }
@@ -231,7 +234,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
                     GuiItemSpec(
                         Material.NETHER_STAR,
                         me.awabi2048.myworldmanager.util.fixedLabelName(
-                            lang.getMessage(player, "gui.admin_menu.plugin_info.display"),
+                            lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_PLUGIN_INFO_DISPLAY),
                             com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT,
                         ),
                         GuiLoreSpec.Blocks(
@@ -239,7 +242,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
                                 GuiLoreBlock(
                                     textLore(
                                         player,
-                                        "gui.admin_menu.plugin_info.lore",
+                                        MyworldGuiAdminKeys.GUI_ADMIN_MENU_PLUGIN_INFO_LORE,
                                         mapOf("version" to plugin.pluginMeta.version, "author" to "awabi2048"),
                                     ),
                                 ),
@@ -254,15 +257,15 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
 
         elements += actionElement(42, createActionItem(player,
             Material.END_PORTAL_FRAME,
-            lang.getMessage(player, "gui.admin_menu.portals.display"),
-            textLore(player, "gui.admin_menu.portals.lore"),
-            lang.getMessage(player, "gui.admin_menu.portals.action"),
+            lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_PORTALS_DISPLAY),
+            textLore(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_PORTALS_LORE),
+            lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_PORTALS_ACTION),
             ItemTag.TYPE_GUI_ADMIN_PORTALS
         ), ACTION_PORTALS)
 
         return InventoryMenuView(
             size = 45,
-            title = GuiHelper.inventoryTitle(lang.getComponent(player, titleKey)),
+            title = GuiHelper.inventoryTitle(lang.getComponent(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_TITLE)),
             elements = elements,
         )
     }
@@ -457,21 +460,21 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         val confirmation = confirmationFrom(route)
         val action = confirmation.action
         val titleKey = when (action) {
-            SettingsAction.ADMIN_CONVERT_NORMAL_CONFIRM -> "gui.admin_menu.convert.confirm_normal"
-            SettingsAction.ADMIN_CONVERT_ADMIN_CONFIRM -> "gui.admin_menu.convert.confirm_admin"
-            SettingsAction.ADMIN_EXPORT_CONFIRM -> "gui.admin_menu.export.confirm_title"
-            SettingsAction.ADMIN_ARCHIVE_ALL_CONFIRM -> "gui.admin_menu.archive.confirm_title"
-            SettingsAction.ADMIN_UPDATE_DATA_CONFIRM -> "gui.admin_menu.update_data.confirm_title"
-            SettingsAction.ADMIN_UNLINK_CONFIRM -> "gui.admin_menu.unlink.confirm_title"
-            SettingsAction.ADMIN_REPAIR_TEMPLATES_CONFIRM -> "gui.admin_menu.repair_templates.confirm_title"
-            SettingsAction.ADMIN_ARCHIVE_WORLD_CONFIRM -> "gui.admin_menu.archive_world.confirm_title"
-            SettingsAction.ADMIN_UNARCHIVE_WORLD_CONFIRM -> "gui.admin_menu.unarchive_world.confirm_title"
+            SettingsAction.ADMIN_CONVERT_NORMAL_CONFIRM -> MyworldGuiAdminKeys.GUI_ADMIN_MENU_CONVERT_CONFIRM_NORMAL
+            SettingsAction.ADMIN_CONVERT_ADMIN_CONFIRM -> MyworldGuiAdminKeys.GUI_ADMIN_MENU_CONVERT_CONFIRM_ADMIN
+            SettingsAction.ADMIN_EXPORT_CONFIRM -> MyworldGuiAdminKeys.GUI_ADMIN_MENU_EXPORT_CONFIRM_TITLE
+            SettingsAction.ADMIN_ARCHIVE_ALL_CONFIRM -> MyworldGuiAdminKeys.GUI_ADMIN_MENU_ARCHIVE_CONFIRM_TITLE
+            SettingsAction.ADMIN_UPDATE_DATA_CONFIRM -> MyworldGuiAdminKeys.GUI_ADMIN_MENU_UPDATE_DATA_CONFIRM_TITLE
+            SettingsAction.ADMIN_UNLINK_CONFIRM -> MyworldGuiAdminKeys.GUI_ADMIN_MENU_UNLINK_CONFIRM_TITLE
+            SettingsAction.ADMIN_REPAIR_TEMPLATES_CONFIRM -> MyworldGuiAdminKeys.GUI_ADMIN_MENU_REPAIR_TEMPLATES_CONFIRM_TITLE
+            SettingsAction.ADMIN_ARCHIVE_WORLD_CONFIRM -> MyworldGuiAdminKeys.GUI_ADMIN_MENU_ARCHIVE_WORLD_CONFIRM_TITLE
+            SettingsAction.ADMIN_UNARCHIVE_WORLD_CONFIRM -> MyworldGuiAdminKeys.GUI_ADMIN_MENU_UNARCHIVE_WORLD_CONFIRM_TITLE
             else -> error("管理確認画面ではないアクションです: $action")
         }
         val extraInfo = when (action) {
             SettingsAction.ADMIN_EXPORT_CONFIRM -> listOf(
                 GuiLoreLine.Data(
-                    plugin.languageManager.getMessage(player, "gui.admin_menu.target_world_label"),
+                    plugin.languageManager.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_TARGET_WORLD_LABEL),
                     requireNotNull(confirmation.targetWorldName),
                     "§b",
                 ),
@@ -483,7 +486,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
                     ?: error("管理確認画面の対象ワールドがありません: $action")
                 listOf(
                     GuiLoreLine.Data(
-                        plugin.languageManager.getMessage(player, "gui.admin_menu.target_world_label"),
+                        plugin.languageManager.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_MENU_TARGET_WORLD_LABEL),
                         worldName,
                         "§b",
                     ),
@@ -495,7 +498,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         val infoLore: MutableList<GuiLoreLine> = extraInfo.toMutableList()
         infoLore.add(GuiLoreLine.Spacer)
-        infoLore.add(GuiLoreLine.Warning(lang.getMessage(player, "gui.common.confirm_warning")))
+        infoLore.add(GuiLoreLine.Warning(lang.getMessage(player, CommonKeys.GUI_COMMON_CONFIRM_WARNING)))
 
         val layout = GuiHelper.confirmationLayout()
         return InventoryMenuView(
@@ -508,7 +511,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
                         GuiItemSpec(
                             Material.PAPER,
                             me.awabi2048.myworldmanager.util.fixedLabelName(
-                                lang.getMessage(player, "gui.common.confirmation"),
+                                lang.getMessage(player, CommonKeys.GUI_COMMON_CONFIRMATION),
                                 com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT,
                             ),
                             GuiLoreSpec.Blocks(
@@ -517,7 +520,7 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
                                         it == GuiLoreLine.Spacer || it is GuiLoreLine.Warning
                                     }
                                     if (dataLines.isNotEmpty()) add(GuiLoreBlock(dataLines))
-                                    add(GuiLoreBlock(listOf(GuiLoreLine.Warning(lang.getMessage(player, "gui.common.confirm_warning")))))
+                                    add(GuiLoreBlock(listOf(GuiLoreLine.Warning(lang.getMessage(player, CommonKeys.GUI_COMMON_CONFIRM_WARNING)))))
                                 },
                             ),
                             GuiElementRole.CONTENT,
@@ -529,9 +532,9 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
                     player,
                     layout.confirmSlot,
                     if (isDanger) Material.RED_WOOL else Material.LIME_WOOL,
-                    "gui.common.confirm",
-                    "gui.common.confirm_desc",
-                    "gui.common.confirm_action",
+                    CommonKeys.GUI_COMMON_CONFIRM,
+                    CommonKeys.GUI_COMMON_CONFIRM_DESC,
+                    CommonKeys.GUI_COMMON_CONFIRM_ACTION,
                     GuiElementRole.CONFIRM,
                     ACTION_CONFIRM,
                 ),
@@ -539,9 +542,9 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
                     player,
                     layout.cancelSlot,
                     Material.GREEN_WOOL,
-                    "gui.common.cancel",
-                    "gui.common.cancel_desc",
-                    "gui.common.cancel_action",
+                    CommonKeys.GUI_COMMON_CANCEL,
+                    CommonKeys.GUI_COMMON_CANCEL_DESC,
+                    CommonKeys.GUI_COMMON_CANCEL,
                     GuiElementRole.CANCEL,
                     ACTION_CANCEL,
                 ),
@@ -590,9 +593,9 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         player: Player,
         slot: Int,
         material: Material,
-        nameKey: String,
-        descriptionKey: String,
-        actionKey: String,
+        nameKey: LocalizationKey<String>,
+        descriptionKey: LocalizationKey<String>,
+        actionKey: LocalizationKey<String>,
         role: GuiElementRole,
         actionId: String,
     ): MenuElement = CCSystem.getAPI().getGuiElementService().menuEntry(
@@ -677,7 +680,11 @@ class AdminCommandGui(private val plugin: MyWorldManager) {
         val rightAction: String? = null,
     )
 
-    private fun textLore(player: Player, key: String, placeholders: Map<String, Any> = emptyMap()): List<GuiLoreLine> {
+    private fun textLore(
+        player: Player,
+        key: LocalizationKey<List<String>>,
+        placeholders: Map<String, Any> = emptyMap(),
+    ): List<GuiLoreLine> {
         return plugin.languageManager.getMessageList(player, key, placeholders).map(::descriptionLine)
     }
 

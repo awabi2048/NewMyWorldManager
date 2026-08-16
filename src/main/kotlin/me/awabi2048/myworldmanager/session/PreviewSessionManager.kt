@@ -1,5 +1,8 @@
 package me.awabi2048.myworldmanager.session
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import com.awabi2048.ccsystem.CCSystem
 
 import me.awabi2048.myworldmanager.MyWorldManager
@@ -68,11 +71,11 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
             is PreviewTarget.Template -> {
                 val template = plugin.templateRepository.findById(target.templateId)
                 if (template == null) {
-                    player.sendMessage(plugin.languageManager.getMessage(player, "error.preview_template_not_found"))
+                    player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_PREVIEW_TEMPLATE_NOT_FOUND))
                     return false
                 }
                 if (!plugin.templateRepository.isUsable(template)) {
-                    player.sendMessage(plugin.languageManager.getMessage(player, "error.preview_template_invalid"))
+                    player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_PREVIEW_TEMPLATE_INVALID))
                     return false
                 }
 
@@ -99,7 +102,7 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
                 val worldData = target.worldData
                 // アーカイブ済みチェック
                 if (worldData.isArchived) {
-                    player.sendMessage(plugin.languageManager.getMessage(player, "messages.preview_archived"))
+                    player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_PREVIEW_ARCHIVED))
                     plugin.soundManager.playActionSound(player, "discovery", "access_denied")
                     return false
                 }
@@ -148,7 +151,7 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
         // config設定を取得
         val config = plugin.config
         val durationSeconds = config.getDouble("template_preview.duration_seconds", 6.0)
-        
+
         // --- プレビュー視点の計算 ---
         val worldData = (target as? PreviewTarget.World)?.worldData
         val isGuestSpawnSet = worldData?.spawnPosGuest != null
@@ -175,7 +178,7 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
             if (runtimeSuspended) {
                 CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
             }
-            player.sendMessage(plugin.languageManager.getMessage(player, "error.preview_world_load_failed"))
+            player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_PREVIEW_WORLD_LOAD_FAILED))
             return false
         }
 
@@ -184,7 +187,7 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
         player.gameMode = GameMode.SPECTATOR
 
         // メッセージ送信
-        player.sendMessage(plugin.languageManager.getMessage(player, "messages.preview_start", mapOf("template" to templateName)))
+        player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_PREVIEW_START, mapOf("template" to templateName)))
 
         // 回転アニメーションの開始 (遅延なし)
         startRotationTask(player, durationSeconds)
@@ -212,7 +215,7 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
     private fun startRotationTask(player: Player, durationSeconds: Double) {
         val session = sessions[player.uniqueId] ?: return
         val initialYaw = session.previewLocation?.yaw ?: 0f
-        
+
         val ticksTotal = (durationSeconds * 20).toInt()
         val yawPerTick = 360f / ticksTotal
         var ticksElapsed = 0
@@ -280,9 +283,9 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
         // メッセージ送信
         val lang = plugin.languageManager
         if (cancelled) {
-            player.sendMessage(lang.getMessage(player, "messages.preview_cancel"))
+            player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_PREVIEW_CANCEL))
         } else {
-            player.sendMessage(lang.getMessage(player, "messages.preview_end"))
+            player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_PREVIEW_END))
         }
 
         // テンプレート選択画面を再表示（少し遅延させる）
@@ -334,18 +337,18 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
     fun handlePlayerJoin(player: Player) {
         val config = YamlConfiguration()
         if (!pendingRestoreFile.exists()) return
-        
+
         try {
             config.load(pendingRestoreFile)
         } catch (e: Exception) {
             return
         }
-        
+
         val uuidStr = player.uniqueId.toString()
         if (!config.contains(uuidStr)) return
 
         val section = config.getConfigurationSection(uuidStr) ?: return
-        
+
         // 復元データを取得
         val worldKey = section.getString("world_key") ?: return
         val x = section.getDouble("x")
@@ -354,7 +357,7 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
         val yaw = section.getDouble("yaw").toFloat()
         val pitch = section.getDouble("pitch").toFloat()
         val gameModeStr = section.getString("gameMode") ?: "SURVIVAL"
-        
+
         val key = org.bukkit.NamespacedKey.fromString(worldKey)
         val world = key?.let(Bukkit::getWorld)
         if (world == null) {
@@ -364,14 +367,14 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
             val restoreLoc = Location(world, x, y, z, yaw, pitch)
             player.teleport(restoreLoc)
         }
-        
+
         val gameMode = try {
             GameMode.valueOf(gameModeStr)
         } catch (e: Exception) {
             GameMode.SURVIVAL
         }
         player.gameMode = gameMode
-        
+
         // 復元したデータを削除
         config.set(uuidStr, null)
         try {
@@ -379,8 +382,8 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
         } catch (e: Exception) {
             plugin.logger.warning("復元データの削除に失敗しました: ${e.message}")
         }
-        
-        player.sendMessage(plugin.languageManager.getMessage(player, "messages.preview_restored"))
+
+        player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_PREVIEW_RESTORED))
     }
 
     /**
@@ -396,7 +399,7 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
         } else {
             YamlConfiguration()
         }
-        
+
         val uuidStr = playerUuid.toString()
         config.set("$uuidStr.world_key", location.world?.key?.toString() ?: "minecraft:world")
         config.set("$uuidStr.x", location.x)
@@ -405,7 +408,7 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
         config.set("$uuidStr.yaw", location.yaw.toDouble())
         config.set("$uuidStr.pitch", location.pitch.toDouble())
         config.set("$uuidStr.gameMode", gameMode.name)
-        
+
         try {
             config.save(pendingRestoreFile)
         } catch (e: Exception) {

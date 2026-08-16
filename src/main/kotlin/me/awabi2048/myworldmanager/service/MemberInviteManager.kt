@@ -1,5 +1,8 @@
 package me.awabi2048.myworldmanager.service
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.event.MwmMemberAddSource
 import me.awabi2048.myworldmanager.api.event.MwmMemberAddedEvent
@@ -81,7 +84,7 @@ class MemberInviteManager(
         val lang = languageManager
         val info = getInvite(player.uniqueId, decisionId)
         if (info == null) {
-            player.sendMessage(lang.getMessage(player, "error.invite_expired"))
+            player.sendMessage(lang.getMessage(player, CommonKeys.ERROR_INVITE_EXPIRED))
             return
         }
         removeInvite(info.id)
@@ -94,12 +97,12 @@ class MemberInviteManager(
 
         val worldData = worldConfigRepository.findByUuid(worldUuid)
         if (worldData == null) {
-            player.sendMessage(lang.getMessage(player, "error.invite_world_not_found"))
+            player.sendMessage(lang.getMessage(player, CommonKeys.ERROR_INVITE_WORLD_NOT_FOUND))
             return
         }
 
         if (worldData.members.contains(player.uniqueId) || worldData.moderators.contains(player.uniqueId) || worldData.owner == player.uniqueId) {
-            player.sendMessage(lang.getMessage(player, "error.invite_already_member"))
+            player.sendMessage(lang.getMessage(player, CommonKeys.ERROR_INVITE_ALREADY_MEMBER))
             return
         }
 
@@ -115,7 +118,7 @@ class MemberInviteManager(
             )
         )
 
-        player.sendMessage(lang.getMessage(player, "messages.invite_accepted_self", mapOf("world" to worldData.name)))
+        player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_INVITE_ACCEPTED_SELF, mapOf("world" to worldData.name)))
         player.playSound(player.location, Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 2.0f)
 
         val recipients = linkedSetOf<UUID>()
@@ -132,7 +135,7 @@ class MemberInviteManager(
             memberPlayer.sendMessage(
                 lang.getMessage(
                     memberPlayer,
-                    "messages.member_joined_notify",
+                    MyworldMessagesKeys.MESSAGES_MEMBER_JOINED_NOTIFY,
                     mapOf("player" to player.name, "world" to worldData.name)
                 )
             )

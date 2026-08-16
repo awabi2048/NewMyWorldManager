@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.command
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiPortalKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
 import com.awabi2048.ccsystem.api.gui.MenuDialogButton
@@ -28,7 +32,7 @@ class VisitWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, T
             return true
         }
         if (sender !is Player) {
-            sender.sendMessage(lang.getMessage("general.player_only"))
+            sender.sendMessage(lang.getMessage(CommonKeys.GENERAL_PLAYER_ONLY))
             return true
         }
 
@@ -55,9 +59,9 @@ class VisitWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, T
         val lang = plugin.languageManager
         plugin.floodgateFormBridge.sendCustomInputForm(
             player = player,
-            title = lang.getMessage(player, "gui.visitworld.input.title"),
-            label = lang.getMessage(player, "gui.visitworld.input.label"),
-            placeholder = lang.getMessage(player, "gui.visitworld.input.placeholder"),
+            title = lang.getMessage(player, MyworldGuiPortalKeys.GUI_VISITWORLD_INPUT_TITLE),
+            label = lang.getMessage(player, MyworldGuiPortalKeys.GUI_VISITWORLD_INPUT_LABEL),
+            placeholder = lang.getMessage(player, MyworldGuiPortalKeys.GUI_VISITWORLD_INPUT_PLACEHOLDER),
             defaultValue = "",
             onSubmit = { value ->
                 Bukkit.getScheduler().runTask(plugin, Runnable {
@@ -74,24 +78,24 @@ class VisitWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, T
             MenuDialogRequest(
                 owner = "myworldmanager",
                 id = "visit-world-input",
-                title = Component.text(lang.getMessage(player, "gui.visitworld.input.title"), NamedTextColor.YELLOW),
-                body = listOf(Component.text(lang.getMessage(player, "messages.visitworld_query_input"))),
+                title = Component.text(lang.getMessage(player, MyworldGuiPortalKeys.GUI_VISITWORLD_INPUT_TITLE), NamedTextColor.YELLOW),
+                body = listOf(Component.text(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_VISITWORLD_QUERY_INPUT))),
                 inputs = listOf(
                     MenuDialogInput.Text(
                         "visitworld_query",
-                        Component.text(lang.getMessage(player, "gui.visitworld.input.label")),
+                        Component.text(lang.getMessage(player, MyworldGuiPortalKeys.GUI_VISITWORLD_INPUT_LABEL)),
                         maxLength = 64,
                     ),
                 ),
                 confirm = MenuDialogButton(
-                    Component.text(lang.getMessage(player, "gui.common.confirm"), NamedTextColor.GREEN),
+                    Component.text(lang.getMessage(player, CommonKeys.GUI_COMMON_CONFIRM), NamedTextColor.GREEN),
                     MenuDialogHandler { actor, response ->
                         processQueryInput(actor, response.textValue("visitworld_query"), showBackButton)
                         MenuActionResult.Success(MenuUpdate.Close)
                     },
                 ),
                 cancel = MenuDialogButton(
-                    Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED),
+                    Component.text(lang.getMessage(player, CommonKeys.GUI_COMMON_CANCEL), NamedTextColor.RED),
                     MenuDialogHandler { actor, _ ->
                         MenuActionResult.Success(MenuUpdate.Close)
                     },
@@ -103,12 +107,12 @@ class VisitWorldCommand(private val plugin: MyWorldManager) : CommandExecutor, T
     private fun processQueryInput(player: Player, rawQuery: String, showBackButton: Boolean = false) {
         val query = rawQuery.trim()
         if (query.isEmpty()) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.visitworld_query_empty"))
+            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_VISITWORLD_QUERY_EMPTY))
             return
         }
 
         if (!plugin.visitWorldGui.hasSearchResult(player, query)) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.visitworld_no_result", mapOf("query" to query)))
+            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_VISITWORLD_NO_RESULT, mapOf("query" to query)))
             plugin.soundManager.playActionSound(player, "visit", "access_denied")
             return
         }

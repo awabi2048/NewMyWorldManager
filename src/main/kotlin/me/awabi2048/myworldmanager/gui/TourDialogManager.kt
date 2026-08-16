@@ -2,6 +2,9 @@
 
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiCommonKeys
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
 import com.awabi2048.ccsystem.api.gui.MenuDialogButton
@@ -36,21 +39,21 @@ class TourDialogManager {
         fun startExistingSignBinding(player: Player, plugin: MyWorldManager, block: Block) {
             val worldData = plugin.worldConfigRepository.findByWorldName(player.world.name) ?: return
             if (!plugin.tourManager.canManage(worldData, player.uniqueId)) {
-                player.sendMessage(plugin.languageManager.getMessage(player, "error.tour.no_permission"))
+                player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_TOUR_NO_PERMISSION))
                 return
             }
             if (!plugin.tourManager.canPlaceSign(worldData)) {
                 player.sendMessage(
                     plugin.languageManager.getMessage(
                         player,
-                        "error.tour.limit_reached",
+                        CommonKeys.ERROR_TOUR_LIMIT_REACHED,
                         mapOf("limit" to TourManager.MAX_START_SIGNS_PER_WORLD.toString()),
                     ),
                 )
                 return
             }
             if (worldData.tours.none { it.startSignUuid == null }) {
-                player.sendMessage(plugin.languageManager.getMessage(player, "error.tour.sign_no_available_tour"))
+                player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_TOUR_SIGN_NO_AVAILABLE_TOUR))
                 return
             }
             placement[player.uniqueId] = PlacementSession(worldData.uuid, block.x, block.y, block.z)
@@ -94,27 +97,27 @@ class TourDialogManager {
                     owner = "myworldmanager",
                     id = "tour-create",
                     title = Component.text(
-                        lang.getMessage(player, "gui.tour.create_dialog.title"),
+                        lang.getMessage(player, MyworldGuiCommonKeys.GUI_TOUR_CREATE_DIALOG_TITLE),
                         NamedTextColor.GOLD,
                     ),
                     body = buildList {
                         errorMessage?.let(::add)
-                        add(Component.text(lang.getMessage(player, "gui.tour.create_dialog.description")))
+                        add(Component.text(lang.getMessage(player, MyworldGuiCommonKeys.GUI_TOUR_CREATE_DIALOG_DESCRIPTION)))
                     },
                     inputs = listOf(
                         MenuDialogInput.Text(
                             "name",
-                            Component.text(lang.getMessage(player, "gui.tour.input.name")),
+                            Component.text(lang.getMessage(player, MyworldGuiCommonKeys.GUI_TOUR_INPUT_NAME)),
                             maxLength = 15,
                         ),
                         MenuDialogInput.Text(
                             "description",
-                            Component.text(lang.getMessage(player, "gui.tour.input.description")),
+                            Component.text(lang.getMessage(player, MyworldGuiCommonKeys.GUI_TOUR_INPUT_DESCRIPTION)),
                             maxLength = 30,
                         ),
                     ),
                     confirm = MenuDialogButton(
-                        Component.text(lang.getMessage(player, "gui.common.confirm"), NamedTextColor.GREEN),
+                        Component.text(lang.getMessage(player, CommonKeys.GUI_COMMON_CONFIRM), NamedTextColor.GREEN),
                         MenuDialogHandler { target, response ->
                             val session = createTour.remove(target.uniqueId)
                                 ?: return@MenuDialogHandler MenuActionResult.Rejected()
@@ -126,7 +129,7 @@ class TourDialogManager {
                                 showCreateTourDialog(
                                     target,
                                     plugin,
-                                    lang.getComponent(target, "gui.tour.create_dialog.name_required"),
+                                    lang.getComponent(target, MyworldGuiCommonKeys.GUI_TOUR_CREATE_DIALOG_NAME_REQUIRED),
                                 )
                                 return@MenuDialogHandler MenuActionResult.Ignored
                             }
@@ -142,7 +145,7 @@ class TourDialogManager {
                         },
                     ),
                     cancel = MenuDialogButton(
-                        Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED),
+                        Component.text(lang.getMessage(player, CommonKeys.GUI_COMMON_CANCEL), NamedTextColor.RED),
                         MenuDialogHandler { target, _ ->
                             createTour.remove(target.uniqueId)
                             MenuActionResult.Success(MenuUpdate.Resume)
@@ -183,18 +186,18 @@ class TourDialogManager {
                 MenuDialogRequest(
                     owner = "myworldmanager",
                     id = "tour-waypoint-name-edit",
-                    title = Component.text(lang.getMessage(player, "gui.tour.waypoint.name_dialog.title"), NamedTextColor.GOLD),
-                    body = listOf(Component.text(lang.getMessage(player, "gui.tour.waypoint.name_dialog.description"))),
+                    title = Component.text(lang.getMessage(player, MyworldGuiCommonKeys.GUI_TOUR_WAYPOINT_NAME_DIALOG_TITLE), NamedTextColor.GOLD),
+                    body = listOf(Component.text(lang.getMessage(player, MyworldGuiCommonKeys.GUI_TOUR_WAYPOINT_NAME_DIALOG_DESCRIPTION))),
                     inputs = listOf(
                         MenuDialogInput.Text(
                             "name",
-                            Component.text(lang.getMessage(player, "gui.tour.menu.waypoint.name")),
+                            Component.text(lang.getMessage(player, MyworldGuiCommonKeys.GUI_TOUR_MENU_WAYPOINT_NAME)),
                             currentName,
                             maxLength = TourManager.MAX_TITLE_LENGTH,
                         ),
                     ),
                     confirm = MenuDialogButton(
-                        Component.text(lang.getMessage(player, "gui.common.confirm"), NamedTextColor.GREEN),
+                        Component.text(lang.getMessage(player, CommonKeys.GUI_COMMON_CONFIRM), NamedTextColor.GREEN),
                         MenuDialogHandler { target, response ->
                             val editSession = waypointNameEdit.remove(target.uniqueId)
                                 ?: return@MenuDialogHandler MenuActionResult.Rejected()
@@ -217,7 +220,7 @@ class TourDialogManager {
                         },
                     ),
                     cancel = MenuDialogButton(
-                        Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED),
+                        Component.text(lang.getMessage(player, CommonKeys.GUI_COMMON_CANCEL), NamedTextColor.RED),
                         MenuDialogHandler { target, _ ->
                             waypointNameEdit.remove(target.uniqueId)
                             MenuActionResult.Success(MenuUpdate.Resume)
@@ -248,15 +251,15 @@ class TourDialogManager {
                 MenuDialogRequest(
                     owner = "myworldmanager",
                     id = "tour-waypoint-description-edit",
-                    title = Component.text(lang.getMessage(player, "gui.tour.waypoint.description_dialog.title"), NamedTextColor.GOLD),
-                    body = listOf(Component.text(lang.getMessage(player, "gui.tour.waypoint.description_dialog.description"))),
+                    title = Component.text(lang.getMessage(player, MyworldGuiCommonKeys.GUI_TOUR_WAYPOINT_DESCRIPTION_DIALOG_TITLE), NamedTextColor.GOLD),
+                    body = listOf(Component.text(lang.getMessage(player, MyworldGuiCommonKeys.GUI_TOUR_WAYPOINT_DESCRIPTION_DIALOG_DESCRIPTION))),
                     inputs = (0 until 3).map { index ->
                         MenuDialogInput.Text(
                             "line_$index",
                             Component.text(
                                 lang.getMessage(
                                     player,
-                                    "gui.tour.waypoint.description_line",
+                                    MyworldGuiCommonKeys.GUI_TOUR_WAYPOINT_DESCRIPTION_LINE,
                                     mapOf("line" to index + 1),
                                 ),
                             ),
@@ -265,7 +268,7 @@ class TourDialogManager {
                         )
                     },
                     confirm = MenuDialogButton(
-                        Component.text(lang.getMessage(player, "gui.common.confirm"), NamedTextColor.GREEN),
+                        Component.text(lang.getMessage(player, CommonKeys.GUI_COMMON_CONFIRM), NamedTextColor.GREEN),
                         MenuDialogHandler { target, response ->
                             val editSession = waypointDescriptionEdit.remove(target.uniqueId)
                                 ?: return@MenuDialogHandler MenuActionResult.Rejected()
@@ -287,7 +290,7 @@ class TourDialogManager {
                         },
                     ),
                     cancel = MenuDialogButton(
-                        Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED),
+                        Component.text(lang.getMessage(player, CommonKeys.GUI_COMMON_CANCEL), NamedTextColor.RED),
                         MenuDialogHandler { target, _ ->
                             waypointDescriptionEdit.remove(target.uniqueId)
                             MenuActionResult.Success(MenuUpdate.Resume)
@@ -304,9 +307,9 @@ class TourDialogManager {
             runtime.suspendForExternal(player)
             val sent = plugin.floodgateFormBridge.sendCustomInputForm(
                 player = player,
-                title = lang.getMessage(player, "gui.tour.waypoint.name_dialog.title"),
-                label = lang.getMessage(player, "gui.tour.menu.waypoint.name"),
-                placeholder = lang.getMessage(player, "gui.tour.waypoint.name_dialog.description"),
+                title = lang.getMessage(player, MyworldGuiCommonKeys.GUI_TOUR_WAYPOINT_NAME_DIALOG_TITLE),
+                label = lang.getMessage(player, MyworldGuiCommonKeys.GUI_TOUR_MENU_WAYPOINT_NAME),
+                placeholder = lang.getMessage(player, MyworldGuiCommonKeys.GUI_TOUR_WAYPOINT_NAME_DIALOG_DESCRIPTION),
                 defaultValue = currentName,
                 onSubmit = { raw ->
                     val editSession = waypointNameEdit.remove(player.uniqueId) ?: return@sendCustomInputForm
@@ -346,7 +349,7 @@ class TourDialogManager {
                 me.awabi2048.myworldmanager.ui.bedrock.FloodgateFormBridge.CustomFormInput(
                     label = lang.getMessage(
                         player,
-                        "gui.tour.waypoint.description_line",
+                        MyworldGuiCommonKeys.GUI_TOUR_WAYPOINT_DESCRIPTION_LINE,
                         mapOf("line" to index + 1),
                     ),
                     defaultValue = currentDescription.getOrNull(index).orEmpty(),
@@ -354,7 +357,7 @@ class TourDialogManager {
             }
             val sent = plugin.floodgateFormBridge.sendCustomForm(
                 player = player,
-                title = lang.getMessage(player, "gui.tour.waypoint.description_dialog.title"),
+                title = lang.getMessage(player, MyworldGuiCommonKeys.GUI_TOUR_WAYPOINT_DESCRIPTION_DIALOG_TITLE),
                 inputs = inputs,
                 onSubmit = { values ->
                     val editSession = waypointDescriptionEdit.remove(player.uniqueId) ?: return@sendCustomForm
@@ -380,8 +383,8 @@ class TourDialogManager {
 
         private fun showTextDialog(player: Player, plugin: MyWorldManager, currentName: String, currentDescription: String, tour: Boolean) {
             val lang = plugin.languageManager
-            val titleKey = if (tour) "gui.tour.edit_text.title" else "gui.tour_sign.edit_text.title"
-            val bodyKey = if (tour) "gui.tour.edit_text.description" else "gui.tour_sign.edit_text.description"
+            val titleKey = if (tour) MyworldGuiCommonKeys.GUI_TOUR_EDIT_TEXT_TITLE else MyworldGuiCommonKeys.GUI_TOUR_SIGN_EDIT_TEXT_TITLE
+            val bodyKey = if (tour) MyworldGuiCommonKeys.GUI_TOUR_EDIT_TEXT_DESCRIPTION else MyworldGuiCommonKeys.GUI_TOUR_SIGN_EDIT_TEXT_DESCRIPTION
             CCSystem.getAPI().getMenuDialogService().show(
                 player,
                 MenuDialogRequest(
@@ -395,7 +398,7 @@ class TourDialogManager {
                             Component.text(
                                 lang.getMessage(
                                     player,
-                                    if (tour) "gui.tour.input.name" else "gui.tour_sign.input.title",
+                                    if (tour) MyworldGuiCommonKeys.GUI_TOUR_INPUT_NAME else MyworldGuiCommonKeys.GUI_TOUR_SIGN_INPUT_TITLE,
                                 ),
                             ),
                             currentName,
@@ -406,7 +409,7 @@ class TourDialogManager {
                             Component.text(
                                 lang.getMessage(
                                     player,
-                                    if (tour) "gui.tour.input.description" else "gui.tour_sign.input.description",
+                                    if (tour) MyworldGuiCommonKeys.GUI_TOUR_INPUT_DESCRIPTION else MyworldGuiCommonKeys.GUI_TOUR_SIGN_INPUT_DESCRIPTION,
                                 ),
                             ),
                             currentDescription,
@@ -414,7 +417,7 @@ class TourDialogManager {
                         ),
                     ),
                     confirm = MenuDialogButton(
-                        Component.text(lang.getMessage(player, "gui.common.confirm"), NamedTextColor.GREEN),
+                        Component.text(lang.getMessage(player, CommonKeys.GUI_COMMON_CONFIRM), NamedTextColor.GREEN),
                         MenuDialogHandler { target, response ->
                             if (tour) {
                                 saveTourText(target, plugin, response.textValue("name"), response.textValue("description"))
@@ -424,7 +427,7 @@ class TourDialogManager {
                         },
                     ),
                     cancel = MenuDialogButton(
-                        Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED),
+                        Component.text(lang.getMessage(player, CommonKeys.GUI_COMMON_CANCEL), NamedTextColor.RED),
                         MenuDialogHandler { target, _ ->
                             if (tour) {
                                 textEdit.remove(target.uniqueId)

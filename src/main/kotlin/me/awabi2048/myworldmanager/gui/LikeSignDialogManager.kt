@@ -2,6 +2,10 @@
 
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiCommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
@@ -70,7 +74,7 @@ class LikeSignDialogManager {
         ) {
             val worldName = player.world.name
             if (!worldName.startsWith("my_world.")) {
-                player.sendMessage(plugin.languageManager.getMessage(player, "error.like_sign.my_world_only"))
+                player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_LIKE_SIGN_MY_WORLD_ONLY))
                 return
             }
 
@@ -79,12 +83,12 @@ class LikeSignDialogManager {
             val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return
 
             if (!plugin.likeSignManager.isWorldMember(worldData, player.uniqueId)) {
-                player.sendMessage(plugin.languageManager.getMessage(player, "error.like_sign.no_permission"))
+                player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_LIKE_SIGN_NO_PERMISSION))
                 return
             }
 
             if (!plugin.likeSignManager.canPlaceSign(worldData)) {
-                player.sendMessage(plugin.languageManager.getMessage(player, "error.like_sign.limit_reached"))
+                player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_LIKE_SIGN_LIMIT_REACHED))
                 return
             }
 
@@ -126,33 +130,33 @@ class LikeSignDialogManager {
                     owner = "myworldmanager",
                     id = "like-sign-placement",
                     title = Component.text(
-                        lang.getMessage(player, "gui.like_sign.placement.title"),
+                        lang.getMessage(player, MyworldGuiCommonKeys.GUI_LIKE_SIGN_PLACEMENT_TITLE),
                         NamedTextColor.GOLD,
                     ),
                     body = listOf(
-                        Component.text(lang.getMessage(player, "gui.like_sign.placement.description")),
+                        Component.text(lang.getMessage(player, MyworldGuiCommonKeys.GUI_LIKE_SIGN_PLACEMENT_DESCRIPTION)),
                     ),
                     inputs = listOf(
                         MenuDialogInput.Text(
                             "title",
-                            Component.text(lang.getMessage(player, "gui.like_sign.input.title")),
+                            Component.text(lang.getMessage(player, MyworldGuiCommonKeys.GUI_LIKE_SIGN_INPUT_TITLE)),
                             session.title,
                             maxLength = LikeSignManager.MAX_TITLE_LENGTH,
                         ),
                         MenuDialogInput.Text(
                             "description",
-                            Component.text(lang.getMessage(player, "gui.like_sign.input.description")),
+                            Component.text(lang.getMessage(player, MyworldGuiCommonKeys.GUI_LIKE_SIGN_INPUT_DESCRIPTION)),
                             session.description,
                             maxLength = LikeSignManager.MAX_DESCRIPTION_LENGTH,
                         ),
                         MenuDialogInput.SingleOption(
                             "display_type",
-                            Component.text(lang.getMessage(player, "gui.like_sign.input.display_type")),
+                            Component.text(lang.getMessage(player, MyworldGuiCommonKeys.GUI_LIKE_SIGN_INPUT_DISPLAY_TYPE)),
                             listOf(
                                 MenuDialogInput.SingleOption.Option(
                                     "sign",
                                     Component.text(
-                                        lang.getMessage(player, "gui.like_sign.display_type.sign"),
+                                        lang.getMessage(player, MyworldGuiCommonKeys.GUI_LIKE_SIGN_DISPLAY_TYPE_SIGN),
                                         NamedTextColor.YELLOW,
                                     ),
                                     session.displayType == LikeSignDisplayType.SIGN,
@@ -160,7 +164,7 @@ class LikeSignDialogManager {
                                 MenuDialogInput.SingleOption.Option(
                                     "hologram",
                                     Component.text(
-                                        lang.getMessage(player, "gui.like_sign.display_type.hologram"),
+                                        lang.getMessage(player, MyworldGuiCommonKeys.GUI_LIKE_SIGN_DISPLAY_TYPE_HOLOGRAM),
                                         NamedTextColor.AQUA,
                                     ),
                                     session.displayType == LikeSignDisplayType.HOLOGRAM,
@@ -170,7 +174,7 @@ class LikeSignDialogManager {
                     ),
                     confirm = MenuDialogButton(
                         Component.text(
-                            lang.getMessage(player, "gui.like_sign.button.place"),
+                            lang.getMessage(player, MyworldGuiCommonKeys.GUI_LIKE_SIGN_BUTTON_PLACE),
                             NamedTextColor.GREEN,
                         ),
                         MenuDialogHandler { target, response ->
@@ -179,7 +183,7 @@ class LikeSignDialogManager {
                     ),
                     cancel = MenuDialogButton(
                         Component.text(
-                            lang.getMessage(player, "gui.like_sign.button.cancel"),
+                            lang.getMessage(player, MyworldGuiCommonKeys.GUI_LIKE_SIGN_BUTTON_CANCEL),
                             NamedTextColor.RED,
                         ),
                         MenuDialogHandler { target, _ ->
@@ -194,8 +198,8 @@ class LikeSignDialogManager {
         private fun showEditDialog(player: Player, plugin: MyWorldManager, signData: LikeSignData) {
             val lang = plugin.languageManager
 
-            val likesLabel = lang.getMessage(player, "gui.like_sign.edit.current_likes")
-            val typeLabel = lang.getMessage(player, "gui.like_sign.input.display_type")
+            val likesLabel = lang.getMessage(player, MyworldGuiCommonKeys.GUI_LIKE_SIGN_EDIT_CURRENT_LIKES)
+            val typeLabel = lang.getMessage(player, MyworldGuiCommonKeys.GUI_LIKE_SIGN_INPUT_DISPLAY_TYPE)
 
             val bodyLines = CCSystem.getAPI().getLoreService().render(
                 GuiLoreSpec.Rich(
@@ -213,27 +217,27 @@ class LikeSignDialogManager {
                     owner = "myworldmanager",
                     id = "like-sign-edit",
                     title = Component.text(
-                        lang.getMessage(player, "gui.like_sign.edit.title"),
+                        lang.getMessage(player, MyworldGuiCommonKeys.GUI_LIKE_SIGN_EDIT_TITLE),
                         NamedTextColor.GOLD,
                     ),
                     body = bodyLines,
                     inputs = listOf(
                         MenuDialogInput.Text(
                             "title",
-                            Component.text(lang.getMessage(player, "gui.like_sign.input.title")),
+                            Component.text(lang.getMessage(player, MyworldGuiCommonKeys.GUI_LIKE_SIGN_INPUT_TITLE)),
                             signData.title,
                             maxLength = LikeSignManager.MAX_TITLE_LENGTH,
                         ),
                         MenuDialogInput.Text(
                             "description",
-                            Component.text(lang.getMessage(player, "gui.like_sign.input.description")),
+                            Component.text(lang.getMessage(player, MyworldGuiCommonKeys.GUI_LIKE_SIGN_INPUT_DESCRIPTION)),
                             signData.description,
                             maxLength = LikeSignManager.MAX_DESCRIPTION_LENGTH,
                         ),
                     ),
                     confirm = MenuDialogButton(
                         Component.text(
-                            lang.getMessage(player, "gui.like_sign.button.save"),
+                            lang.getMessage(player, MyworldGuiCommonKeys.GUI_LIKE_SIGN_BUTTON_SAVE),
                             NamedTextColor.GREEN,
                         ),
                         MenuDialogHandler { target, response ->
@@ -242,7 +246,7 @@ class LikeSignDialogManager {
                     ),
                     cancel = MenuDialogButton(
                         Component.text(
-                            lang.getMessage(player, "gui.like_sign.button.delete"),
+                            lang.getMessage(player, MyworldGuiCommonKeys.GUI_LIKE_SIGN_BUTTON_DELETE),
                             NamedTextColor.RED,
                         ),
                         MenuDialogHandler { target, _ ->
@@ -262,7 +266,7 @@ class LikeSignDialogManager {
                 ?: return MenuActionResult.Rejected()
             val title = response.textValue("title")
             if (title.isBlank()) {
-                player.sendMessage(plugin.languageManager.getMessage(player, "error.like_sign.title_required"))
+                player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_LIKE_SIGN_TITLE_REQUIRED))
                 placementSessions[player.uniqueId] = session
                 Bukkit.getScheduler().runTask(plugin, Runnable {
                     showPlacementDialog(player, plugin, session)
@@ -294,7 +298,7 @@ class LikeSignDialogManager {
                     player.inventory.itemInOffHand
                 }
                 item.amount -= 1
-                player.sendMessage(plugin.languageManager.getMessage(player, "messages.like_sign.placed"))
+                player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_LIKE_SIGN_PLACED))
                 player.playSound(player.location, org.bukkit.Sound.BLOCK_WOOD_PLACE, 1.0f, 1.0f)
             }
             return MenuActionResult.Success(MenuUpdate.Close)
@@ -316,7 +320,7 @@ class LikeSignDialogManager {
                 .take(LikeSignManager.MAX_DESCRIPTION_LENGTH)
             plugin.worldConfigRepository.save(worldData)
             plugin.likeSignManager.refreshSignDisplay(signData, worldData)
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.like_sign.saved"))
+            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_LIKE_SIGN_SAVED))
             player.playSound(player.location, org.bukkit.Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 1.0f)
             return MenuActionResult.Success(MenuUpdate.Close)
         }
@@ -329,7 +333,7 @@ class LikeSignDialogManager {
             val signData = plugin.likeSignManager.findSignByUuid(worldData, session.signUuid)
                 ?: return MenuActionResult.Rejected()
             plugin.likeSignManager.removeSign(signData, worldData, player)
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.like_sign.deleted"))
+            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_LIKE_SIGN_DELETED))
             player.playSound(player.location, org.bukkit.Sound.ENTITY_ITEM_BREAK, 1.0f, 1.0f)
             return MenuActionResult.Success(MenuUpdate.Close)
         }
@@ -344,14 +348,14 @@ class LikeSignDialogManager {
             )
             unlikeSessions[player.uniqueId] = session
 
-            val title = Component.text(lang.getMessage(player, "gui.like_sign.unlike_confirm.title"), NamedTextColor.RED)
-            val confirmLabel = lang.getMessage(player, "gui.common.confirm")
-            val cancelLabel = lang.getMessage(player, "gui.common.cancel")
+            val title = Component.text(lang.getMessage(player, MyworldGuiCommonKeys.GUI_LIKE_SIGN_UNLIKE_CONFIRM_TITLE), NamedTextColor.RED)
+            val confirmLabel = lang.getMessage(player, CommonKeys.GUI_COMMON_CONFIRM)
+            val cancelLabel = lang.getMessage(player, CommonKeys.GUI_COMMON_CANCEL)
             val center = GuiSpecFactory.spec(
                 org.bukkit.Material.RED_DYE,
-                lang.getMessage(player, "gui.like_sign.unlike_confirm.title"),
+                lang.getMessage(player, MyworldGuiCommonKeys.GUI_LIKE_SIGN_UNLIKE_CONFIRM_TITLE),
                 GuiLoreSpec.Rich(
-                    listOf(GuiLoreLine.Warning(lang.getMessage(player, "gui.like_sign.unlike_confirm.description"))),
+                    listOf(GuiLoreLine.Warning(lang.getMessage(player, MyworldGuiCommonKeys.GUI_LIKE_SIGN_UNLIKE_CONFIRM_DESCRIPTION))),
                     GuiLoreFrame.BOTH
                 ),
             )
@@ -387,7 +391,7 @@ class LikeSignDialogManager {
                         sign.removeLike(player.uniqueId)
                         plugin.worldConfigRepository.save(worldData)
                         plugin.likeSignManager.refreshSignDisplay(sign, worldData)
-                        player.sendMessage(plugin.languageManager.getMessage(player, "messages.like_sign.unliked"))
+                        player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_LIKE_SIGN_UNLIKED))
                         player.playSound(player.location, org.bukkit.Sound.ENTITY_ITEM_BREAK, 1.0f, 1.0f)
                     }
                     MenuActionResult.Success(MenuUpdate.Close)

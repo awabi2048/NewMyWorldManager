@@ -1,5 +1,10 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiCommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiDiscoveryKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import com.awabi2048.ccsystem.api.gui.GuiCycle
 import com.awabi2048.ccsystem.api.gui.GuiCycleDirection
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
@@ -35,6 +40,7 @@ import me.awabi2048.myworldmanager.session.PreviewSessionManager
 import me.awabi2048.myworldmanager.session.PreviewSource
 import me.awabi2048.myworldmanager.session.DiscoverySpecialFilter
 import me.awabi2048.myworldmanager.session.DiscoverySort
+import com.awabi2048.ccsystem.api.localization.LocalizationKey
 import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
 import net.kyori.adventure.text.format.NamedTextColor
@@ -146,7 +152,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                                 GuiItemSpec(
                                                         Material.GRAY_DYE,
                                                         GuiNameSpec.FixedLabel(
-                                                                lang.getComponent(player, "gui.discovery.no_result")
+                                                                lang.getComponent(player, MyworldGuiDiscoveryKeys.GUI_DISCOVERY_NO_RESULT)
                                                                         .decoration(TextDecoration.ITALIC, false),
                                                         ),
                                                         GuiLoreSpec.None,
@@ -181,7 +187,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 }
                 return InventoryMenuView(
                         layout.size,
-                        GuiHelper.inventoryTitle(lang.getMessage(player, "gui.discovery.title")),
+                        GuiHelper.inventoryTitle(lang.getMessage(player, MyworldGuiDiscoveryKeys.GUI_DISCOVERY_TITLE)),
                         elements,
                 )
         }
@@ -284,7 +290,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         player.sendMessage(
                                 plugin.languageManager.getMessage(
                                         player,
-                                        "messages.warp_success",
+                                        MyworldMessagesKeys.MESSAGES_WARP_SUCCESS,
                                         mapOf("world" to worldData.name),
                                 ),
                         )
@@ -299,7 +305,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
         ): MenuActionResult {
                 val lang = plugin.languageManager
                 if (isMember) {
-                        player.sendMessage(lang.getMessage(player, "error.member_request_already_member"))
+                        player.sendMessage(lang.getMessage(player, CommonKeys.ERROR_MEMBER_REQUEST_ALREADY_MEMBER))
                         return MenuActionResult.Rejected()
                 }
                 plugin.menuEntryRouter.openMemberRequestConfirm(player, worldData)
@@ -324,7 +330,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 if (stats.favoriteWorlds.containsKey(worldData.uuid)) {
                         stats.favoriteWorlds.remove(worldData.uuid)
                         worldData.favorite = (worldData.favorite - 1).coerceAtLeast(0)
-                        player.sendMessage(lang.getMessage(player, "messages.favorite_removed"))
+                        player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_FAVORITE_REMOVED))
                         plugin.soundManager.playActionSound(player, "discovery", "favorite_remove")
                 } else {
                         val limit = plugin.config.getInt("favorite.max_count", 1000)
@@ -332,7 +338,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                 player.sendMessage(
                                         lang.getMessage(
                                                 player,
-                                                "error.favorite_limit_reached",
+                                                CommonKeys.ERROR_FAVORITE_LIMIT_REACHED,
                                                 mapOf("limit" to limit),
                                         ),
                                 )
@@ -343,7 +349,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         stats.favoriteWorlds[worldData.uuid] = date
                         worldData.favorite++
                         added = true
-                        player.sendMessage(lang.getMessage(player, "messages.favorite_added"))
+                        player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_FAVORITE_ADDED))
                         plugin.soundManager.playActionSound(player, "discovery", "favorite_add")
                 }
                 plugin.playerStatsRepository.save(stats)
@@ -376,7 +382,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 if (!canManageSpotlight(player)) return MenuActionResult.Ignored
                 val worldData = currentManagedWorld(player) ?: run {
                         player.sendMessage(
-                                plugin.languageManager.getMessage(player, "error.spotlight_not_in_myworld"),
+                                plugin.languageManager.getMessage(player, CommonKeys.ERROR_SPOTLIGHT_NOT_IN_MYWORLD),
                         )
                         return MenuActionResult.Rejected()
                 }
@@ -428,36 +434,36 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 val warpHint = if (isCurrentWorld) {
                         ""
                 } else {
-                        lang.getMessage(player, "gui.discovery.world_item.warp_hint")
+                        lang.getMessage(player, MyworldGuiDiscoveryKeys.GUI_DISCOVERY_WORLD_ITEM_WARP_HINT)
                 }
-                val previewHint = if (isCurrentWorld || isBedrock) "" else lang.getMessage(player, "gui.discovery.world_item.preview_hint")
-                val memberRequestHint = if (isBedrock || isMember) "" else lang.getMessage(player, "gui.discovery.world_item.member_request_hint")
+                val previewHint = if (isCurrentWorld || isBedrock) "" else lang.getMessage(player, MyworldGuiDiscoveryKeys.GUI_DISCOVERY_WORLD_ITEM_PREVIEW_HINT)
+                val memberRequestHint = if (isBedrock || isMember) "" else lang.getMessage(player, MyworldGuiDiscoveryKeys.GUI_DISCOVERY_WORLD_ITEM_MEMBER_REQUEST_HINT)
                 val favoriteHint = if (isBedrock) {
                         ""
                 } else if (isFavoritedByViewer) {
-                        lang.getMessage(player, "gui.discovery.world_item.favorite_hint_remove")
+                        lang.getMessage(player, MyworldGuiDiscoveryKeys.GUI_DISCOVERY_WORLD_ITEM_FAVORITE_HINT_REMOVE)
                 } else {
-                        lang.getMessage(player, "gui.discovery.world_item.favorite_hint_add")
+                        lang.getMessage(player, MyworldGuiDiscoveryKeys.GUI_DISCOVERY_WORLD_ITEM_FAVORITE_HINT_ADD)
                 }
-                val ownerName = PlayerNameUtil.getNameOrDefault(data.owner, lang.getMessage(player, "general.unknown"))
+                val ownerName = PlayerNameUtil.getNameOrDefault(data.owner, lang.getMessage(player, CommonKeys.GENERAL_UNKNOWN))
                 val payload = mapOf(WORLD_UUID to data.uuid.toString())
                 return CCSystem.getAPI().getGuiElementService().menuEntry(
                         player,
                         GuiMenuEntrySpec(
                                 slot = slot,
                                 material = data.icon,
-                                name = GuiNameSpec.TargetIdentity(lang.getComponent(player, "gui.common.world_item_name", mapOf("world" to data.name))),
+                                name = GuiNameSpec.TargetIdentity(lang.getComponent(player, MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_NAME, mapOf("world" to data.name))),
                                 role = GuiElementRole.ACTION,
                                 description = if (data.description.isBlank()) emptyList() else listOf(data.description),
                                 data = buildList {
-                                        add(GuiMenuEntryData(lang.getMessage(player, "gui.common.world_item.owner"), ownerName))
-                                        add(GuiMenuEntryData(lang.getMessage(player, "gui.common.world_item.favorite"), favorites, GuiValueTone.DANGER))
+                                        add(GuiMenuEntryData(lang.getMessage(player, MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_OWNER), ownerName))
+                                        add(GuiMenuEntryData(lang.getMessage(player, MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_FAVORITE), favorites, GuiValueTone.DANGER))
                                         add(GuiMenuEntryData(
-                                                lang.getMessage(player, "gui.common.world_item.recent_visitors"),
-                                                lang.getMessage(player, "gui.common.world_item.recent_visitors_value", mapOf("count" to visitors)),
+                                                lang.getMessage(player, MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_RECENT_VISITORS),
+                                                lang.getMessage(player, MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_RECENT_VISITORS_VALUE, mapOf("count" to visitors)),
                                                 GuiValueTone.SUCCESS,
                                         ))
-                                        if (tagNames != null) add(GuiMenuEntryData(lang.getMessage(player, "gui.common.world_item.tags"), tagNames, GuiValueTone.PRIMARY))
+                                        if (tagNames != null) add(GuiMenuEntryData(lang.getMessage(player, MyworldGuiCommonKeys.GUI_COMMON_WORLD_ITEM_TAGS), tagNames, GuiValueTone.PRIMARY))
                                 },
                                 actions = buildList {
                                         if (warpHint.isNotBlank()) add(menuGestureAction(ACTION_WORLD, MenuGesture.PLAIN_LEFT, warpHint, payload, safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT))
@@ -474,19 +480,19 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 val sortDesc = getSortDescription(player, currentSort)
                 val canEditSpotlight = currentSort == DiscoverySort.SPOTLIGHT && canManageSpotlight(player)
                 val options = DiscoverySort.values().map { sort ->
-                        sort to lang.getMessage(player, "gui.discovery.sort.type.${sort.name.lowercase()}")
+                        sort to lang.getMessage(player, sortNameKey(sort))
                 }
                 return CCSystem.getAPI().getGuiElementService().menuEntry(player, GuiMenuEntrySpec(
                         slot = slot,
                         material = plugin.menuConfigManager.getIconMaterial("discovery", "sort", Material.HOPPER),
-                        name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.discovery.sort.display")),
+                        name = GuiNameSpec.FixedLabel(lang.getComponent(player, MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SORT_DISPLAY)),
                         role = GuiElementRole.ACTION,
                         description = listOf(sortDesc),
-                        data = listOf(GuiMenuEntryData(lang.getMessage(player, "gui.discovery.sort.label"), options.first { it.first == currentSort }.second, GuiValueTone.PRIMARY)),
+                        data = listOf(GuiMenuEntryData(lang.getMessage(player, MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SORT_LABEL), options.first { it.first == currentSort }.second, GuiValueTone.PRIMARY)),
                         options = options.map { GuiMenuEntryOption(it.second, it.first == currentSort) },
                         actions = buildList {
-                                add(menuGestureAction(ACTION_SORT, MenuGesture.PLAIN_LEFT_RIGHT, lang.getMessage(player, "gui.common.action.cycle"), safety = MenuActionSafety.REVERSIBLE, reversibleContract = MwmMenuActionSemantics.contract("discovery-sort")))
-                                if (canEditSpotlight) add(menuGestureAction(ACTION_SORT, MenuGesture.SHIFT_LEFT, lang.getMessage(player, "gui.discovery.sort.action.edit_spotlight"), safety = MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE))
+                                add(menuGestureAction(ACTION_SORT, MenuGesture.PLAIN_LEFT_RIGHT, lang.getMessage(player, MyworldGuiCommonKeys.GUI_COMMON_ACTION_CYCLE), safety = MenuActionSafety.REVERSIBLE, reversibleContract = MwmMenuActionSemantics.contract("discovery-sort")))
+                                if (canEditSpotlight) add(menuGestureAction(ACTION_SORT, MenuGesture.SHIFT_LEFT, lang.getMessage(player, MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SORT_ACTION_EDIT_SPOTLIGHT), safety = MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE))
                         },
                         interactionGuidance = GuiInteractionGuidance.LIST_SETTING,
                 ))
@@ -495,7 +501,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
         private fun createTagFilterEntry(player: Player, selectedTag: String?, slot: Int): MenuElement {
                 val lang = plugin.languageManager
                 val options = listOf(
-                        "" to lang.getMessage(player, "gui.discovery.tag_filter.no_selection")
+                        "" to lang.getMessage(player, MyworldGuiDiscoveryKeys.GUI_DISCOVERY_TAG_FILTER_NO_SELECTION)
                 ) + plugin.worldTagManager.getEnabledTagIds().map { tagId ->
                         tagId to plugin.worldTagManager.getDisplayName(player, tagId)
                 }
@@ -504,8 +510,8 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 return cycleEntry(
                         player, slot,
                         plugin.menuConfigManager.getIconMaterial("discovery", "tag_filter", Material.NAME_TAG),
-                        GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.discovery.tag_filter.name")),
-                        lang.getMessage(player, "gui.discovery.tag_filter.label"),
+                        GuiNameSpec.FixedLabel(lang.getComponent(player, MyworldGuiDiscoveryKeys.GUI_DISCOVERY_TAG_FILTER_NAME)),
+                        lang.getMessage(player, MyworldGuiDiscoveryKeys.GUI_DISCOVERY_TAG_FILTER_LABEL),
                         selectedOption.second,
                         options.map { GuiMenuEntryOption(it.second, it.first == selectedOption.first) },
                         ACTION_TAG,
@@ -514,15 +520,15 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
 
         private fun createSpecialFilterEntry(player: Player, filter: DiscoverySpecialFilter, slot: Int): MenuElement {
                 val lang = plugin.languageManager
-                val display = lang.getMessage(player, "gui.discovery.special_filter.type.${filter.name.lowercase()}")
+                val display = lang.getMessage(player, specialFilterKey(filter))
                 return cycleEntry(
                         player, slot, Material.COMPASS,
-                        GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.discovery.special_filter.name")),
-                        lang.getMessage(player, "gui.discovery.special_filter.label"),
+                        GuiNameSpec.FixedLabel(lang.getComponent(player, MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SPECIAL_FILTER_NAME)),
+                        lang.getMessage(player, MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SPECIAL_FILTER_LABEL),
                         display,
                         DiscoverySpecialFilter.values().map { option ->
                                 GuiMenuEntryOption(
-                                        lang.getMessage(player, "gui.discovery.special_filter.type.${option.name.lowercase()}"),
+                                        lang.getMessage(player, specialFilterKey(option)),
                                         option == filter,
                                 )
                         },
@@ -548,7 +554,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         actions = listOf(menuGestureAction(
                             actionId,
                             MenuGesture.PLAIN_LEFT_RIGHT,
-                            plugin.languageManager.getMessage(player, "gui.common.action.cycle"),
+                            plugin.languageManager.getMessage(player, MyworldGuiCommonKeys.GUI_COMMON_ACTION_CYCLE),
                             safety = MenuActionSafety.REVERSIBLE,
                             reversibleContract = when (actionId) {
                                 ACTION_TAG -> MwmMenuActionSemantics.contract("discovery-tag")
@@ -567,11 +573,11 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
         private fun getSortDescription(player: Player, sort: DiscoverySort): String {
                 val lang = plugin.languageManager
                 if (sort != DiscoverySort.SPOTLIGHT) {
-                        return lang.getMessage(player, "gui.discovery.sort_info.${sort.name.lowercase()}")
+                        return lang.getMessage(player, sortInfoKey(sort))
                 }
 
                 return plugin.spotlightRepository.getDescription()
-                        ?: lang.getMessage(player, "gui.discovery.sort_info.spotlight")
+                        ?: lang.getMessage(player, MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SORT_INFO_SPOTLIGHT)
         }
 
         private fun createSpotlightEmptyEntry(player: Player, slot: Int): MenuElement {
@@ -579,11 +585,11 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 return CCSystem.getAPI().getGuiElementService().menuEntry(player, GuiMenuEntrySpec(
                         slot = slot,
                         material = Material.GLASS_PANE,
-                        name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.discovery.spotlight_empty.name")),
+                        name = GuiNameSpec.FixedLabel(lang.getComponent(player, MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SPOTLIGHT_EMPTY_NAME)),
                         role = if (player.hasPermission("myworldmanager.admin")) GuiElementRole.ACTION else GuiElementRole.CONTENT,
-                        description = listOf(lang.getMessage(player, "gui.discovery.spotlight_empty.description")),
+                        description = listOf(lang.getMessage(player, MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SPOTLIGHT_EMPTY_DESCRIPTION)),
                         actions = if (player.hasPermission("myworldmanager.admin")) {
-                                listOf(menuGestureAction(ACTION_SPOTLIGHT_EMPTY, MenuGesture.ANY, lang.getMessage(player, "gui.discovery.spotlight_empty.action.register"), safety = MenuActionSafety.CONFIRM_ENTRY))
+                                listOf(menuGestureAction(ACTION_SPOTLIGHT_EMPTY, MenuGesture.ANY, lang.getMessage(player, MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SPOTLIGHT_EMPTY_ACTION_REGISTER), safety = MenuActionSafety.CONFIRM_ENTRY))
                         } else emptyList(),
                 ))
         }
@@ -596,23 +602,23 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 count: Int,
         ): MenuElement {
                 val lang = plugin.languageManager
-                val sortName = lang.getMessage(player, "gui.discovery.sort.type.${sort.name.lowercase()}")
+                val sortName = lang.getMessage(player, sortNameKey(sort))
                 val tagName = tag?.let { plugin.worldTagManager.getDisplayName(player, it) }
-                        ?: lang.getMessage(player, "gui.discovery.tag_filter.all")
+                        ?: lang.getMessage(player, MyworldGuiDiscoveryKeys.GUI_DISCOVERY_TAG_FILTER_ALL)
                 return CCSystem.getAPI().getGuiElementService().menuDisplay(
                         GuiMenuDisplaySpec(
                                 slot,
                                 GuiItemSpec(
                                         Material.BOOK,
-                                        GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.discovery.stats.name")),
+                                        GuiNameSpec.FixedLabel(lang.getComponent(player, MyworldGuiDiscoveryKeys.GUI_DISCOVERY_STATS_NAME)),
                                         GuiLoreSpec.Blocks(
                                                 listOf(
                                                         GuiLoreBlock(
                                                                 listOf(
-                                                                        GuiLoreLine.Text(lang.getMessage(player, "gui.discovery.stats.desc")),
-                                                                        GuiLoreLine.Data(lang.getMessage(player, "gui.discovery.stats.sort_label"), sortName, "§b"),
-                                                                        GuiLoreLine.Data(lang.getMessage(player, "gui.discovery.stats.tag_label"), tagName, "§b"),
-                                                                        GuiLoreLine.Data(lang.getMessage(player, "gui.discovery.stats.count_label"), count, "§b"),
+                                                                        GuiLoreLine.Text(lang.getMessage(player, MyworldGuiDiscoveryKeys.GUI_DISCOVERY_STATS_DESC)),
+                                                                        GuiLoreLine.Data(lang.getMessage(player, MyworldGuiDiscoveryKeys.GUI_DISCOVERY_STATS_SORT_LABEL), sortName, "§b"),
+                                                                        GuiLoreLine.Data(lang.getMessage(player, MyworldGuiDiscoveryKeys.GUI_DISCOVERY_STATS_TAG_LABEL), tagName, "§b"),
+                                                                        GuiLoreLine.Data(lang.getMessage(player, MyworldGuiDiscoveryKeys.GUI_DISCOVERY_STATS_COUNT_LABEL), count, "§b"),
                                                                 ),
                                                         ),
                                                 ),
@@ -625,7 +631,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
         }
 
         private fun navigationEntry(player: Player, slot: Int, next: Boolean, targetPage: Int): MenuElement {
-                val key = if (next) "gui.common.next_page" else "gui.common.prev_page"
+                val key = if (next) CommonKeys.GUI_COMMON_NEXT_PAGE else CommonKeys.GUI_COMMON_PREV_PAGE
                 val iconId = if (next) "next_page" else "prev_page"
                 return CCSystem.getAPI().getGuiElementService().menuEntry(
                         player,
@@ -654,6 +660,27 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         slot,
                         plugin.menuConfigManager.getIconMaterial("world_settings", "back", Material.REDSTONE),
                 )
+
+        private fun sortNameKey(sort: DiscoverySort): LocalizationKey<String> = when (sort) {
+                DiscoverySort.HOT -> MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SORT_TYPE_HOT
+                DiscoverySort.NEW -> MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SORT_TYPE_NEW
+                DiscoverySort.FAVORITES -> MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SORT_TYPE_FAVORITES
+                DiscoverySort.SPOTLIGHT -> MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SORT_TYPE_SPOTLIGHT
+                DiscoverySort.RANDOM -> MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SORT_TYPE_RANDOM
+        }
+
+        private fun sortInfoKey(sort: DiscoverySort): LocalizationKey<String> = when (sort) {
+                DiscoverySort.HOT -> MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SORT_INFO_HOT
+                DiscoverySort.NEW -> MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SORT_INFO_NEW
+                DiscoverySort.FAVORITES -> MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SORT_INFO_FAVORITES
+                DiscoverySort.SPOTLIGHT -> MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SORT_INFO_SPOTLIGHT
+                DiscoverySort.RANDOM -> MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SORT_INFO_RANDOM
+        }
+
+        private fun specialFilterKey(filter: DiscoverySpecialFilter): LocalizationKey<String> = when (filter) {
+                DiscoverySpecialFilter.NONE -> MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SPECIAL_FILTER_TYPE_NONE
+                DiscoverySpecialFilter.UNVISITED -> MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SPECIAL_FILTER_TYPE_UNVISITED
+        }
 
         companion object {
                 private const val OWNER = "myworldmanager"

@@ -1,5 +1,8 @@
 package me.awabi2048.myworldmanager.command
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.model.WorldData
@@ -20,19 +23,19 @@ class WorldWarpCommand(private val plugin: MyWorldManager) : CommandExecutor, Ta
             return true
         }
         if (sender !is Player) {
-            sender.sendMessage(plugin.languageManager.getMessage("general.player_only"))
+            sender.sendMessage(plugin.languageManager.getMessage(CommonKeys.GENERAL_PLAYER_ONLY))
             return true
         }
         if (args.size != 1) {
-            sender.sendMessage(plugin.languageManager.getMessage(sender, "messages.worldwarp_usage"))
+            sender.sendMessage(plugin.languageManager.getMessage(sender, MyworldMessagesKeys.MESSAGES_WORLDWARP_USAGE))
             return true
         }
 
         val input = args[0].trim()
         val resolved = resolveWorld(input)
         when (resolved) {
-            ResolveResult.NotFound -> sender.sendMessage(plugin.languageManager.getMessage(sender, "messages.worldwarp_not_found"))
-            ResolveResult.Ambiguous -> sender.sendMessage(plugin.languageManager.getMessage(sender, "messages.worldwarp_ambiguous"))
+            ResolveResult.NotFound -> sender.sendMessage(plugin.languageManager.getMessage(sender, MyworldMessagesKeys.MESSAGES_WORLDWARP_NOT_FOUND))
+            ResolveResult.Ambiguous -> sender.sendMessage(plugin.languageManager.getMessage(sender, MyworldMessagesKeys.MESSAGES_WORLDWARP_AMBIGUOUS))
             is ResolveResult.Found -> warp(sender, resolved.worldData)
         }
         return true
@@ -45,7 +48,7 @@ class WorldWarpCommand(private val plugin: MyWorldManager) : CommandExecutor, Ta
         val accessPolicy = MyWorldManagerApi.getWorldAccessPolicy()
         if (accessPolicy.canDirectWorldWarp(player, worldData, isMember)) {
             plugin.worldService.teleportToWorld(player, worldData.uuid) {
-                player.sendMessage(plugin.languageManager.getMessage(player, "messages.warp_success", mapOf("world" to worldData.name)))
+                player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WARP_SUCCESS, mapOf("world" to worldData.name)))
             }
             return
         }
@@ -59,13 +62,13 @@ class WorldWarpCommand(private val plugin: MyWorldManager) : CommandExecutor, Ta
             player.sendMessage(me.awabi2048.myworldmanager.util.WorldAccessMessageResolver.warp(plugin.languageManager, player, worldData, isMember))
             return
         }
-        player.sendMessage(plugin.languageManager.getMessage(player, "messages.worldwarp_access_denied"))
+        player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLDWARP_ACCESS_DENIED))
     }
 
     private fun requestVisitPermission(player: Player, worldData: WorldData) {
         val respondent = visitRequestRespondents(worldData, player.uniqueId).firstOrNull()
         if (respondent == null) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.visit_request_no_respondent"))
+            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_VISIT_REQUEST_NO_RESPONDENT))
             return
         }
 
@@ -77,14 +80,14 @@ class WorldWarpCommand(private val plugin: MyWorldManager) : CommandExecutor, Ta
             timeoutSeconds = timeoutSeconds
         )
         if (result == null) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.visit_request_already_pending"))
+            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_VISIT_REQUEST_ALREADY_PENDING))
             return
         }
 
         player.sendMessage(
             plugin.languageManager.getMessage(
                 player,
-                "messages.visit_request_sent",
+                MyworldMessagesKeys.MESSAGES_VISIT_REQUEST_SENT,
                 mapOf("owner" to respondent.name, "world" to worldData.name)
             )
         )

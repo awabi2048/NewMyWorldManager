@@ -1,22 +1,24 @@
 package me.awabi2048.myworldmanager.util
 
+import com.awabi2048.ccsystem.api.localization.LocalizationKey
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
 import org.bukkit.plugin.java.JavaPlugin
 
 /**
- * ワールド名の検証結果。メッセージ本文は cc-system の言語ファイル側で管理するため、
+ * ワールド名の検証結果。メッセージ本文はCC-Systemの埋込ローカライズカタログで管理するため、
  * ここでは判定結果と対応する言語キー・プレースホルダーのみを保持する。
  */
 sealed class WorldNameValidation {
     object Ok : WorldNameValidation()
 
     sealed class Failure(
-        val messageKey: String,
+        val messageKey: LocalizationKey<String>,
         val placeholders: Map<String, Any> = emptyMap(),
     ) : WorldNameValidation() {
-        class Blank : Failure("messages.world_name_blank")
-        class TooLong(maxLength: Int) : Failure("messages.world_name_too_long", mapOf("max" to maxLength))
-        class BlockedString : Failure("messages.world_name_blocked")
-        class ForbiddenSymbol : Failure("messages.world_name_symbol")
+        class Blank : Failure(MyworldMessagesKeys.MESSAGES_WORLD_NAME_BLANK)
+        class TooLong(maxLength: Int) : Failure(MyworldMessagesKeys.MESSAGES_WORLD_NAME_TOO_LONG, mapOf("max" to maxLength))
+        class BlockedString : Failure(MyworldMessagesKeys.MESSAGES_WORLD_NAME_BLOCKED)
+        class ForbiddenSymbol : Failure(MyworldMessagesKeys.MESSAGES_WORLD_NAME_SYMBOL)
     }
 }
 

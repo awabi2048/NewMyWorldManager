@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.command
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.util.PermissionManager
 import org.bukkit.command.Command
@@ -15,7 +17,7 @@ class SettingsCommand(private val plugin: MyWorldManager) : CommandExecutor {
             return true
         }
         if (sender !is Player) {
-            sender.sendMessage(plugin.languageManager.getMessage("general.player_only"))
+            sender.sendMessage(plugin.languageManager.getMessage(CommonKeys.GENERAL_PLAYER_ONLY))
             return true
         }
 

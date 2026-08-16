@@ -1,5 +1,11 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiAdminKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiCommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiPortalKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.GuiCycle
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
@@ -100,7 +106,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
         }
         return InventoryMenuView(
             layout.size,
-            GuiHelper.inventoryTitle(plugin.languageManager.getComponent(player, "gui.admin_portals.title")),
+            GuiHelper.inventoryTitle(plugin.languageManager.getComponent(player, MyworldGuiPortalKeys.GUI_ADMIN_PORTALS_TITLE)),
             elements,
         )
     }
@@ -140,7 +146,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
         if (portal.worldUuid != null) {
             val destination = plugin.worldConfigRepository.findByUuid(portal.worldUuid!!)
             if (destination != null && Bukkit.getWorld(plugin.worldService.getWorldFolderName(destination)) == null) {
-                player.sendMessage(lang.getMessage(player, "messages.world_loading"))
+                player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_LOADING))
             }
             plugin.worldService.teleportToWorld(
                 player,
@@ -148,15 +154,15 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
                 portal.getCenterLocation(),
                 runMacro = false,
             ) {
-                player.sendMessage(lang.getMessage(player, "messages.admin_portal_teleport"))
+                player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_ADMIN_PORTAL_TELEPORT))
             }
         } else {
             val target = portal.targetRuntimeName ?: return MenuActionResult.Rejected()
             if (!plugin.portalManager.teleportPlayerToWorldSpawn(player, target) {
-                    player.sendMessage(lang.getMessage(player, "messages.admin_portal_teleport"))
+                    player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_ADMIN_PORTAL_TELEPORT))
                 }
             ) {
-                player.sendMessage(lang.getMessage(player, "general.world_not_found"))
+                player.sendMessage(lang.getMessage(player, CommonKeys.GENERAL_WORLD_NOT_FOUND))
                 return MenuActionResult.Rejected()
             }
         }
@@ -168,7 +174,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
             plugin.portalManager.removePortalAndRefund(portal)
         }.getOrElse { error ->
             plugin.logger.warning("Admin portal removal was rejected for ${portal.id}: ${error.message}")
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.migration.required"))
+            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_MIGRATION_REQUIRED))
             return MenuActionResult.Rejected()
         }
         plugin.portalManager.removePortalVisuals(portal.id)
@@ -182,7 +188,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
             player.sendMessage(
                 lang.getMessage(
                     player,
-                    "messages.world_gate_removed_refund",
+                    MyworldMessagesKeys.MESSAGES_WORLD_GATE_REMOVED_REFUND,
                     mapOf(
                         "points" to (refund?.points ?: 0),
                         "percent" to (refund?.percent ?: 0),
@@ -191,7 +197,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
                 ),
             )
         }
-        player.sendMessage(lang.getMessage(player, "messages.admin_portal_removed"))
+        player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_ADMIN_PORTAL_REMOVED))
         return MenuActionResult.Success(MenuUpdate.Refresh)
     }
 
@@ -216,25 +222,25 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
                 slot = slot,
                 material = Material.END_PORTAL_FRAME,
                 name = me.awabi2048.myworldmanager.util.fixedLabelName(
-                    lang.getMessage(player, "gui.admin_portals.portal_item.name", mapOf("id" to destination)),
+                    lang.getMessage(player, MyworldGuiPortalKeys.GUI_ADMIN_PORTALS_PORTAL_ITEM_NAME, mapOf("id" to destination)),
                     com.awabi2048.ccsystem.api.gui.GuiNameStyle.DEFAULT,
                 ),
                 role = GuiElementRole.ACTION,
                 data = listOf(
-                    GuiMenuEntryData(lang.getMessage(player, "gui.admin_portals.portal_item.owner"), PlayerNameUtil.getNameOrDefault(portal.ownerUuid, "Unknown")),
-                    GuiMenuEntryData(lang.getMessage(player, "gui.admin_portals.portal_item.world"), portal.worldKey),
-                    GuiMenuEntryData(lang.getMessage(player, "gui.admin_portals.portal_item.coordinates"), "${portal.x}, ${portal.y}, ${portal.z}"),
+                    GuiMenuEntryData(lang.getMessage(player, MyworldGuiPortalKeys.GUI_ADMIN_PORTALS_PORTAL_ITEM_OWNER), PlayerNameUtil.getNameOrDefault(portal.ownerUuid, "Unknown")),
+                    GuiMenuEntryData(lang.getMessage(player, MyworldGuiPortalKeys.GUI_ADMIN_PORTALS_PORTAL_ITEM_WORLD), portal.worldKey),
+                    GuiMenuEntryData(lang.getMessage(player, MyworldGuiPortalKeys.GUI_ADMIN_PORTALS_PORTAL_ITEM_COORDINATES), "${portal.x}, ${portal.y}, ${portal.z}"),
                 ),
                 actions = listOf(
-                    menuGestureAction(ACTION_PORTAL, MenuGesture.PLAIN_LEFT, lang.getMessage(player, "gui.admin_portals.portal_item.action.teleport"), payload, safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT),
-                    menuGestureAction(ACTION_PORTAL, MenuGesture.PLAIN_RIGHT, lang.getMessage(player, "gui.admin_portals.portal_item.action.remove"), payload, safety = MenuActionSafety.IRREVERSIBLE),
+                    menuGestureAction(ACTION_PORTAL, MenuGesture.PLAIN_LEFT, lang.getMessage(player, MyworldGuiPortalKeys.GUI_ADMIN_PORTALS_PORTAL_ITEM_ACTION_TELEPORT), payload, safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT),
+                    menuGestureAction(ACTION_PORTAL, MenuGesture.PLAIN_RIGHT, lang.getMessage(player, MyworldGuiPortalKeys.GUI_ADMIN_PORTALS_PORTAL_ITEM_ACTION_REMOVE), payload, safety = MenuActionSafety.IRREVERSIBLE),
                 ),
             ),
         )
     }
 
     private fun navigationEntry(player: Player, slot: Int, next: Boolean, targetPage: Int): MenuElement {
-        val key = if (next) "gui.common.next_page" else "gui.common.prev_page"
+        val key = if (next) CommonKeys.GUI_COMMON_NEXT_PAGE else CommonKeys.GUI_COMMON_PREV_PAGE
         return CCSystem.getAPI().getGuiElementService().menuEntry(
             player,
             GuiMenuEntrySpec(
@@ -269,13 +275,13 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
                 slot = 49,
                 item = GuiItemSpec(
                     material = Material.PAPER,
-                    name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(player, "gui.admin.info.display")),
+                    name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(player, MyworldGuiAdminKeys.GUI_ADMIN_INFO_DISPLAY)),
                     lore = GuiLoreSpec.Blocks(
                         listOf(
                             GuiLoreBlock(
                                 listOf(
-                                    GuiLoreLine.Data(plugin.languageManager.getMessage(player, "gui.admin.info.total_count_label"), totalCount, "§b"),
-                                    GuiLoreLine.Data(plugin.languageManager.getMessage(player, "gui.admin.info.page_label"), "$current/$total", "§a"),
+                                    GuiLoreLine.Data(plugin.languageManager.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_INFO_TOTAL_COUNT_LABEL), totalCount, "§b"),
+                                    GuiLoreLine.Data(plugin.languageManager.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_INFO_PAGE_LABEL), "$current/$total", "§a"),
                                 ),
                             ),
                         ),
@@ -294,11 +300,11 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
             GuiMenuEntrySpec(
                 slot = slot,
                 material = Material.HOPPER,
-                name = GuiNameSpec.FixedLabel(lang.getComponent(player, "gui.admin_portals.sort.display")),
+                name = GuiNameSpec.FixedLabel(lang.getComponent(player, MyworldGuiPortalKeys.GUI_ADMIN_PORTALS_SORT_DISPLAY)),
                 role = GuiElementRole.ACTION,
                 data = listOf(
                     GuiMenuEntryData(
-                        lang.getMessage(player, "gui.admin_portals.sort.label"),
+                        lang.getMessage(player, MyworldGuiPortalKeys.GUI_ADMIN_PORTALS_SORT_LABEL),
                         options.first { it.first == session.portalSortBy }.second,
                         GuiValueTone.PRIMARY,
                     ),
@@ -308,7 +314,7 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
                     menuGestureAction(
                         ACTION_SORT,
                         MenuGesture.ANY,
-                        lang.getMessage(player, "gui.common.action.cycle"),
+                        lang.getMessage(player, MyworldGuiCommonKeys.GUI_COMMON_ACTION_CYCLE),
                         safety = MenuActionSafety.REVERSIBLE,
                         reversibleContract = MwmMenuActionSemantics.contract("admin-portal-sort"),
                     ),

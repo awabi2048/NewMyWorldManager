@@ -6,6 +6,7 @@ import com.awabi2048.ccsystem.api.gui.MenuActionSafety
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuInteraction
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
 import me.awabi2048.myworldmanager.session.WorldCreationType
 import net.kyori.adventure.text.Component
 import org.bukkit.event.inventory.ClickType
@@ -30,7 +31,7 @@ class CreationTypeAvailabilityTest {
         assertEquals(Component.text("テンプレートが見つかりませんでした"), unavailable.message)
         listOf(ClickType.LEFT, ClickType.RIGHT, ClickType.SHIFT_LEFT, ClickType.SHIFT_RIGHT, ClickType.MIDDLE)
             .forEach { click -> assertTrue(click in acceptedClicks(element), "$click must be rejected with the reason") }
-        assertEquals("error.preview_template_not_found", availability.reasonKey)
+        assertEquals(CommonKeys.ERROR_PREVIEW_TEMPLATE_NOT_FOUND, availability.reasonKey)
     }
 
     @Test

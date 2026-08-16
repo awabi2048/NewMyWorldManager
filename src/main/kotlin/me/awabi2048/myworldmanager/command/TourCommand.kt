@@ -1,5 +1,8 @@
 package me.awabi2048.myworldmanager.command
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.util.PermissionManager
 import org.bukkit.command.Command
@@ -16,14 +19,14 @@ class TourCommand(private val plugin: MyWorldManager) : CommandExecutor {
         val player = sender as? Player ?: return true
         val worldData = plugin.worldConfigRepository.findByWorldName(player.world.name)
         if (worldData == null) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "error.tour.not_managed_world"))
+            player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_TOUR_NOT_MANAGED_WORLD))
             return true
         }
         if (plugin.tourManager.isWorldMember(worldData, player.uniqueId)) {
             plugin.tourGui.openEditMenu(player, worldData)
         } else {
             if (!plugin.tourManager.hasValidTour(worldData)) {
-                player.sendMessage(plugin.languageManager.getMessage(player, "messages.tour.none_available"))
+                player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_TOUR_NONE_AVAILABLE))
                 return true
             }
             plugin.tourGui.openVisitorMenu(player, worldData)

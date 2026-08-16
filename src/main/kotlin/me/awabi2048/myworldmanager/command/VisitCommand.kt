@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.command
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiPortalKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
 import com.awabi2048.ccsystem.api.gui.MenuDialogButton
@@ -32,7 +36,7 @@ class VisitCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCom
             return true
         }
         if (sender !is Player) {
-            sender.sendMessage(lang.getMessage("general.player_only"))
+            sender.sendMessage(lang.getMessage(CommonKeys.GENERAL_PLAYER_ONLY))
             return true
         }
 
@@ -56,9 +60,9 @@ class VisitCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCom
         val lang = plugin.languageManager
         plugin.floodgateFormBridge.sendCustomInputForm(
             player = player,
-            title = lang.getMessage(player, "gui.visit.input.title"),
-            label = lang.getMessage(player, "gui.visit.input.label"),
-            placeholder = lang.getMessage(player, "gui.visit.input.placeholder"),
+            title = lang.getMessage(player, MyworldGuiPortalKeys.GUI_VISIT_INPUT_TITLE),
+            label = lang.getMessage(player, MyworldGuiPortalKeys.GUI_VISIT_INPUT_LABEL),
+            placeholder = lang.getMessage(player, MyworldGuiPortalKeys.GUI_VISIT_INPUT_PLACEHOLDER),
             defaultValue = "",
             onSubmit = { value ->
                 Bukkit.getScheduler().runTask(plugin, Runnable {
@@ -75,24 +79,24 @@ class VisitCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCom
             MenuDialogRequest(
                 owner = "myworldmanager",
                 id = "visit-input",
-                title = Component.text(lang.getMessage(player, "gui.visit.input.title"), NamedTextColor.YELLOW),
-                body = listOf(Component.text(lang.getMessage(player, "messages.visit_target_input"))),
+                title = Component.text(lang.getMessage(player, MyworldGuiPortalKeys.GUI_VISIT_INPUT_TITLE), NamedTextColor.YELLOW),
+                body = listOf(Component.text(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_VISIT_TARGET_INPUT))),
                 inputs = listOf(
                     MenuDialogInput.Text(
                         "visit_player",
-                        Component.text(lang.getMessage(player, "gui.visit.input.label")),
+                        Component.text(lang.getMessage(player, MyworldGuiPortalKeys.GUI_VISIT_INPUT_LABEL)),
                         maxLength = 16,
                     ),
                 ),
                 confirm = MenuDialogButton(
-                    Component.text(lang.getMessage(player, "gui.common.confirm"), NamedTextColor.GREEN),
+                    Component.text(lang.getMessage(player, CommonKeys.GUI_COMMON_CONFIRM), NamedTextColor.GREEN),
                     MenuDialogHandler { actor, response ->
                         processVisitTargetInput(actor, response.textValue("visit_player"))
                         MenuActionResult.Success(MenuUpdate.Close)
                     },
                 ),
                 cancel = MenuDialogButton(
-                    Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED),
+                    Component.text(lang.getMessage(player, CommonKeys.GUI_COMMON_CANCEL), NamedTextColor.RED),
                     MenuDialogHandler { actor, _ ->
                         MenuActionResult.Success(MenuUpdate.Close)
                     },
@@ -104,7 +108,7 @@ class VisitCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCom
     private fun processVisitTargetInput(player: Player, rawInput: String, rawWorldInput: String? = null) {
         val targetName = rawInput.trim()
         if (targetName.isEmpty()) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "general.player_not_found"))
+            player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.GENERAL_PLAYER_NOT_FOUND))
             return
         }
 
@@ -125,7 +129,7 @@ class VisitCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCom
         if (worldName.isNotEmpty()) {
             val worldData = resolveTargetWorld(target.uniqueId, worldName)
             if (worldData == null || worldData.isArchived) {
-                player.sendMessage(plugin.languageManager.getMessage(player, "general.world_not_found"))
+                player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.GENERAL_WORLD_NOT_FOUND))
                 return
             }
             handleDirectWorldVisit(player, target.name ?: targetName, worldData)
@@ -185,7 +189,7 @@ class VisitCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCom
     private fun requestVisitPermission(player: Player, ownerName: String, worldData: WorldData) {
         val respondent = visitRequestRespondents(worldData, player.uniqueId).firstOrNull()
         if (respondent == null) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.visit_request_no_respondent"))
+            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_VISIT_REQUEST_NO_RESPONDENT))
             return
         }
 
@@ -197,14 +201,14 @@ class VisitCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCom
             timeoutSeconds = timeoutSeconds
         )
         if (result == null) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.visit_request_already_pending"))
+            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_VISIT_REQUEST_ALREADY_PENDING))
             return
         }
 
         player.sendMessage(
             plugin.languageManager.getMessage(
                 player,
-                "messages.visit_request_sent",
+                MyworldMessagesKeys.MESSAGES_VISIT_REQUEST_SENT,
                 mapOf("owner" to ownerName, "world" to worldData.name)
             )
         )
@@ -251,7 +255,7 @@ class VisitCommand(private val plugin: MyWorldManager) : CommandExecutor, TabCom
     override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): List<String> {
         if (!PermissionManager.checkPermission(sender, PermissionManager.COMMAND_VISIT)) return emptyList()
         if (sender !is Player) return emptyList()
-        
+
         if (args.size == 1) {
             val search = args[0].lowercase()
             return plugin.playerVisibilityService.getVisibleOnlinePlayers(sender)

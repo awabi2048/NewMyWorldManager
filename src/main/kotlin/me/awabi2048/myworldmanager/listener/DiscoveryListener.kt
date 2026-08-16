@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.listener
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiDiscoveryKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
 import com.awabi2048.ccsystem.api.gui.MenuDialogButton
@@ -18,7 +22,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) {
         val lang = plugin.languageManager
         if (!canManageSpotlight(player)) {
             return MenuActionResult.Rejected(
-                Component.text(lang.getMessage(player, "general.no_permission")),
+                Component.text(lang.getMessage(player, CommonKeys.GENERAL_NO_PERMISSION)),
             )
         }
         val input = rawInput.trim()
@@ -26,7 +30,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) {
             player.sendMessage(
                 lang.getMessage(
                     player,
-                    "error.discovery_spotlight_description_too_long",
+                    CommonKeys.ERROR_DISCOVERY_SPOTLIGHT_DESCRIPTION_TOO_LONG,
                     mapOf("max" to SPOTLIGHT_DESCRIPTION_MAX_LENGTH),
                 ),
             )
@@ -41,9 +45,9 @@ class DiscoveryListener(private val plugin: MyWorldManager) {
             lang.getMessage(
                 player,
                 if (input.isEmpty()) {
-                    "messages.discovery_spotlight_description_reset"
+                    MyworldMessagesKeys.MESSAGES_DISCOVERY_SPOTLIGHT_DESCRIPTION_RESET
                 } else {
-                    "messages.discovery_spotlight_description_updated"
+                    MyworldMessagesKeys.MESSAGES_DISCOVERY_SPOTLIGHT_DESCRIPTION_UPDATED
                 },
             ),
         )
@@ -64,14 +68,14 @@ class DiscoveryListener(private val plugin: MyWorldManager) {
                 owner = "myworldmanager",
                 id = "discovery-spotlight-description",
                 title = Component.text(
-                    lang.getMessage(player, "gui.discovery.spotlight_description_dialog.title"),
+                    lang.getMessage(player, MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SPOTLIGHT_DESCRIPTION_DIALOG_TITLE),
                     NamedTextColor.YELLOW,
                 ),
                 body = listOf(
                     Component.text(
                         lang.getMessage(
                             player,
-                            "gui.discovery.spotlight_description_dialog.body",
+                            MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SPOTLIGHT_DESCRIPTION_DIALOG_BODY,
                             mapOf("max" to SPOTLIGHT_DESCRIPTION_MAX_LENGTH),
                         ),
                     ),
@@ -82,7 +86,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) {
                         Component.text(
                             lang.getMessage(
                                 player,
-                                "gui.discovery.spotlight_description_dialog.input_label",
+                                MyworldGuiDiscoveryKeys.GUI_DISCOVERY_SPOTLIGHT_DESCRIPTION_DIALOG_INPUT_LABEL,
                             ),
                         ),
                         currentText,
@@ -91,7 +95,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) {
                 ),
                 confirm = MenuDialogButton(
                     Component.text(
-                        lang.getMessage(player, "gui.common.confirm"),
+                        lang.getMessage(player, CommonKeys.GUI_COMMON_CONFIRM),
                         NamedTextColor.GREEN,
                     ),
                     MenuDialogHandler { target, response ->
@@ -103,7 +107,7 @@ class DiscoveryListener(private val plugin: MyWorldManager) {
                 ),
                 cancel = MenuDialogButton(
                     Component.text(
-                        lang.getMessage(player, "gui.common.cancel"),
+                        lang.getMessage(player, CommonKeys.GUI_COMMON_CANCEL),
                         NamedTextColor.RED,
                     ),
                     MenuDialogHandler { target, _ ->

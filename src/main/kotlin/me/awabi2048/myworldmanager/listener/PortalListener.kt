@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.listener
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.LocalizationKey
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import me.awabi2048.myworldmanager.util.descriptionLine
 import me.awabi2048.myworldmanager.util.warningLine
 import me.awabi2048.myworldmanager.util.dangerLine
@@ -116,7 +120,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
                 if (player.isSneaking && (PortalItemUtil.getBoundWorldUuid(item) != null || PortalItemUtil.getBoundTargetWorldName(item) != null)) {
                     // 解除
                     PortalItemUtil.unbindWorld(item, lang, player)
-                    player.sendMessage(lang.getMessage(player, "messages.portal_unbind_success"))
+                    player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_PORTAL_UNBIND_SUCCESS))
                     event.isCancelled = true
                     return
                 } else {
@@ -128,7 +132,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
                     // check if managed
                     val managedWorld = plugin.worldConfigRepository.findByWorldName(currentWorld.name)
                     if (managedWorld == null) {
-                         player.sendMessage(lang.getMessage(player, "error.portal_bind_myworld_only"))
+                         player.sendMessage(lang.getMessage(player, CommonKeys.ERROR_PORTAL_BIND_MYWORLD_ONLY))
                          return
                     }
 
@@ -142,7 +146,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
                     }
 
                     PortalItemUtil.bindWorld(item, worldUuid, worldData.name, lang, player)
-                    player.sendMessage(lang.getMessage(player, "messages.portal_bind_success", mapOf("destination" to worldData.name)))
+                    player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_PORTAL_BIND_SUCCESS, mapOf("destination" to worldData.name)))
                     event.isCancelled = true
                     return
                 }
@@ -158,7 +162,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
 
                 if (boundWorldUuid != null || boundTargetWorldName != null) {
                     WorldGateItemUtil.unbindWorld(item, lang, player)
-                    player.sendMessage(lang.getMessage(player, "messages.world_gate_unbind_success"))
+                    player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_GATE_UNBIND_SUCCESS))
                     clearGateSession(player.uniqueId)
                     pendingGatePlacements.remove(player.uniqueId)
                     event.isCancelled = true
@@ -167,7 +171,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
 
                 val managedWorld = plugin.worldConfigRepository.findByWorldName(player.world.name)
                 if (managedWorld == null) {
-                    player.sendMessage(lang.getMessage(player, "error.portal_bind_myworld_only"))
+                    player.sendMessage(lang.getMessage(player, CommonKeys.ERROR_PORTAL_BIND_MYWORLD_ONLY))
                     event.isCancelled = true
                     return
                 }
@@ -182,7 +186,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
                 }
 
                 WorldGateItemUtil.bindWorld(item, worldUuid, worldData.name, lang, player)
-                player.sendMessage(lang.getMessage(player, "messages.world_gate_bind_success", mapOf("destination" to worldData.name)))
+                player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_GATE_BIND_SUCCESS, mapOf("destination" to worldData.name)))
                 clearGateSession(player.uniqueId)
                 pendingGatePlacements.remove(player.uniqueId)
                 event.isCancelled = true
@@ -192,7 +196,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
             val boundWorldUuid = WorldGateItemUtil.getBoundWorldUuid(item)
             val boundTargetWorldName = WorldGateItemUtil.getBoundTargetWorldName(item)
             if (boundWorldUuid == null && boundTargetWorldName == null) {
-                player.sendMessage(lang.getMessage(player, "error.world_gate_bind_required"))
+                player.sendMessage(lang.getMessage(player, CommonKeys.ERROR_WORLD_GATE_BIND_REQUIRED))
                 event.isCancelled = true
                 return
             }
@@ -201,7 +205,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
             if (currentSession == null) {
                 val clicked = event.clickedBlock
                 if (clicked == null) {
-                    player.sendMessage(lang.getMessage(player, "messages.world_gate_select_first"))
+                    player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_GATE_SELECT_FIRST))
                     event.isCancelled = true
                     return
                 }
@@ -211,11 +215,11 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
                 player.sendMessage(
                     lang.getMessage(
                         player,
-                        "messages.world_gate_point_selected",
+                        MyworldMessagesKeys.MESSAGES_WORLD_GATE_POINT_SELECTED,
                         mapOf("point" to 1, "x" to clicked.x, "y" to clicked.y, "z" to clicked.z)
                     )
                 )
-                player.sendMessage(lang.getMessage(player, "messages.world_gate_select_second"))
+                player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_GATE_SELECT_SECOND))
                 event.isCancelled = true
                 return
             }
@@ -223,7 +227,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
             if (currentSession.second == null) {
                 val clicked = event.clickedBlock
                 if (clicked == null) {
-                    player.sendMessage(lang.getMessage(player, "messages.world_gate_select_second"))
+                    player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_GATE_SELECT_SECOND))
                     event.isCancelled = true
                     return
                 }
@@ -232,15 +236,15 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
                     clearGateSession(player.uniqueId)
                     gateSelections[player.uniqueId] = GateSelectionSession(clicked.location)
                     startOrRefreshSelectionPreview(player, gateSelections[player.uniqueId]!!)
-                    player.sendMessage(lang.getMessage(player, "messages.world_gate_world_mismatch"))
+                    player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_GATE_WORLD_MISMATCH))
                     player.sendMessage(
                         lang.getMessage(
                             player,
-                            "messages.world_gate_point_selected",
+                            MyworldMessagesKeys.MESSAGES_WORLD_GATE_POINT_SELECTED,
                             mapOf("point" to 1, "x" to clicked.x, "y" to clicked.y, "z" to clicked.z)
                         )
                     )
-                    player.sendMessage(lang.getMessage(player, "messages.world_gate_select_second"))
+                    player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_GATE_SELECT_SECOND))
                     event.isCancelled = true
                     return
                 }
@@ -250,17 +254,17 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
                 player.sendMessage(
                     lang.getMessage(
                         player,
-                        "messages.world_gate_point_selected",
+                        MyworldMessagesKeys.MESSAGES_WORLD_GATE_POINT_SELECTED,
                         mapOf("point" to 2, "x" to clicked.x, "y" to clicked.y, "z" to clicked.z)
                     )
                 )
-                player.sendMessage(lang.getMessage(player, "messages.world_gate_confirm_place"))
+                player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_GATE_CONFIRM_PLACE))
                 event.isCancelled = true
                 return
             }
 
             val second = currentSession.second ?: run {
-                player.sendMessage(lang.getMessage(player, "messages.world_gate_select_second"))
+                player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_GATE_SELECT_SECOND))
                 event.isCancelled = true
                 return
             }
@@ -335,7 +339,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         val item = PortalItemUtil.createBasePortalItem(lang, player)
         portal.worldUuid?.let { worldUuid ->
             val worldName = plugin.worldConfigRepository.findByUuid(worldUuid)?.name
-                ?: lang.getMessage(player, "general.unknown")
+                ?: lang.getMessage(player, CommonKeys.GENERAL_UNKNOWN)
             PortalItemUtil.bindWorld(item, worldUuid, worldName, lang, player)
             return item
         }
@@ -375,8 +379,8 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
 
         val infoLines = lang.getMessageList(
             player,
-            if (pointEconomyEnabled) "messages.world_gate_confirm_body"
-            else "messages.world_gate_confirm_body_without_points",
+            if (pointEconomyEnabled) MyworldMessagesKeys.MESSAGES_WORLD_GATE_CONFIRM_BODY
+            else MyworldMessagesKeys.MESSAGES_WORLD_GATE_CONFIRM_BODY_WITHOUT_POINTS,
             mapOf(
                 "min_x" to minX,
                 "min_y" to minY,
@@ -393,7 +397,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         return InventoryMenuView(
             size = layout.size,
             title = me.awabi2048.myworldmanager.util.GuiHelper.inventoryTitle(
-                lang.getMessage(player, "messages.world_gate_confirm_title"),
+                lang.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_GATE_CONFIRM_TITLE),
             ),
             elements = listOf(
                 guiElements.menuDisplay(
@@ -401,15 +405,15 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
                         layout.previewSlot,
                         GuiItemSpec(
                             Material.BOOK,
-                            GuiNameSpec.FixedLabel(lang.getComponent(player, "messages.world_gate_confirm_title")),
+                            GuiNameSpec.FixedLabel(lang.getComponent(player, MyworldMessagesKeys.MESSAGES_WORLD_GATE_CONFIRM_TITLE)),
                             GuiLoreSpec.Blocks(listOf(GuiLoreBlock(infoLines))),
                             GuiElementRole.CONTENT,
                             1,
                         ),
                     ),
                 ),
-                confirmationEntry(player, layout.confirmSlot, Material.LIME_CONCRETE, "gui.common.confirm", "gui.common.confirm_action", GuiElementRole.CONFIRM, ACTION_CONFIRM_GATE),
-                confirmationEntry(player, layout.cancelSlot, Material.RED_CONCRETE, "gui.common.cancel", "gui.common.cancel_action", GuiElementRole.CANCEL, ACTION_CANCEL_GATE),
+                confirmationEntry(player, layout.confirmSlot, Material.LIME_CONCRETE, CommonKeys.GUI_COMMON_CONFIRM, CommonKeys.GUI_COMMON_CONFIRM_ACTION, GuiElementRole.CONFIRM, ACTION_CONFIRM_GATE),
+                confirmationEntry(player, layout.cancelSlot, Material.RED_CONCRETE, CommonKeys.GUI_COMMON_CANCEL, CommonKeys.GUI_COMMON_CANCEL, GuiElementRole.CANCEL, ACTION_CANCEL_GATE),
             ),
             category = MenuViewCategory.CONFIRMATION,
         )
@@ -419,8 +423,8 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         player: org.bukkit.entity.Player,
         slot: Int,
         material: Material,
-        nameKey: String,
-        actionKey: String,
+        nameKey: LocalizationKey<String>,
+        actionKey: LocalizationKey<String>,
         role: GuiElementRole,
         actionId: String,
     ): MenuElement = CCSystem.getAPI().getGuiElementService().menuEntry(
@@ -465,7 +469,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
             player.sendMessage(
                 lang.getMessage(
                     player,
-                    "error.world_gate_insufficient_points",
+                    CommonKeys.ERROR_WORLD_GATE_INSUFFICIENT_POINTS,
                     mapOf(
                         "required" to requiredPoints,
                         "current" to stats.worldPoint,
@@ -477,7 +481,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         }
 
         if (!consumeWorldGateItem(player, pending.hand)) {
-            player.sendMessage(lang.getMessage(player, "error.world_gate_item_required"))
+            player.sendMessage(lang.getMessage(player, CommonKeys.ERROR_WORLD_GATE_ITEM_REQUIRED))
             return
         }
 
@@ -511,11 +515,11 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         plugin.portalRepository.addPortal(gate)
         clearGateSession(player.uniqueId)
         pendingGatePlacements.remove(player.uniqueId)
-        player.sendMessage(lang.getMessage(player, "messages.world_gate_place_success"))
+        player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_GATE_PLACE_SUCCESS))
     }
 
     private fun cancelGatePlacement(player: org.bukkit.entity.Player) {
-        player.sendMessage(plugin.languageManager.getMessage(player, "messages.world_gate_place_cancelled"))
+        player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_GATE_PLACE_CANCELLED))
     }
 
     private fun consumeWorldGateItem(player: org.bukkit.entity.Player, hand: EquipmentSlot?): Boolean {
@@ -733,7 +737,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
         if (existingPortal?.isGate() == true) {
             event.isCancelled = true
             event.player.sendMessage(
-                plugin.languageManager.getMessage(event.player, "error.portal_place_in_world_gate")
+                plugin.languageManager.getMessage(event.player, CommonKeys.ERROR_PORTAL_PLACE_IN_WORLD_GATE)
             )
             return
         }
@@ -744,7 +748,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
 
         if (worldUuid == null && targetWorldName == null) {
             event.isCancelled = true
-            event.player.sendMessage(lang.getMessage(event.player, "error.portal_not_bound"))
+            event.player.sendMessage(lang.getMessage(event.player, CommonKeys.ERROR_PORTAL_NOT_BOUND))
             return
         }
 
@@ -758,7 +762,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
             ownerUuid = event.player.uniqueId
         )
         plugin.portalRepository.addPortal(portal)
-        event.player.sendMessage(lang.getMessage(event.player, "messages.portal_place_success"))
+        event.player.sendMessage(lang.getMessage(event.player, MyworldMessagesKeys.MESSAGES_PORTAL_PLACE_SUCCESS))
     }
 
     private fun normalizeWorldKey(identifier: String): String {
@@ -783,7 +787,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
          runCatching { plugin.portalRepository.ensureWritableForOperation() }
              .onFailure {
                  event.isCancelled = true
-                 event.player.sendMessage(plugin.languageManager.getMessage(event.player, "messages.migration.required"))
+                 event.player.sendMessage(plugin.languageManager.getMessage(event.player, MyworldMessagesKeys.MESSAGES_MIGRATION_REQUIRED))
              }
      }
 
@@ -803,7 +807,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
              plugin.portalManager.removePortalVisuals(portal.id)
 
              // 3. プレイヤーにメッセージを送信
-             event.player.sendMessage(plugin.languageManager.getMessage(event.player, "messages.portal_broken"))
+             event.player.sendMessage(plugin.languageManager.getMessage(event.player, MyworldMessagesKeys.MESSAGES_PORTAL_BROKEN))
          }
      }
 
@@ -820,7 +824,7 @@ class PortalListener(private val plugin: MyWorldManager) : Listener {
             event.player.inventory.addItem(item)
         }
         event.isCancelled = true
-        event.player.sendMessage(plugin.languageManager.getMessage(event.player, "messages.portal_pick_success"))
+        event.player.sendMessage(plugin.languageManager.getMessage(event.player, MyworldMessagesKeys.MESSAGES_PORTAL_PICK_SUCCESS))
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)

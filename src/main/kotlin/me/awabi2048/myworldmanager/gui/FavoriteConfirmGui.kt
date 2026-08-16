@@ -1,5 +1,9 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiFavoriteKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import com.awabi2048.ccsystem.api.gui.GuiLoreFrame
 import com.awabi2048.ccsystem.api.gui.GuiElementRole
 import com.awabi2048.ccsystem.api.gui.GuiLoreLine
@@ -17,7 +21,7 @@ import me.awabi2048.myworldmanager.util.GuiSpecFactory
 class FavoriteConfirmGui(private val plugin: MyWorldManager) {
     fun open(player: Player, worldData: WorldData) {
         val lang = plugin.languageManager
-        val worldName = lang.getMessageStrict(player, worldData.name) ?: worldData.name
+        val worldName = worldData.name
         val worldItem = GuiHelper.createContextWorldIconItem(
             plugin,
             player,
@@ -25,20 +29,20 @@ class FavoriteConfirmGui(private val plugin: MyWorldManager) {
             me.awabi2048.myworldmanager.util.semanticLore(
                 lang.getMessageList(
                     player,
-                    "gui.favorite.remove_confirm.lore",
+                    MyworldGuiFavoriteKeys.GUI_FAVORITE_REMOVE_CONFIRM_LORE,
                     mapOf("world" to worldName),
                 ).map(GuiLoreLine::Warning),
                 GuiLoreFrame.BOTH,
             ),
         )
-        val confirmLabel = lang.getMessage(player, "gui.common.confirm")
-        val cancelLabel = lang.getMessage(player, "gui.common.cancel")
+        val confirmLabel = lang.getMessage(player, CommonKeys.GUI_COMMON_CONFIRM)
+        val cancelLabel = lang.getMessage(player, CommonKeys.GUI_COMMON_CANCEL)
         val confirmItem = GuiSpecFactory.spec(Material.RED_CONCRETE, confirmLabel, GuiLoreSpec.None, GuiElementRole.CONFIRM)
         val cancelItem = GuiSpecFactory.spec(Material.LIME_CONCRETE, cancelLabel, GuiLoreSpec.None, GuiElementRole.CANCEL)
         plugin.confirmationMenuGui.open(
             player = player,
             menuId = "favorite_menu",
-            title = GuiHelper.inventoryTitle(lang.getMessage(player, "gui.favorite.remove_confirm.title")),
+            title = GuiHelper.inventoryTitle(lang.getMessage(player, MyworldGuiFavoriteKeys.GUI_FAVORITE_REMOVE_CONFIRM_TITLE)),
             centerItem = worldItem,
             confirmItem = confirmItem,
             cancelItem = cancelItem,
@@ -50,7 +54,7 @@ class FavoriteConfirmGui(private val plugin: MyWorldManager) {
                     worldData.favorite = (worldData.favorite - 1).coerceAtLeast(0)
                     plugin.playerStatsRepository.save(stats)
                     plugin.worldConfigRepository.save(worldData)
-                    player.sendMessage(lang.getMessage(player, "messages.favorite_removed"))
+                    player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_FAVORITE_REMOVED))
                     plugin.soundManager.playActionSound(player, "favorite", "favorite_remove")
                 }
                 // 詳細画面へ戻すと解除済み対象が残るため、現在地の文脈を維持して一覧を再表示します。

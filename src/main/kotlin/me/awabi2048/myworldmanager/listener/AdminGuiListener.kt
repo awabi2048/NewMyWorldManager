@@ -2,6 +2,10 @@
 
 package me.awabi2048.myworldmanager.listener
 
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiBedrockKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
 import com.awabi2048.ccsystem.api.gui.MenuDialogButton
@@ -39,10 +43,10 @@ class AdminGuiListener {
             val opened =
                 plugin.floodgateFormBridge.sendCustomInputForm(
                     player = player,
-                    title = lang.getMessage(player, "gui.bedrock.input.admin_player_filter.title"),
-                    label = lang.getMessage(player, "gui.bedrock.input.admin_player_filter.label"),
+                    title = lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_ADMIN_PLAYER_FILTER_TITLE),
+                    label = lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_ADMIN_PLAYER_FILTER_LABEL),
                     placeholder =
-                        lang.getMessage(player, "gui.bedrock.input.admin_player_filter.placeholder"),
+                        lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_ADMIN_PLAYER_FILTER_PLACEHOLDER),
                     defaultValue = "",
                     onSubmit = { value ->
                         Bukkit.getScheduler().runTask(plugin, Runnable {
@@ -65,7 +69,7 @@ class AdminGuiListener {
             return
         }
 
-        val prompt = lang.getMessage(player, "messages.admin_player_filter_prompt")
+        val prompt = lang.getMessage(player, MyworldMessagesKeys.MESSAGES_ADMIN_PLAYER_FILTER_PROMPT)
         CCSystem.getAPI().getMenuDialogService().show(
             player,
             MenuDialogRequest(
@@ -76,18 +80,18 @@ class AdminGuiListener {
                 inputs = listOf(
                     MenuDialogInput.Text(
                         "admin_player_name",
-                        Component.text(lang.getMessage(player, "gui.bedrock.input.admin_player_filter.label")),
+                        Component.text(lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_ADMIN_PLAYER_FILTER_LABEL)),
                     ),
                 ),
                 confirm = MenuDialogButton(
-                    Component.text(lang.getMessage(player, "gui.common.confirm"), NamedTextColor.GREEN),
+                    Component.text(lang.getMessage(player, CommonKeys.GUI_COMMON_CONFIRM), NamedTextColor.GREEN),
                     MenuDialogHandler { target, response ->
                         applyAdminPlayerFilter(plugin, target, response.textValue("admin_player_name"))
                         MenuActionResult.Success(MenuUpdate.None)
                     },
                 ),
                 cancel = MenuDialogButton(
-                    Component.text(lang.getMessage(player, "gui.common.cancel"), NamedTextColor.RED),
+                    Component.text(lang.getMessage(player, CommonKeys.GUI_COMMON_CANCEL), NamedTextColor.RED),
                     MenuDialogHandler { target, _ ->
                         plugin.settingsSessionManager.endSession(target)
                         MenuActionResult.Success(MenuUpdate.Resume)
@@ -101,7 +105,7 @@ class AdminGuiListener {
         val targetName = targetNameRaw.trim()
         val offlinePlayer = PlayerNameUtil.resolveOfflinePlayer(plugin, targetName)
         if (offlinePlayer == null) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "general.player_not_found"))
+            player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.GENERAL_PLAYER_NOT_FOUND))
             plugin.settingsSessionManager.endSession(player)
             CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
             return
@@ -116,7 +120,7 @@ class AdminGuiListener {
         player.sendMessage(
             plugin.languageManager.getMessage(
                 player,
-                "messages.admin_player_filter_set",
+                MyworldMessagesKeys.MESSAGES_ADMIN_PLAYER_FILTER_SET,
                 mapOf("player" to (offlinePlayer.name ?: targetName))
             )
         )
@@ -134,21 +138,21 @@ class AdminGuiListener {
         val worldDirectory = worldData.customWorldName ?: "my_world.${worldData.uuid}"
         val bar = net.kyori.adventure.text.Component.text("§8§m－－－－－－－－－－－－－－－－－－")
         val header = net.kyori.adventure.text.Component.text(
-            lang.getMessage(player, "messages.internal_data_extracted", mapOf("world" to worldData.name))
+            lang.getMessage(player, MyworldMessagesKeys.MESSAGES_INTERNAL_DATA_EXTRACTED, mapOf("world" to worldData.name))
         )
 
-        val worldDirectoryText = net.kyori.adventure.text.Component.text(lang.getMessage(player, "messages.copy_world_uuid"))
+        val worldDirectoryText = net.kyori.adventure.text.Component.text(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_COPY_WORLD_UUID))
             .hoverEvent(
                 net.kyori.adventure.text.event.HoverEvent.showText(
-                    net.kyori.adventure.text.Component.text(lang.getMessage(player, "messages.copy_world_uuid_hover"))
+                    net.kyori.adventure.text.Component.text(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_COPY_WORLD_UUID_HOVER))
                 )
             )
             .clickEvent(net.kyori.adventure.text.event.ClickEvent.copyToClipboard(worldDirectory))
 
-        val ownerUuidText = net.kyori.adventure.text.Component.text(lang.getMessage(player, "messages.copy_owner_uuid"))
+        val ownerUuidText = net.kyori.adventure.text.Component.text(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_COPY_OWNER_UUID))
             .hoverEvent(
                 net.kyori.adventure.text.event.HoverEvent.showText(
-                    net.kyori.adventure.text.Component.text(lang.getMessage(player, "messages.copy_owner_uuid_hover"))
+                    net.kyori.adventure.text.Component.text(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_COPY_OWNER_UUID_HOVER))
                 )
             )
             .clickEvent(net.kyori.adventure.text.event.ClickEvent.copyToClipboard(worldData.owner.toString()))

@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.command
 
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.session.SettingsAction
@@ -31,11 +33,11 @@ class WorldMenuCommand(private val plugin: MyWorldManager) : CommandExecutor {
 
     fun openCurrent(player: Player, showBackButton: Boolean): Boolean {
         val currentWorld = player.world
-        
+
         // ワールド名からマイワールドデータを取得
         val worldData = plugin.worldConfigRepository.findByWorldName(currentWorld.name)
         if (worldData == null) {
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.worldmenu_not_in_myworld"))
+            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLDMENU_NOT_IN_MYWORLD))
             return false
         }
 
@@ -54,7 +56,7 @@ class WorldMenuCommand(private val plugin: MyWorldManager) : CommandExecutor {
                     challenge.arguments,
                 )
             ) return true
-            player.sendMessage(plugin.languageManager.getMessage(player, "messages.worldmenu_members_only"))
+            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLDMENU_MEMBERS_ONLY))
             return true
         }
 

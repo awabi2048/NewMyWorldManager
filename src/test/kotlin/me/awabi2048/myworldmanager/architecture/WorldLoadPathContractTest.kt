@@ -37,7 +37,7 @@ class WorldLoadPathContractTest {
     fun `内部ポータルはテレポート完了後に成功状態を更新する`() {
         val callback = portalSource.indexOf("afterTeleported = {")
         val cooldown = portalSource.indexOf("warpCooldowns[player.uniqueId] =", callback)
-        val successMessage = portalSource.indexOf("messages.portal_warped", callback)
+        val successMessage = portalSource.indexOf("MESSAGES_PORTAL_WARPED", callback)
 
         assertTrue(callback >= 0)
         assertTrue(cooldown > callback)

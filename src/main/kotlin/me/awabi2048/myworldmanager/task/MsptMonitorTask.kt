@@ -2,6 +2,8 @@
 
 package me.awabi2048.myworldmanager.task
 
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.util.ChiyogamiUtil
 import net.kyori.adventure.text.Component
@@ -38,18 +40,18 @@ class MsptMonitorTask(private val plugin: MyWorldManager) : BukkitRunnable() {
         Bukkit.getWorlds().forEach { world ->
             val mspt = ChiyogamiUtil.getWorldMspt(world) ?: return@forEach
             val worldName = world.name
-            
+
             // 履歴を更新（最大10エントリ、約10秒分）
             val history = worldMsptHistory.getOrPut(worldName) { ArrayDeque() }
             history.addLast(mspt)
             while (history.size > 10) {
                 history.removeFirst()
             }
-            
+
             // 平均MSPTを計算（履歴が3未満の場合は無視）
             if (history.size < 3) return@forEach
             val avgMspt = history.average()
-            
+
             // しきい値チェック
             if (avgMspt >= threshold) {
                 // 警告済みかチェック
@@ -89,14 +91,14 @@ class MsptMonitorTask(private val plugin: MyWorldManager) : BukkitRunnable() {
     private fun notifyAdmins(worldName: String, mspt: Double) {
         val msptString = String.format("%.1f", mspt)
         val lang = plugin.languageManager
-        
+
         // 登録ワールド名を取得（表示名）
         val registeredName = plugin.worldConfigRepository.findByWorldName(worldName)?.name ?: worldName
 
         Bukkit.getOnlinePlayers().filter { it.isOp }.forEach { admin ->
             val clickableMessage = lang.getComponent(
                 null,
-                "messages.mspt_warning_chat",
+                MyworldMessagesKeys.MESSAGES_MSPT_WARNING_CHAT,
                 mapOf("world" to registeredName, "mspt" to msptString)
             ).clickEvent(ClickEvent.runCommand(plugin.internalCommandTokenManager.buildCommand(admin, "mspt-sort")))
              .hoverEvent(HoverEvent.showText(Component.text("MSPT順のワールド一覧を開く").color(NamedTextColor.GRAY)))
@@ -116,10 +118,10 @@ class MsptMonitorTask(private val plugin: MyWorldManager) : BukkitRunnable() {
             // サブタイトル表示
             val subtitle = lang.getComponent(
                 admin,
-                "messages.mspt_warning_subtitle",
+                MyworldMessagesKeys.MESSAGES_MSPT_WARNING_SUBTITLE,
                 mapOf("world" to registeredName, "mspt" to msptString)
             )
-            
+
             val times = Title.Times.times(Duration.ofMillis(500), Duration.ofSeconds(3), Duration.ofMillis(500))
             val title = Title.title(Component.empty(), subtitle, times)
             admin.showTitle(title)
@@ -129,7 +131,7 @@ class MsptMonitorTask(private val plugin: MyWorldManager) : BukkitRunnable() {
     fun start() {
         val interval = plugin.config.getLong("mspt_monitor.interval_seconds", 30) * 20L
         this.runTaskTimer(plugin, 200L, interval) // 起動10秒後から開始
-        
+
         // サーバーMSPT更新タスクも開始
         startServerMsptUpdate()
     }

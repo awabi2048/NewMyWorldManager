@@ -1,5 +1,8 @@
 package me.awabi2048.myworldmanager.gui
 
+import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiCreationKeys
+import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
+
 import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.gui.MenuActionResult
 import com.awabi2048.ccsystem.api.gui.MenuDialogButton
@@ -35,7 +38,7 @@ object AnnouncementDialogManager {
                 label = Component.text(
                     lang.getMessage(
                         player,
-                        "gui.announcement_dialog.line_label",
+                        MyworldGuiCreationKeys.GUI_ANNOUNCEMENT_DIALOG_LINE_LABEL,
                         mapOf("number" to index + 1),
                     ),
                 ),
@@ -50,18 +53,18 @@ object AnnouncementDialogManager {
                 owner = "myworldmanager",
                 id = "announcement-edit",
                 title = Component.text(
-                    lang.getMessage(player, "gui.announcement_dialog.title"),
+                    lang.getMessage(player, MyworldGuiCreationKeys.GUI_ANNOUNCEMENT_DIALOG_TITLE),
                     NamedTextColor.YELLOW,
                 ),
                 body = listOf(
                     Component.text(
-                        lang.getMessage(player, "gui.announcement_dialog.help"),
+                        lang.getMessage(player, MyworldGuiCreationKeys.GUI_ANNOUNCEMENT_DIALOG_HELP),
                         NamedTextColor.GRAY,
                     ),
                     Component.text(
                         lang.getMessage(
                             player,
-                            "gui.announcement_dialog.max_lines",
+                            MyworldGuiCreationKeys.GUI_ANNOUNCEMENT_DIALOG_MAX_LINES,
                             mapOf("max" to maxLines),
                         ),
                         NamedTextColor.GRAY,
@@ -69,7 +72,7 @@ object AnnouncementDialogManager {
                     Component.text(
                         lang.getMessage(
                             player,
-                            "gui.announcement_dialog.max_length",
+                            MyworldGuiCreationKeys.GUI_ANNOUNCEMENT_DIALOG_MAX_LENGTH,
                             mapOf("max" to maxLength),
                         ),
                         NamedTextColor.GRAY,
@@ -78,7 +81,7 @@ object AnnouncementDialogManager {
                 inputs = inputs,
                 confirm = MenuDialogButton(
                     label = Component.text(
-                        lang.getMessage(player, "gui.announcement_dialog.save"),
+                        lang.getMessage(player, MyworldGuiCreationKeys.GUI_ANNOUNCEMENT_DIALOG_SAVE),
                         NamedTextColor.GREEN,
                     ),
                     handler = MenuDialogHandler { editPlayer, response ->
@@ -87,7 +90,7 @@ object AnnouncementDialogManager {
                 ),
                 cancel = MenuDialogButton(
                     label = Component.text(
-                        lang.getMessage(player, "gui.announcement_dialog.cancel"),
+                        lang.getMessage(player, MyworldGuiCreationKeys.GUI_ANNOUNCEMENT_DIALOG_CANCEL),
                         NamedTextColor.RED,
                     ),
                     handler = MenuDialogHandler { cancelPlayer, _ ->
@@ -125,7 +128,7 @@ object AnnouncementDialogManager {
                 player.sendMessage(
                     lang.getMessage(
                         player,
-                        "messages.announcement_blocked_string",
+                        MyworldMessagesKeys.MESSAGES_ANNOUNCEMENT_BLOCKED_STRING,
                         mapOf("string" to blocked),
                     ),
                 )
@@ -136,7 +139,7 @@ object AnnouncementDialogManager {
                 player.sendMessage(
                     lang.getMessage(
                         player,
-                        "messages.announcement_invalid_length",
+                        MyworldMessagesKeys.MESSAGES_ANNOUNCEMENT_INVALID_LENGTH,
                         mapOf("max_lines" to maxLines, "max_length" to maxLength),
                     ),
                 )
@@ -148,7 +151,7 @@ object AnnouncementDialogManager {
         worldData.announcementMessages.clear()
         worldData.announcementMessages.addAll(newMessages)
         plugin.worldConfigRepository.save(worldData)
-        player.sendMessage(lang.getMessage(player, "messages.announcement_set"))
+        player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_ANNOUNCEMENT_SET))
         plugin.soundManager.playActionSound(player, "world_settings", "success")
         return MenuActionResult.Success(MenuUpdate.Resume)
     }

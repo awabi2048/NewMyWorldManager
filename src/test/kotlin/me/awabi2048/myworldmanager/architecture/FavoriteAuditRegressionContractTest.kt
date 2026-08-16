@@ -20,7 +20,7 @@ class FavoriteAuditRegressionContractTest {
         )
         assertTrue("plugin.currentWorldMenuElementFactory.create(player, footerStart + 4)" in source)
         assertTrue("createPendingEntry(player, footerStart + 7)" in source)
-        assertTrue("description = plugin.languageManager.getMessageList(player, \"gui.user_settings.button.description\")" in source)
+        assertTrue("description = plugin.languageManager.getMessageList(player, MyworldGuiSettingsKeys.GUI_USER_SETTINGS_BUTTON_DESCRIPTION)" in source)
         assertFalse("createStatsEntry(player, footerStart + 4" in source)
     }
 
@@ -57,6 +57,6 @@ class FavoriteAuditRegressionContractTest {
         val source = sourceRoot.resolve("gui/PlayerWorldGui.kt").readText()
         assertTrue("createPendingEntry(player, layout.size - 2)" in source)
         assertTrue("navigationEntry(player, layout.size - 1, true" in source)
-        assertTrue("gui.user_settings.button.description" in source)
+        assertTrue("GUI_USER_SETTINGS_BUTTON_DESCRIPTION" in source)
     }
 }
