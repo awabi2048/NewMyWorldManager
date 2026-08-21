@@ -86,7 +86,18 @@ class WorldService(
              initialSpawn: WorldSpawnCoordinates? = null,
              cost: Int = 0,
              billingMode: WorldPointBillingMode = WorldPointBillingMode.STANDARD
-     ): Boolean {
+    ): Boolean {
+        // 移行待ちのプレイヤーデータを持つ場合は、作成自体が直接操作にあたるため事前に拒否する
+        try {
+            plugin.playerStatsRepository.ensureWritableForOperation(player.uniqueId)
+        } catch (failure: IllegalStateException) {
+            if (me.awabi2048.myworldmanager.util.MigrationFeedback.isMigrationRequired(failure)) {
+                player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_MIGRATION_OPERATION_REQUIRED))
+                plugin.logger.warning("World creation rejected for ${player.uniqueId} due to pending player data migration: ${failure.message}")
+                return false
+            }
+            throw failure
+        }
         val chargedCost = billableCost(cost, billingMode)
 
         if (!WorldCreationChecks.checkLimits(plugin, player, player.uniqueId) ||
@@ -185,6 +196,14 @@ class WorldService(
             )
             return true
         } catch (e: Exception) {
+            if (e is IllegalStateException && me.awabi2048.myworldmanager.util.MigrationFeedback.isMigrationRequired(e)) {
+                plugin.logger.warning("World creation rejected for ${player.name} due to migration: ${e.message}")
+                player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_MIGRATION_OPERATION_REQUIRED))
+                repository.delete(uuid)
+                cleanupFailedCreatedWorld(worldFolderName, preferredActiveWorldDirectory(worldFolderName))
+                creatingWorlds.remove(player.uniqueId.toString())
+                return false
+            }
             plugin.logger.log(Level.SEVERE, "Failed to create world: $worldName", e)
             player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_INTERNAL_ERROR))
             repository.delete(uuid)
@@ -491,6 +510,12 @@ class WorldService(
                     .onFailure {
                         plugin.logger.log(Level.SEVERE, "Failed to refund creation cost for ${player.uniqueId}", it)
                     }
+            }
+            if (e is IllegalStateException && me.awabi2048.myworldmanager.util.MigrationFeedback.isMigrationRequired(e)) {
+                player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_MIGRATION_OPERATION_REQUIRED))
+                plugin.logger.warning("World creation finalize rejected for ${player.uniqueId} due to migration: ${e.message}")
+                creatingWorlds.remove(player.uniqueId.toString())
+                return
             }
             throw e
         }

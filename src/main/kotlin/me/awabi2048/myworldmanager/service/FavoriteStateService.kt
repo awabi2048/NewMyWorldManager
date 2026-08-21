@@ -30,6 +30,8 @@ class FavoriteStateService(private val plugin: MyWorldManager) {
         addSource: MwmFavoriteAddSource? = null,
     ): ToggleResult {
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+        val originalFavoriteDate = stats.favoriteWorlds[worldData.uuid]
+        val originalFavoriteCount = worldData.favorite
         val result = if (stats.favoriteWorlds.containsKey(worldData.uuid)) {
             stats.favoriteWorlds.remove(worldData.uuid)
             worldData.favorite = (worldData.favorite - 1).coerceAtLeast(0)
@@ -41,8 +43,19 @@ class FavoriteStateService(private val plugin: MyWorldManager) {
             worldData.favorite++
             ToggleResult.Added
         }
-        plugin.playerStatsRepository.save(stats)
-        plugin.worldConfigRepository.save(worldData)
+        try {
+            plugin.playerStatsRepository.save(stats)
+            plugin.worldConfigRepository.save(worldData)
+        } catch (failure: Throwable) {
+            // 全体を拒否するため、メモリ上の変更を元に戻してから再スローする
+            if (result == ToggleResult.Removed) {
+                if (originalFavoriteDate != null) stats.favoriteWorlds[worldData.uuid] = originalFavoriteDate
+            } else {
+                stats.favoriteWorlds.remove(worldData.uuid)
+            }
+            worldData.favorite = originalFavoriteCount
+            throw failure
+        }
         if (result == ToggleResult.Added && addSource != null) {
             Bukkit.getPluginManager().callEvent(
                 MwmWorldFavoritedEvent(
@@ -76,11 +89,19 @@ class FavoriteStateService(private val plugin: MyWorldManager) {
         if (!dateMatches || world.favorite != expectedCount) {
             return RestoreResult.CONCURRENT_CHANGE
         }
+        val originalDate = stats.favoriteWorlds[worldUuid]
+        val originalCount = world.favorite
         if (beforeDate == null) stats.favoriteWorlds.remove(worldUuid)
         else stats.favoriteWorlds[worldUuid] = beforeDate
         world.favorite = beforeCount
-        plugin.playerStatsRepository.save(stats)
-        plugin.worldConfigRepository.save(world)
+        try {
+            plugin.playerStatsRepository.save(stats)
+            plugin.worldConfigRepository.save(world)
+        } catch (failure: Throwable) {
+            if (originalDate == null) stats.favoriteWorlds.remove(worldUuid) else stats.favoriteWorlds[worldUuid] = originalDate
+            world.favorite = originalCount
+            throw failure
+        }
         return RestoreResult.RESTORED
     }
 }
