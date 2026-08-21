@@ -173,36 +173,100 @@ class UserSettingsGui(private val plugin: MyWorldManager) {
     }
 
     private fun toggleNotification(context: MenuActionContext): MenuActionResult {
-        val stats = plugin.playerStatsRepository.findByUuid(context.player.uniqueId)
-        stats.visitorNotificationEnabled = !stats.visitorNotificationEnabled
-        plugin.playerStatsRepository.save(stats)
+        val player = context.player
+        val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+        val original = stats.visitorNotificationEnabled
+        stats.visitorNotificationEnabled = !original
+        try {
+            plugin.playerStatsRepository.save(stats)
+        } catch (failure: IllegalStateException) {
+            stats.visitorNotificationEnabled = original
+            me.awabi2048.myworldmanager.util.MigrationFeedback.handleSaveException(
+                player,
+                plugin.languageManager,
+                failure,
+                worldScoped = false,
+            )?.let { return it }
+            throw failure
+        } catch (failure: Exception) {
+            stats.visitorNotificationEnabled = original
+            throw failure
+        }
         return MenuActionResult.Success(MenuUpdate.Refresh)
     }
 
     private fun toggleCriticalVisibility(context: MenuActionContext): MenuActionResult {
-        val stats = plugin.playerStatsRepository.findByUuid(context.player.uniqueId)
-        stats.criticalSettingsEnabled = !stats.criticalSettingsEnabled
-        plugin.playerStatsRepository.save(stats)
+        val player = context.player
+        val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+        val original = stats.criticalSettingsEnabled
+        stats.criticalSettingsEnabled = !original
+        try {
+            plugin.playerStatsRepository.save(stats)
+        } catch (failure: IllegalStateException) {
+            stats.criticalSettingsEnabled = original
+            me.awabi2048.myworldmanager.util.MigrationFeedback.handleSaveException(
+                player,
+                plugin.languageManager,
+                failure,
+                worldScoped = false,
+            )?.let { return it }
+            throw failure
+        } catch (failure: Exception) {
+            stats.criticalSettingsEnabled = original
+            throw failure
+        }
         return MenuActionResult.Success(MenuUpdate.Refresh)
     }
 
     private fun toggleFavoriteGroupInvites(context: MenuActionContext): MenuActionResult {
-        val stats = plugin.playerStatsRepository.findByUuid(context.player.uniqueId)
-        stats.favoriteGroupInvitesEnabled = !stats.favoriteGroupInvitesEnabled
-        plugin.playerStatsRepository.save(stats)
+        val player = context.player
+        val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+        val original = stats.favoriteGroupInvitesEnabled
+        stats.favoriteGroupInvitesEnabled = !original
+        try {
+            plugin.playerStatsRepository.save(stats)
+        } catch (failure: IllegalStateException) {
+            stats.favoriteGroupInvitesEnabled = original
+            me.awabi2048.myworldmanager.util.MigrationFeedback.handleSaveException(
+                player,
+                plugin.languageManager,
+                failure,
+                worldScoped = false,
+            )?.let { return it }
+            throw failure
+        } catch (failure: Exception) {
+            stats.favoriteGroupInvitesEnabled = original
+            throw failure
+        }
         return MenuActionResult.Success(MenuUpdate.Refresh)
     }
 
     private fun cycleTourNavigation(context: MenuActionContext): MenuActionResult {
         val direction = GuiCycle.direction(context.click) ?: return MenuActionResult.Ignored
-        val stats = plugin.playerStatsRepository.findByUuid(context.player.uniqueId)
+        val player = context.player
+        val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+        val original = stats.tourNavigationMode
         stats.tourNavigationMode = GuiCycle.select(
-            stats.tourNavigationMode,
+            original,
             TourNavigationMode.entries,
             direction,
         )
-        plugin.playerStatsRepository.save(stats)
-        plugin.tourManager.refreshNavigation(context.player)
+        try {
+            plugin.playerStatsRepository.save(stats)
+        } catch (failure: IllegalStateException) {
+            stats.tourNavigationMode = original
+            me.awabi2048.myworldmanager.util.MigrationFeedback.handleSaveException(
+                player,
+                plugin.languageManager,
+                failure,
+                worldScoped = false,
+            )?.let { return it }
+            throw failure
+        } catch (failure: Exception) {
+            stats.tourNavigationMode = original
+            throw failure
+        }
+        plugin.tourManager.refreshNavigation(player)
         return MenuActionResult.Success(MenuUpdate.Refresh)
     }
 

@@ -138,10 +138,19 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 }
                 val afterCount = stats.worldDisplayOrder.size
 
-                // 変更があれば保存＆ログ出力
+                // 変更があれば保存＆ログ出力。移行待ちの場合は保存を諦めて表示を優先する。
                 if (beforeCount != afterCount) {
-                        plugin.playerStatsRepository.save(stats)
-                        plugin.logger.info("[PlayerWorldGui] ${player.name} の worldDisplayOrder から削除されたワールド ${beforeCount - afterCount} 件を削除しました。")
+                        try {
+                                plugin.playerStatsRepository.save(stats)
+                                plugin.logger.info("[PlayerWorldGui] ${player.name} の worldDisplayOrder から削除されたワールド ${beforeCount - afterCount} 件を削除しました。")
+                        } catch (failure: IllegalStateException) {
+                                if (me.awabi2048.myworldmanager.util.MigrationFeedback.isMigrationRequired(failure)) {
+                                        plugin.logger.warning("[PlayerWorldGui] ${player.name} の worldDisplayOrder 補正をスキップしました（移行待ち）: ${failure.message}")
+                                        // メモリ上の変更は 유지하되、保存は見送る
+                                } else {
+                                        throw failure
+                                }
+                        }
                 }
 
                 repository.loadAll()
@@ -152,8 +161,16 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 val missingUuids = currentUuids.filter { !stats.worldDisplayOrder.contains(it) }
                 if (missingUuids.isNotEmpty()) {
                         stats.worldDisplayOrder.addAll(missingUuids)
-                        plugin.playerStatsRepository.save(stats)
-                        plugin.logger.info("[PlayerWorldGui] ${player.name} の worldDisplayOrder に新規ワールド ${missingUuids.size} 件を追加しました。")
+                        try {
+                                plugin.playerStatsRepository.save(stats)
+                                plugin.logger.info("[PlayerWorldGui] ${player.name} の worldDisplayOrder に新規ワールド ${missingUuids.size} 件を追加しました。")
+                        } catch (failure: IllegalStateException) {
+                                if (me.awabi2048.myworldmanager.util.MigrationFeedback.isMigrationRequired(failure)) {
+                                        plugin.logger.warning("[PlayerWorldGui] ${player.name} の worldDisplayOrder 補正をスキップしました（移行待ち）: ${failure.message}")
+                                } else {
+                                        throw failure
+                                }
+                        }
                 }
 
                 // 現在のページ番号を保存
@@ -389,11 +406,29 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
         }
 
         private fun moveToTop(context: MenuActionContext, worldData: WorldData): MenuActionResult {
-                val stats = plugin.playerStatsRepository.findByUuid(context.player.uniqueId)
+                val player = context.player
+                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
+                val originalOrder = stats.worldDisplayOrder.toList()
                 stats.worldDisplayOrder.remove(worldData.uuid)
                 stats.worldDisplayOrder.add(0, worldData.uuid)
-                plugin.playerStatsRepository.save(stats)
-                context.player.sendMessage("§a「${worldData.name}」を一番上に移動しました。")
+                try {
+                        plugin.playerStatsRepository.save(stats)
+                } catch (failure: IllegalStateException) {
+                        stats.worldDisplayOrder.clear()
+                        stats.worldDisplayOrder.addAll(originalOrder)
+                        me.awabi2048.myworldmanager.util.MigrationFeedback.handleSaveException(
+                                player,
+                                plugin.languageManager,
+                                failure,
+                                worldScoped = false,
+                        )?.let { return it }
+                        throw failure
+                } catch (failure: Exception) {
+                        stats.worldDisplayOrder.clear()
+                        stats.worldDisplayOrder.addAll(originalOrder)
+                        throw failure
+                }
+                player.sendMessage("§a「${worldData.name}」を一番上に移動しました。")
                 return MenuActionResult.Success(MenuUpdate.Refresh)
         }
 

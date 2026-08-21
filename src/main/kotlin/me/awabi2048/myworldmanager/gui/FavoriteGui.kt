@@ -93,7 +93,17 @@ class FavoriteGui(private val plugin: MyWorldManager) {
                 if (it == null) stats.favoriteWorlds.remove(uuid)
             }
         }
-        if (resolved.size != favoriteIds.size) plugin.playerStatsRepository.save(stats)
+        if (resolved.size != favoriteIds.size) {
+            try {
+                plugin.playerStatsRepository.save(stats)
+            } catch (failure: IllegalStateException) {
+                if (me.awabi2048.myworldmanager.util.MigrationFeedback.isMigrationRequired(failure)) {
+                    plugin.logger.warning("[FavoriteGui] お気に入り補正をスキップしました（移行待ち）: ${failure.message}")
+                } else {
+                    throw failure
+                }
+            }
+        }
         val worlds = resolved.filter { selectedTag == null || selectedTag in it.tags }
         val pageLayout = CCSystem.getAPI().getGuiLayoutService()
             .sevenColumnPage(worlds.size, route.payload[PAGE]?.toIntOrNull() ?: 0)
@@ -202,25 +212,35 @@ class FavoriteGui(private val plugin: MyWorldManager) {
             plugin.menuEntryRouter.openFavoriteRemoveConfirm(player, worldData)
             return MenuActionResult.Success(MenuUpdate.None)
         }
-        return when (plugin.favoriteStateService.toggle(
-            player,
-            worldData,
-            me.awabi2048.myworldmanager.api.event.MwmFavoriteAddSource.FAVORITE_MENU,
-        )) {
-            me.awabi2048.myworldmanager.service.FavoriteStateService.ToggleResult.Added -> {
-                player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_FAVORITE_ADDED))
-                MenuActionResult.Success(MenuUpdate.Refresh)
+        return try {
+            when (plugin.favoriteStateService.toggle(
+                player,
+                worldData,
+                me.awabi2048.myworldmanager.api.event.MwmFavoriteAddSource.FAVORITE_MENU,
+            )) {
+                me.awabi2048.myworldmanager.service.FavoriteStateService.ToggleResult.Added -> {
+                    player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_FAVORITE_ADDED))
+                    MenuActionResult.Success(MenuUpdate.Refresh)
+                }
+                me.awabi2048.myworldmanager.service.FavoriteStateService.ToggleResult.LimitReached -> {
+                    player.sendMessage(plugin.languageManager.getMessage(
+                        player,
+                        CommonKeys.ERROR_FAVORITE_LIMIT_REACHED,
+                        mapOf("limit" to plugin.config.getInt("favorite.max_count", 1000)),
+                    ))
+                    MenuActionResult.Rejected()
+                }
+                me.awabi2048.myworldmanager.service.FavoriteStateService.ToggleResult.Removed ->
+                    MenuActionResult.Rejected()
             }
-            me.awabi2048.myworldmanager.service.FavoriteStateService.ToggleResult.LimitReached -> {
-                player.sendMessage(plugin.languageManager.getMessage(
-                    player,
-                    CommonKeys.ERROR_FAVORITE_LIMIT_REACHED,
-                    mapOf("limit" to plugin.config.getInt("favorite.max_count", 1000)),
-                ))
-                MenuActionResult.Rejected()
-            }
-            me.awabi2048.myworldmanager.service.FavoriteStateService.ToggleResult.Removed ->
-                MenuActionResult.Rejected()
+        } catch (failure: IllegalStateException) {
+            me.awabi2048.myworldmanager.util.MigrationFeedback.handleSaveException(
+                player,
+                plugin.languageManager,
+                failure,
+                worldScoped = false,
+            )?.let { return it }
+            throw failure
         }
     }
 
