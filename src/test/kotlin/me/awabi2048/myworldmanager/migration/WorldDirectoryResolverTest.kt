@@ -25,6 +25,18 @@ class WorldDirectoryResolverTest {
     }
 
     @Test
+    fun `exposes migration target path for legacy`() = withTempRoot { root ->
+        val folder = "my_world.${UUID.randomUUID()}"
+        Files.createDirectories(root.resolve(folder))
+
+        val result = resolver(root).inspect(folder)
+
+        assertEquals(WorldDirectoryState.LEGACY, result?.state)
+        assertEquals(root.resolve("world/dimensions/minecraft/$folder"), result?.currentPath)
+        assertEquals(root.resolve(folder), result?.existingPath)
+    }
+
+    @Test
     fun `classifies current only as current`() = withTempRoot { root ->
         val folder = "my_world.${UUID.randomUUID()}"
         val current = root.resolve("world/dimensions/minecraft/$folder")
