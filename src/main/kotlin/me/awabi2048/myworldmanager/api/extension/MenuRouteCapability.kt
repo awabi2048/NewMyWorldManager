@@ -88,14 +88,35 @@ data class WorldSettingsActionRequest(
 )
 
 /**
+ * ワールド設定の標準操作が実行できない理由を型付けしたものです。
+ *
+ * 表示時(contract)と実行時(execute)が同じ値を共有することで、
+ * 「実行は拒否されるのに警告が表示されない」漏れを構造的に防ぎます。
+ * 動的な理由(入場権限の判定結果など)は静的な理由として表現できないため、
+ * restriction は null を許容します。その場合も actionable=false 自体は有効です。
+ */
+enum class WorldSettingsActionRestriction {
+    /** 対象ワールド内にいる必要がある操作を、ワールド外から実行しようとした。 */
+    NOT_IN_TARGET_WORLD,
+}
+
+/**
  * ワールド設定の標準操作について、表示と実行が共有する操作契約です。
  */
 data class WorldSettingsActionContract(
     val action: WorldSettingsAction,
     val options: List<WorldSettingsActionOption>,
     val actionable: Boolean,
+    val restriction: WorldSettingsActionRestriction? = null,
     val sounds: MenuActionSoundPolicy = MenuActionSoundPolicy(),
 ) {
+    init {
+        // 実行可能なのに制約理由を持つ契約は矛盾しており、呼び出し側の警告表示を誤らせるため生成時に排除する。
+        require(!(actionable && restriction != null)) {
+            "実行可能な操作契約に制約理由を設定できません: $action"
+        }
+    }
+
     val acceptedClicks: Set<ClickType>
         get() = options.flatMapTo(linkedSetOf()) { it.gesture.clicks }
 }
