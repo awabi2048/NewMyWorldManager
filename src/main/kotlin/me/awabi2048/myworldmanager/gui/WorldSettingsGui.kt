@@ -60,6 +60,8 @@ import java.util.UUID
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsAction
+import me.awabi2048.myworldmanager.api.extension.WorldSettingsActionContract
+import me.awabi2048.myworldmanager.api.extension.WorldSettingsActionRequest
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsRestriction
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsStateContext
 import me.awabi2048.myworldmanager.api.extension.MemberManagementCapabilityContract
@@ -74,6 +76,7 @@ import me.awabi2048.myworldmanager.util.GuiHelper
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.PermissionManager
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
+import me.awabi2048.myworldmanager.util.WorldSettingsRestrictionMessages
 import net.kyori.adventure.text.Component
 import me.awabi2048.myworldmanager.util.PlayerNameUtil
 import net.kyori.adventure.text.format.TextDecoration
@@ -564,15 +567,12 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
         }
 
         private fun contractMenuActions(
-                player: Player,
-                worldData: WorldData,
-                action: WorldSettingsAction,
+                contract: WorldSettingsActionContract,
                 operation: WorldSettingsRuntimeOperation,
                 actionTexts: List<String>,
         ): List<GuiMenuActionIntent> {
-                val contract = plugin.worldSettingsActionService.contract(player, worldData, action)
                 require(contract.options.size == actionTexts.size) {
-                        "World settings action presentation mismatch: $action options=${contract.options.size} texts=${actionTexts.size}"
+                        "World settings action presentation mismatch: ${contract.action} options=${contract.options.size} texts=${actionTexts.size}"
                 }
                 return contract.options.zip(actionTexts).map { (option, actionText) ->
                         menuGestureAction(
@@ -597,6 +597,19 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 WorldSettingsRuntimeOperation.WARP -> MenuActionSafety.EXTERNAL_SIDE_EFFECT
                 else -> error("Unsupported world settings action contract safety: $operation")
         }
+
+        /**
+         * 操作契約の制約理由を、警告ブロック用の文言へ変換します。
+         * 理由の判定は契約(実行時と共有)側に一任し、GUIは表示だけを担います。
+         */
+        private fun restrictionWarnings(
+                player: Player,
+                contract: WorldSettingsActionContract,
+        ): List<String> = listOfNotNull(
+                contract.restriction?.let {
+                        plugin.languageManager.getMessage(player, WorldSettingsRestrictionMessages.warningKey(it))
+                },
+        )
 
         private fun renderWorldSettings(
                 player: Player,
@@ -695,6 +708,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 }
 
                 if (canManageTour) {
+                        val tourContract = plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.MANAGE_TOUR)
                         inventory.setMenuEntry(
                                 player,
                                 GuiMenuEntrySpec(
@@ -704,23 +718,24 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 lang.getMessage(player, MyworldGuiCommonKeys.GUI_TOUR_WORLDMENU_DISPLAY),
                                                 GuiNameStyle.DEFAULT,
                                         ),
-                                        role = GuiElementRole.ACTION,
+                                        // ツアー管理は対象ワールド内でのみ操作できるため、契約の実行可否に合わせて
+                                        // 表示役割と警告ブロックを切り替えます。ワールド外では理由が警告として表示されます。
+                                        role = if (tourContract.actionable) GuiElementRole.ACTION else GuiElementRole.CONTENT,
                                         description = lang.getMessageList(player, MyworldGuiCommonKeys.GUI_TOUR_WORLDMENU_BLOCKS_DESCRIPTION),
+                                        warnings = restrictionWarnings(player, tourContract),
                                         actions = contractMenuActions(
-                                                player,
-                                                worldData,
-                                                WorldSettingsAction.MANAGE_TOUR,
+                                                tourContract,
                                                 WorldSettingsRuntimeOperation.TOUR,
                                                 listOf(lang.getMessage(player, MyworldGuiCommonKeys.GUI_TOUR_WORLDMENU_ACTION_OPEN)),
                                         ),
-                                        sounds = plugin.worldSettingsActionService
-                                                .contract(player, worldData, WorldSettingsAction.MANAGE_TOUR).sounds,
+                                        sounds = tourContract.sounds,
                                 ),
                         )
                 }
 
                 // ワールド名・説明変更
                 if (hasManagePermission) {
+                        val infoContract = plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.EDIT_INFO)
                         inventory.setMenuEntry(
                                 player,
                                 GuiMenuEntrySpec(
@@ -737,14 +752,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         role = GuiElementRole.ACTION,
                                         description = lang.getMessageList(player, MyworldGuiSettingsKeys.GUI_SETTINGS_INFO_BLOCKS_SUMMARY),
                                         actions = contractMenuActions(
-                                                player,
-                                                worldData,
-                                                WorldSettingsAction.EDIT_INFO,
+                                                infoContract,
                                                 WorldSettingsRuntimeOperation.EDIT_INFO,
                                                 listOf(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_INFO_ACTION_OPEN_EDITOR)),
                                         ),
-                                        sounds = plugin.worldSettingsActionService
-                                                .contract(player, worldData, WorldSettingsAction.EDIT_INFO).sounds,
+                                        sounds = infoContract.sounds,
                                 ),
                         )
                 }
@@ -760,6 +772,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
                 // アイコン変更
                 if (hasManagePermission) {
+                        val iconContract = plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.SELECT_ICON)
                         inventory.setMenuEntry(
                                 player,
                                 GuiMenuEntrySpec(
@@ -776,20 +789,18 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         role = GuiElementRole.ACTION,
                                         description = lang.getMessageList(player, MyworldGuiSettingsKeys.GUI_SETTINGS_ICON_BLOCKS_DESCRIPTION),
                                         actions = contractMenuActions(
-                                                player,
-                                                worldData,
-                                                WorldSettingsAction.SELECT_ICON,
+                                                iconContract,
                                                 WorldSettingsRuntimeOperation.SELECT_ICON,
                                                 listOf(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_ICON_ACTION_START_SELECTION)),
                                         ),
-                                        sounds = plugin.worldSettingsActionService
-                                                .contract(player, worldData, WorldSettingsAction.SELECT_ICON).sounds,
+                                        sounds = iconContract.sounds,
                                 ),
                         )
                 }
 
                 // スポーン位置変更
                 if (hasManagePermission) {
+                        val spawnContract = plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.SET_SPAWN)
                         val spawnActions = if (isBedrock) {
                                 listOf(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_SPAWN_ACTION_SET_BOTH))
                         } else {
@@ -811,18 +822,16 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_SPAWN_DISPLAY),
                                                 GuiNameStyle.DEFAULT,
                                         ),
-                                        role = if (isInWorld) GuiElementRole.ACTION else GuiElementRole.CONTENT,
+                                        // 実行可否と警告は契約の制約理由から導出し、実行時の拒否判定と単一ソースに保ちます。
+                                        role = if (spawnContract.actionable) GuiElementRole.ACTION else GuiElementRole.CONTENT,
                                         description = lang.getMessageList(player, MyworldGuiSettingsKeys.GUI_SETTINGS_SPAWN_BLOCKS_DESCRIPTION),
-                                        warnings = if (!isInWorld && warningLore != null) listOf(warningLore) else emptyList(),
+                                        warnings = restrictionWarnings(player, spawnContract),
                                         actions = contractMenuActions(
-                                                player,
-                                                worldData,
-                                                WorldSettingsAction.SET_SPAWN,
+                                                spawnContract,
                                                 WorldSettingsRuntimeOperation.SET_SPAWN,
                                                 spawnActions,
                                         ),
-                                        sounds = plugin.worldSettingsActionService
-                                                .contract(player, worldData, WorldSettingsAction.SET_SPAWN).sounds,
+                                        sounds = spawnContract.sounds,
                                         // Bedrockは単一操作、Java版は左右で別操作のため共通仕様で条件判定します。
                                         interactionGuidance = GuiInteractionGuidance.SINGLE_ACTION_CLICK,
                                 ),
@@ -1087,6 +1096,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         .findByWorldAndType(worldData.uuid, PendingInteractionType.MEMBER_REQUEST)
                                         .size
 
+                        val memberContract = plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.MANAGE_MEMBERS)
                         inventory.setMenuEntry(
                                 player,
                                 GuiMenuEntrySpec(
@@ -1103,11 +1113,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 GuiMenuEntryData(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_MEMBER_BLOCKS_PENDING_INVITES), pendingInviteCount, GuiValueTone.PRIMARY),
                                         ),
                                         actions = contractMenuActions(
-                                                player, worldData, WorldSettingsAction.MANAGE_MEMBERS,
+                                                memberContract,
                                                 WorldSettingsRuntimeOperation.MANAGE_MEMBERS,
                                                 listOf(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_MEMBER_ACTION_OPEN_LIST)),
                                         ),
-                                        sounds = plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.MANAGE_MEMBERS).sounds,
+                                        sounds = memberContract.sounds,
                                 ),
                         )
                 }
@@ -1158,6 +1168,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 // 案内設定
                 if (hasManagePermission) {
                         val messagePreview = worldData.announcementMessages
+                        val announcementContract = plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.EDIT_ANNOUNCEMENT)
 
                         inventory.setMenuEntry(
                                 player,
@@ -1170,14 +1181,14 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 if (messagePreview.isEmpty()) emptyList() else
                                                         listOf(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_ANNOUNCEMENT_PREVIEW_HEADER)) + messagePreview,
                                         actions = contractMenuActions(
-                                                player, worldData, WorldSettingsAction.EDIT_ANNOUNCEMENT,
+                                                announcementContract,
                                                 WorldSettingsRuntimeOperation.EDIT_ANNOUNCEMENT,
                                                 listOf(
                                                         lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_ANNOUNCEMENT_ACTION_SET_MESSAGE),
                                                         lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_ANNOUNCEMENT_ACTION_RESET_MESSAGE),
                                                 ),
                                         ),
-                                        sounds = plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.EDIT_ANNOUNCEMENT).sounds,
+                                        sounds = announcementContract.sounds,
                                 ),
                         )
                 }
@@ -1320,49 +1331,37 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         PublishLevel.LOCKED -> MyworldPublishLevelKeys.PUBLISH_LEVEL_LOCKED
                 })
 
-                // 有効期限の計算
+                // 自動アーカイブ期限の計算。データ不正時に偽の日付(例: now+7日)を表示しないため、
+                // パース失敗は null とし、該当する情報行自体を省略します。
                 val dateFormatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
-                val expireDate =
-                        try {
-                                java.time.LocalDate.parse(worldData.expireDate, dateFormatter)
-                        } catch (e: Exception) {
-                                java.time.LocalDate.now().plusDays(7)
-                        }
-                val today = java.time.LocalDate.now()
-                val daysRemaining = java.time.temporal.ChronoUnit.DAYS.between(today, expireDate)
+                val expireDate = runCatching { java.time.LocalDate.parse(worldData.expireDate, dateFormatter) }.getOrNull()
                 val displayFormatter = java.time.format.DateTimeFormatter.ofPattern("yyyy年MM月dd日")
-                val dateStr = displayFormatter.format(expireDate)
+                val expireDateStr = expireDate?.let(displayFormatter::format)
 
-                // 作成日の計算
+                // 作成日の計算。こちらもパース失敗時は「今日作成」と誤解される表示を避けるため null 扱いとします。
                 val createdAtDate =
-                        try {
-                                val dateTimeFormatter =
-                                        java.time.format.DateTimeFormatter.ofPattern(
-                                                "yyyy-MM-dd HH:mm:ss"
-                                        )
+                        runCatching {
                                 java.time.LocalDateTime.parse(
-                                                worldData.createdAt,
-                                                dateTimeFormatter
-                                        )
-                                        .toLocalDate()
-                        } catch (e: Exception) {
-                                java.time.LocalDate.now()
-                        }
-                val daysSinceCreation =
-                        java.time.temporal.ChronoUnit.DAYS.between(
-                                createdAtDate,
-                                java.time.LocalDate.now()
-                        )
-                val createdInfo =
-                        if (daysSinceCreation == 0L) {
-                                lang.getMessage(player, MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_CREATED_INFO_TODAY)
+                                        worldData.createdAt,
+                                        java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"),
+                                ).toLocalDate()
+                        }.getOrNull()
+                val createdInfo = createdAtDate?.let {
+                        if (it == java.time.LocalDate.now()) {
+                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_MAIN_INFO_CREATED_VALUE_TODAY)
                         } else {
                                 lang.getMessage(
                                         player,
-                                        MyworldGuiAdminKeys.GUI_ADMIN_WORLD_ITEM_CREATED_INFO_DAYS,
-                                        mapOf("days" to daysSinceCreation)
+                                        MyworldGuiSettingsKeys.GUI_SETTINGS_MAIN_INFO_CREATED_VALUE_DAYS,
+                                        mapOf("days" to java.time.temporal.ChronoUnit.DAYS.between(it, java.time.LocalDate.now()))
                                 )
                         }
+                }
+
+                // アーカイブ済みワールドの表示日は実アーカイブ日を優先し、欠損時は期限日、それも不正なら生文字列を使います。
+                val archivedDisplayDate = worldData.archivedAt?.let { raw ->
+                        runCatching { displayFormatter.format(java.time.LocalDate.parse(raw, dateFormatter)) }.getOrDefault(raw)
+                } ?: expireDateStr ?: worldData.expireDate
 
                 val isSpecialExpansion = currentLevel == WorldData.EXPANSION_LEVEL_SPECIAL
                 val warpContract = plugin.worldSettingsActionService
@@ -1396,17 +1395,37 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                         GuiValueTone.PRIMARY,
                                                 ))
                                         }
-                                        add(GuiMenuEntryData(
-                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_MAIN_INFO_CREATED_LABEL),
-                                                "${displayFormatter.format(createdAtDate)} ($createdInfo)",
-                                                GuiValueTone.PRIMARY,
-                                        ))
-                                        if (!isSpecialExpansion) {
+                                        if (createdAtDate != null && createdInfo != null) {
                                                 add(GuiMenuEntryData(
-                                                        lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_MAIN_INFO_ARCHIVE_LABEL),
-                                                        lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_MAIN_INFO_ARCHIVE_VALUE, mapOf("days" to daysRemaining, "date" to dateStr)),
-                                                        GuiValueTone.WARNING,
+                                                        lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_MAIN_INFO_CREATED_LABEL),
+                                                        "${displayFormatter.format(createdAtDate)} ($createdInfo)",
+                                                        GuiValueTone.PRIMARY,
                                                 ))
+                                        }
+                                        // 自動アーカイブの残りは「アーカイブ済み」「残日あり」「期限切れ」の3状態で文言を分岐します。
+                                        // 負の日数をそのまま埋め込むと「-3日」のような表示になるためです。
+                                        if (!isSpecialExpansion) {
+                                                when {
+                                                        worldData.isArchived -> add(GuiMenuEntryData(
+                                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_MAIN_INFO_ARCHIVE_LABEL_ARCHIVED),
+                                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_MAIN_INFO_ARCHIVE_VALUE_ARCHIVED, mapOf("date" to archivedDisplayDate)),
+                                                                GuiValueTone.WARNING,
+                                                        ))
+                                                        expireDate != null && expireDateStr != null -> {
+                                                                val daysRemaining =
+                                                                        java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), expireDate)
+                                                                val archiveValue = if (daysRemaining >= 0) {
+                                                                        lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_MAIN_INFO_ARCHIVE_VALUE_REMAINING, mapOf("date" to expireDateStr, "days" to daysRemaining))
+                                                                } else {
+                                                                        lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_MAIN_INFO_ARCHIVE_VALUE_OVERDUE, mapOf("date" to expireDateStr, "days" to kotlin.math.abs(daysRemaining)))
+                                                                }
+                                                                add(GuiMenuEntryData(
+                                                                        lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_MAIN_INFO_ARCHIVE_LABEL),
+                                                                        archiveValue,
+                                                                        GuiValueTone.WARNING,
+                                                                ))
+                                                        }
+                                                }
                                         }
                                         add(GuiMenuEntryData(
                                                 lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_MAIN_INFO_MEMBERS_LABEL),
@@ -1418,9 +1437,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         add(GuiMenuEntryData("UUID", worldData.uuid, GuiValueTone.MUTED))
                                 },
                                 actions = contractMenuActions(
-                                        player,
-                                        worldData,
-                                        WorldSettingsAction.WARP,
+                                        warpContract,
                                         WorldSettingsRuntimeOperation.WARP,
                                         listOf(lang.getMessage(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_WORLD_ITEM_WARP)),
                                 ),
@@ -1464,6 +1481,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         it.worldKey == worldData.worldKey
                                 }
                 if (hasPortals) {
+                        val portalContract = plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.MANAGE_PORTALS)
                         inventory.setMenuEntry(
                                 player,
                                 GuiMenuEntrySpec(
@@ -1473,11 +1491,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         role = GuiElementRole.ACTION,
                                         description = lang.getMessageList(player, MyworldGuiSettingsKeys.GUI_SETTINGS_PORTALS_BLOCKS_SUMMARY),
                                         actions = contractMenuActions(
-                                                player, worldData, WorldSettingsAction.MANAGE_PORTALS,
+                                                portalContract,
                                                 WorldSettingsRuntimeOperation.MANAGE_PORTALS,
                                                 listOf(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_PORTALS_ACTION_OPEN)),
                                         ),
-                                        sounds = plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.MANAGE_PORTALS).sounds,
+                                        sounds = portalContract.sounds,
                                 ),
                         )
                 }

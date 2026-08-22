@@ -40,6 +40,9 @@ import me.awabi2048.myworldmanager.repository.MetadataMigrationStatus
 import me.awabi2048.myworldmanager.repository.QuarantinedTemplateData
 import me.awabi2048.myworldmanager.repository.QuarantinedWorldData
 import me.awabi2048.myworldmanager.util.GuiHelper
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.event.HoverEvent
+import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
@@ -85,6 +88,35 @@ data class MigrationStatusSnapshot(
     val worlds: List<MigrationWorldState>,
     val currentWorld: UUID?
 )
+
+/** statusの1行で使う状態別の表示色と短縮コードの組み合わせです。 */
+private data class StatusPresentation(
+    val color: NamedTextColor,
+    val shortCodeKey: LocalizationKey<String>,
+)
+
+private fun MigrationWorldStatus.presentation(): StatusPresentation = when (this) {
+    MigrationWorldStatus.WAITING -> StatusPresentation(
+        NamedTextColor.YELLOW,
+        MyworldMessagesKeys.MESSAGES_MIGRATION_STATUS_SHORT_WAITING,
+    )
+    MigrationWorldStatus.RUNNING -> StatusPresentation(
+        NamedTextColor.GOLD,
+        MyworldMessagesKeys.MESSAGES_MIGRATION_STATUS_SHORT_RUNNING,
+    )
+    MigrationWorldStatus.RETRY -> StatusPresentation(
+        NamedTextColor.YELLOW,
+        MyworldMessagesKeys.MESSAGES_MIGRATION_STATUS_SHORT_RETRY,
+    )
+    MigrationWorldStatus.COMPLETED -> StatusPresentation(
+        NamedTextColor.GREEN,
+        MyworldMessagesKeys.MESSAGES_MIGRATION_STATUS_SHORT_COMPLETED,
+    )
+    MigrationWorldStatus.FAILED -> StatusPresentation(
+        NamedTextColor.RED,
+        MyworldMessagesKeys.MESSAGES_MIGRATION_STATUS_SHORT_FAILED,
+    )
+}
 
 /**
  * 旧ワールドの物理移行は、管理者が確認したexecuteだけを開始経路とする。
@@ -142,9 +174,45 @@ class WorldMigrationService(
             currentWorld = null
             persistState()
         }
+        // 前回終了後に対象が消えた（アーカイブ・削除等）未完エントリを起動時に確定させます。
+        reconcileStaleStates(persist = true)
     }
 
     fun pendingWorlds(): List<LegacyWorldDirectory> = pendingDirectoryTargets()
+
+    /**
+     * 物理ディレクトリがどこにも存在しない(MISSING)未完エントリを、移行対象が実在しないと判断して
+     * COMPLETEDへ昇格します。アーカイブ済み・削除済み・データ欠損のワールドが状態ファイルへ残骸として
+     * 残り、hasPendingWork / hasMigrationFailure / isPending が恒久ブロックする自己ロックを解消します。
+     *
+     * 昇格しない状態:
+     * - LEGACY / CURRENT: 移行すべき実在ディレクトリがある（再実行で解決）
+     * - CONFLICT / UNSAFE: 手動修復が必要なため昇格で隠蔽しない
+     * - メタデータ隔離中: metadata移行が先（解決後のチェックポイントで昇格される）
+     *
+     * persist=true は init / execute のように状態を確定できる場面だけに使い、
+     * false は isPending 等の非同期経路から呼ばれる場面に使い、状態ファイル書込みの並行競合を避けます。
+     */
+    private fun reconcileStaleStates(persist: Boolean): Boolean {
+        var changed = false
+        states.values.forEach { state ->
+            val directoryState = runCatching { resolver.inspect(state.folderName)?.state }.getOrNull()
+            if (!isReconcilableStaleState(
+                    state.status,
+                    directoryState,
+                    plugin.worldConfigRepository.isQuarantined(state.uuid),
+                )
+            ) return@forEach
+            state.status = MigrationWorldStatus.COMPLETED
+            state.phase = MigrationWorldPhase.VERIFIED
+            state.attempts = 0
+            state.lastError = null
+            state.updatedAt = Instant.now()
+            changed = true
+        }
+        if (persist && changed) persistState()
+        return changed
+    }
 
     fun isPending(uuid: UUID): Boolean =
         !evaluatePreflight(listOf(uuid), includeGlobal = false).allowed
@@ -159,6 +227,9 @@ class WorldMigrationService(
         includeUnresolved: Boolean = false,
     ): ApiMigrationPreflight {
         val blocks = mutableListOf<ApiMigrationBlock>()
+        // アーカイブ・削除等で対象が消えた未完エントリはここで昇格させ、isPending ゲートの
+        // 自己ロック（移行失敗後にアーカイブ/削除できなくなる）を即時解除します。非同期経路のため永続化はしない。
+        reconcileStaleStates(persist = false)
         if (running || metadataMigrationRunning) {
             blocks += ApiMigrationBlock(
                 participantId = "mwm-migration-state",
@@ -327,10 +398,14 @@ class WorldMigrationService(
      * 一部だけの成功で状態を分断しないため、この判定を事前条件にします。
      */
     fun hasPendingWork(): Boolean =
-        stateFileUnreadableReason != null ||
-            pendingDirectoryTargets().isNotEmpty() ||
-            hasMetadataRemaining() ||
-            states.values.any { it.status != MigrationWorldStatus.COMPLETED }
+        run {
+            // 外部APIからも一貫した状態を返すため、ここでも残骸を昇格させます。
+            reconcileStaleStates(persist = false)
+            stateFileUnreadableReason != null ||
+                pendingDirectoryTargets().isNotEmpty() ||
+                hasMetadataRemaining() ||
+                states.values.any { it.status != MigrationWorldStatus.COMPLETED }
+        }
 
     /**
      * 集約ファイルとコアメタデータの保留状態です。
@@ -411,6 +486,8 @@ class WorldMigrationService(
     }
 
     fun status(sender: CommandSender) {
+        // 表示前に残骸を昇格させ、実際の移行対象と状態を一致させます。
+        reconcileStaleStates(persist = false)
         val snapshot = snapshot()
         val completed = snapshot.worlds.count { it.status == MigrationWorldStatus.COMPLETED }
         val waiting = snapshot.worlds.count {
@@ -440,50 +517,86 @@ class WorldMigrationService(
             )
         )
         snapshot.worlds.sortedBy { it.folderName }.forEach {
-            send(
+            val presentation = it.status.presentation()
+            sendStatusLine(
                 sender,
-                MyworldMessagesKeys.MESSAGES_MIGRATION_STATUS_WORLD,
-                mapOf(
-                    "world" to it.folderName,
-                    "status" to it.status.name,
-                    "attempts" to it.attempts,
-                    "error" to (it.lastError ?: "-"),
-                    "updated" to it.updatedAt
-                )
+                identifier = it.uuid.toString(),
+                color = presentation.color,
+                shortCodeKey = presentation.shortCodeKey,
+                hover = statusHover(
+                    sender,
+                    it.folderName,
+                    it.status.name,
+                    it.attempts,
+                    it.lastError ?: "-",
+                    it.updatedAt,
+                ),
             )
         }
         quarantinedWorlds.forEach { data ->
-            sendQuarantinedWorld(sender, data)
+            sendStatusLine(
+                sender,
+                identifier = "metadata:${data.fileName}",
+                color = NamedTextColor.RED,
+                shortCodeKey = MyworldMessagesKeys.MESSAGES_MIGRATION_STATUS_SHORT_QUARANTINED,
+                hover = statusHover(
+                    sender,
+                    "metadata:${data.fileName}",
+                    "QUARANTINED",
+                    0,
+                    data.reason,
+                    data.detectedAt,
+                ),
+            )
         }
         quarantinedTemplates.forEach { data ->
-            sendQuarantinedTemplate(sender, data)
+            sendStatusLine(
+                sender,
+                identifier = "template:${data.id}",
+                color = NamedTextColor.RED,
+                shortCodeKey = MyworldMessagesKeys.MESSAGES_MIGRATION_STATUS_SHORT_QUARANTINED,
+                hover = statusHover(
+                    sender,
+                    "template:${data.id}",
+                    "QUARANTINED",
+                    0,
+                    data.reason,
+                    data.detectedAt,
+                ),
+            )
         }
         MyWorldManagerApi.getMigrationParticipants()
             .filter { it.status().state != ApiMigrationParticipantState.CURRENT }
             .forEach { participant ->
                 val participantStatus = participant.status()
-                send(
+                sendStatusLine(
                     sender,
-                    MyworldMessagesKeys.MESSAGES_MIGRATION_STATUS_WORLD,
-                    mapOf(
-                        "world" to "participant:${participant.getId()}",
-                        "status" to "QUARANTINED",
-                        "attempts" to 0,
-                        "error" to (participantStatus.message ?: participantStatus.state.name),
-                        "updated" to Instant.now(),
+                    identifier = "participant:${participant.getId()}",
+                    color = NamedTextColor.RED,
+                    shortCodeKey = MyworldMessagesKeys.MESSAGES_MIGRATION_STATUS_SHORT_QUARANTINED,
+                    hover = statusHover(
+                        sender,
+                        "participant:${participant.getId()}",
+                        "QUARANTINED",
+                        0,
+                        participantStatus.message ?: participantStatus.state.name,
+                        Instant.now(),
                     ),
                 )
             }
         stateFileUnreadableReason?.let { reason ->
-            send(
+            sendStatusLine(
                 sender,
-                MyworldMessagesKeys.MESSAGES_MIGRATION_STATUS_WORLD,
-                mapOf(
-                    "world" to "migration-state",
-                    "status" to "FAILED",
-                    "attempts" to 0,
-                    "error" to reason,
-                    "updated" to Instant.now(),
+                identifier = "migration-state",
+                color = NamedTextColor.RED,
+                shortCodeKey = MyworldMessagesKeys.MESSAGES_MIGRATION_STATUS_SHORT_FAILED,
+                hover = statusHover(
+                    sender,
+                    "migration-state",
+                    "FAILED",
+                    0,
+                    reason,
+                    Instant.now(),
                 ),
             )
         }
@@ -497,6 +610,8 @@ class WorldMigrationService(
             send(sender, MyworldMessagesKeys.MESSAGES_MIGRATION_INCOMPLETE)
             return
         }
+        // 実行前に残骸を昇格・永続化し、以降の hasPendingWork / hasMigrationFailure 判定を最新化します。
+        reconcileStaleStates(persist = true)
         val metadataCount = metadataTargetCount()
         val metadataResults = if (metadataCount > 0) {
             metadataMigrationRunning = true
@@ -725,34 +840,6 @@ class WorldMigrationService(
         )
     }
 
-    private fun sendQuarantinedWorld(sender: CommandSender, data: QuarantinedWorldData) {
-        send(
-            sender,
-            MyworldMessagesKeys.MESSAGES_MIGRATION_STATUS_WORLD,
-            mapOf(
-                "world" to "metadata:${data.fileName}",
-                "status" to "QUARANTINED",
-                "attempts" to 0,
-                "error" to data.reason,
-                "updated" to data.detectedAt,
-            )
-        )
-    }
-
-    private fun sendQuarantinedTemplate(sender: CommandSender, data: QuarantinedTemplateData) {
-        send(
-            sender,
-            MyworldMessagesKeys.MESSAGES_MIGRATION_STATUS_WORLD,
-            mapOf(
-                "world" to "template:${data.id}",
-                "status" to "QUARANTINED",
-                "attempts" to 0,
-                "error" to data.reason,
-                "updated" to data.detectedAt,
-            )
-        )
-    }
-
     private fun scheduleNext() {
         Bukkit.getScheduler().runTask(plugin, Runnable { processNext() })
     }
@@ -814,6 +901,10 @@ class WorldMigrationService(
         try {
             val worldData = plugin.worldConfigRepository.findByUuid(state.uuid)
                 ?: error("world_data_missing")
+            // アーカイブ済みワールドは archived_worlds 配下にあり移行対象になり得ません。
+            // 現行のスキャンでは候補に入らないため到達不能だが、将来のスキャン拡張で
+            // 誤って移行・ロードされないよう防御します。
+            if (worldData.isArchived) error("world_archived")
             val resolution = resolver.inspect(state.folderName)
                 ?: error("unsafe_world_directory")
             val movedByThisAttempt = resolution.state == WorldDirectoryState.LEGACY
@@ -1084,6 +1175,48 @@ class WorldMigrationService(
         (sender ?: plugin.server.consoleSender).sendMessage(message)
     }
 
+    /**
+     * statusの1行を <状態色>● <識別子> <短縮状態コード> の圧縮形式で描画します。
+     * ワールド名・状態・試行回数・最終エラー・更新時刻などの詳細はホバーテキストへ分離し、
+     * 対象が多くても1行ごとに状態を俯瞰できるようにします。
+     * ● の色と短縮コードは状態ごとに決まり、区切りや配色はここで組み立てます（言語ファイルには状態ラベルだけを持つ）。
+     */
+    private fun sendStatusLine(
+        sender: CommandSender,
+        identifier: String,
+        color: NamedTextColor,
+        shortCodeKey: LocalizationKey<String>,
+        hover: Component,
+    ) {
+        val shortCode = plugin.languageManager.getMessage(sender as? Player, shortCodeKey)
+        val line = Component.empty()
+            .append(Component.text("●", color))
+            .append(Component.text(" $identifier", NamedTextColor.GRAY))
+            .append(Component.text(" $shortCode"))
+            .hoverEvent(HoverEvent.showText(hover))
+        sender.sendMessage(line)
+    }
+
+    /** status行のホバーテキスト。旧形式の詳細行を意味データとして再構成します。 */
+    private fun statusHover(
+        sender: CommandSender,
+        folderName: String,
+        status: String,
+        attempts: Int,
+        error: String,
+        updated: Instant,
+    ): Component = plugin.languageManager.getComponent(
+        sender as? Player,
+        MyworldMessagesKeys.MESSAGES_MIGRATION_STATUS_WORLD,
+        mapOf(
+            "world" to folderName,
+            "status" to status,
+            "attempts" to attempts,
+            "error" to error,
+            "updated" to updated,
+        ),
+    )
+
     private companion object {
         private const val OWNER = "myworldmanager"
         private const val ROUTE_ID = "world_migration_confirmation"
@@ -1095,3 +1228,20 @@ class WorldMigrationService(
 }
 
 private fun String?.countIfPresent(): Int = if (this == null) 0 else 1
+
+/**
+ * 残骸昇格の可否判定。外部依存（ディレクトリ診断・隔離判定）を引数で渡して純粋に保ち、
+ * 状態別の昇格挙動を単体テストで固定できるようにします。
+ * - 移行状態が COMPLETED / RUNNING でない
+ * - 物理ディレクトリが MISSING（実在せず、CONFLICT / UNSAFE / LEGACY / CURRENT ではない）
+ * - メタデータが隔離されていない（metadata移行が先）
+ * のすべてを満たす未完エントリだけを昇格対象とします。
+ */
+internal fun isReconcilableStaleState(
+    status: MigrationWorldStatus,
+    directoryState: WorldDirectoryState?,
+    quarantined: Boolean,
+): Boolean = status != MigrationWorldStatus.COMPLETED &&
+    status != MigrationWorldStatus.RUNNING &&
+    directoryState == WorldDirectoryState.MISSING &&
+    !quarantined

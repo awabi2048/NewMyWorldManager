@@ -562,16 +562,21 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                 val now = LocalDate.now()
                 val inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
                 val displayFormatter = dateFormatterFor(player)
-                val expireDate = try {
-                        LocalDate.parse(world.expireDate, inputFormatter)
-                } catch (e: Exception) {
-                        LocalDate.now().plusYears(1)
-                }
-                val daysRemaining = ChronoUnit.DAYS.between(now, expireDate)
+                // データ不正時に偽の期限(now+1年)を表示しないため、パース失敗は該当行の非表示とします。
+                val expireDate = runCatching { LocalDate.parse(world.expireDate, inputFormatter) }.getOrNull()
+                val daysRemaining = expireDate?.let { ChronoUnit.DAYS.between(now, it) }
 
-                val expiresAtValue = if (expireDate.year < 2900) {
-                        lang.getMessage(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_WORLD_ITEM_EXPIRES_VALUE, mapOf("days" to daysRemaining, "date" to displayFormatter.format(expireDate)))
-                } else null
+                // 有効期限は「残日あり」「期限切れ」で文言を分岐します。負の日数をそのまま埋め込まず、
+                // アーカイブ済みワールドでは警告ブロックに任せて期限行を出しません。
+                val expiresAtValue = expireDate?.takeIf { it.year < 2900 }?.let {
+                        when {
+                                daysRemaining == null -> null
+                                daysRemaining >= 0 ->
+                                        lang.getMessage(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_WORLD_ITEM_EXPIRES_VALUE_REMAINING, mapOf("days" to daysRemaining, "date" to displayFormatter.format(it)))
+                                else ->
+                                        lang.getMessage(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_WORLD_ITEM_EXPIRES_VALUE_OVERDUE, mapOf("days" to kotlin.math.abs(daysRemaining), "date" to displayFormatter.format(it)))
+                        }
+                }
                 val isArchived = world.isArchived
                 val warpAction = lang.getMessage(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_WORLD_ITEM_WARP)
                 val settingsAction = lang.getMessage(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_WORLD_ITEM_SETTINGS)
@@ -653,7 +658,7 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                         emptyList()
                                 },
                                 actions = actions,
-                                glint = isArchived || daysRemaining < 0,
+                                glint = isArchived || (daysRemaining != null && daysRemaining < 0),
                         ),
                 )
         }

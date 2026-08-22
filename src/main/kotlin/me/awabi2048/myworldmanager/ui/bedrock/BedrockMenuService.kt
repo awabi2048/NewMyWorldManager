@@ -1161,26 +1161,20 @@ class BedrockMenuService(
         val now = LocalDate.now()
         val inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
         val displayFormatter = dateFormatterFor(player)
-        val expireDate =
-            try {
-                LocalDate.parse(worldData.expireDate, inputFormatter)
-            } catch (_: Exception) {
-                LocalDate.now().plusYears(1)
-            }
-        val daysRemaining = ChronoUnit.DAYS.between(now, expireDate)
+        // データ不正時に偽の期限(now+1年)を表示しないため、パース失敗は該当行の非表示とします。
+        val expireDate = runCatching { LocalDate.parse(worldData.expireDate, inputFormatter) }.getOrNull()
+        val daysRemaining = expireDate?.let { ChronoUnit.DAYS.between(now, it) }
 
-        val expiresAtValue =
-            if (expireDate.year < 2900) {
-                if (daysRemaining < 0) {
-                }
-                tr(
-                    player,
-                    MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_WORLD_ITEM_EXPIRES_VALUE,
-                    mapOf("days" to daysRemaining, "date" to displayFormatter.format(expireDate))
-                )
-            } else {
-                null
+        // 有効期限は「残日あり」「期限切れ」で文言を分岐します(旧実装は分岐が未完成のまま空if文になっていました)。
+        val expiresAtValue = expireDate?.takeIf { it.year < 2900 }?.let {
+            when {
+                daysRemaining == null -> null
+                daysRemaining >= 0 ->
+                    tr(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_WORLD_ITEM_EXPIRES_VALUE_REMAINING, mapOf("days" to daysRemaining, "date" to displayFormatter.format(it)))
+                else ->
+                    tr(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_WORLD_ITEM_EXPIRES_VALUE_OVERDUE, mapOf("days" to kotlin.math.abs(daysRemaining), "date" to displayFormatter.format(it)))
             }
+        }
 
         val warpAction = tr(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_WORLD_ITEM_WARP)
         return CCSystem.getAPI().getGuiElementService().menuEntry(
@@ -1211,7 +1205,7 @@ class BedrockMenuService(
                     mapOf("world" to worldData.uuid.toString()),
                     safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT,
                 )),
-                glint = worldData.isArchived || daysRemaining < 0,
+                glint = worldData.isArchived || (daysRemaining != null && daysRemaining < 0),
             ),
         )
     }

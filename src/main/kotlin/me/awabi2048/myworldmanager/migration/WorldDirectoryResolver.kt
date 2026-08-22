@@ -32,10 +32,18 @@ class WorldDirectoryResolver(
             CommonWorldDirectoryState.CONFLICT -> WorldDirectoryState.CONFLICT
             CommonWorldDirectoryState.UNSAFE -> WorldDirectoryState.UNSAFE
         }
+        // LEGACY も currentPath を保持します。CC-System側の currentDirectory は存在有無に関わらず
+        // 計算済みの移行先パスであり、migrateOne はこれを LEGACY→CURRENT の移動先として使います。
+        // ここで null に落とすと純粋MWM環境（全ワールドが LEGACY）で移行が全件失敗するため、
+        // 実在ディレクトリの選択（existingPath）と移行先（currentPath）を分離して返します。
         return WorldDirectoryResolution(
             state,
             common.legacyDirectory?.takeIf { state == WorldDirectoryState.LEGACY || state == WorldDirectoryState.CONFLICT },
-            common.currentDirectory.takeIf { state == WorldDirectoryState.CURRENT || state == WorldDirectoryState.CONFLICT }
+            common.currentDirectory.takeIf {
+                state == WorldDirectoryState.CURRENT ||
+                    state == WorldDirectoryState.CONFLICT ||
+                    state == WorldDirectoryState.LEGACY
+            }
         )
     }
 
@@ -106,6 +114,7 @@ enum class WorldDirectoryState {
 data class WorldDirectoryResolution(
     val state: WorldDirectoryState,
     val legacyPath: Path?,
+    /** 現行配置のパス。CURRENT/CONFLICT は実在パス、LEGACY は移行先パス（実在とは限らない）。 */
     val currentPath: Path?
 ) {
     /** 既存ワールド操作に使用できるパス。曖昧または欠落した状態では返さない。 */

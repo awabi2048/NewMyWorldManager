@@ -14,6 +14,7 @@ import me.awabi2048.myworldmanager.api.extension.WorldSettingsAction
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsActionContract
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsActionRequest
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsActionOption
+import me.awabi2048.myworldmanager.api.extension.WorldSettingsActionRestriction
 import me.awabi2048.myworldmanager.gui.WorldSettingsRuntimeOperation
 import me.awabi2048.myworldmanager.gui.WorldSettingsRuntimeScreen
 import me.awabi2048.myworldmanager.model.WorldData
@@ -42,7 +43,8 @@ class WorldSettingsActionService(private val plugin: MyWorldManager) {
             )
             else -> listOf(WorldSettingsActionOption(MenuGesture.ANY))
         }
-        return WorldSettingsActionContract(action, options, isActionable(player, worldData, action))
+        val (actionable, restriction) = evaluate(player, worldData, action)
+        return WorldSettingsActionContract(action, options, actionable, restriction)
     }
 
     fun execute(request: WorldSettingsActionRequest): MenuActionResult {
@@ -79,12 +81,23 @@ class WorldSettingsActionService(private val plugin: MyWorldManager) {
         }
     }
 
-    private fun isActionable(player: org.bukkit.entity.Player, worldData: WorldData, action: WorldSettingsAction): Boolean {
+    /**
+     * 実行可否と、実行できない場合の型付き理由を同時に決定します。
+     * 表示時(contract)と実行時(execute)がこの結果を共有することで、
+     * 「実行は拒否されるのに警告が表示されない」漏れと、判定ロジックの二重管理を防ぎます。
+     */
+    private fun evaluate(
+        player: org.bukkit.entity.Player,
+        worldData: WorldData,
+        action: WorldSettingsAction,
+    ): Pair<Boolean, WorldSettingsActionRestriction?> {
         if (action == WorldSettingsAction.WARP) {
             val isMember = player.uniqueId == worldData.owner ||
                 player.uniqueId in worldData.moderators || player.uniqueId in worldData.members
-            return MyWorldManagerApi.getWorldAccessPolicy().canEnterWorld(player, worldData, isMember) &&
-                plugin.worldConfigRepository.findByWorldName(player.world.name)?.uuid != worldData.uuid
+            // 入場権限の拒否理由は公開レベル等に依存する動的な内容のため、restriction では表現しない。
+            val canWarp = MyWorldManagerApi.getWorldAccessPolicy().canEnterWorld(player, worldData, isMember) &&
+                !isInTargetWorld(player, worldData)
+            return canWarp to null
         }
         val admin = player.hasPermission("myworldmanager.admin")
         val owner = player.uniqueId == worldData.owner
@@ -96,16 +109,26 @@ class WorldSettingsActionService(private val plugin: MyWorldManager) {
             WorldSettingsAction.MANAGE_TOUR -> member || admin
             else -> owner || moderator || admin
         }
-        if (!permitted) return false
+        if (!permitted) return false to null
+        // 対象ワールド内にいる必要がある操作は、ワールド外からであることを型付き理由として伝える。
+        val requiresTargetWorld = when (action) {
+            WorldSettingsAction.SET_SPAWN,
+            WorldSettingsAction.MANAGE_TOUR -> true
+            else -> false
+        }
+        if (requiresTargetWorld && !isInTargetWorld(player, worldData)) {
+            return false to WorldSettingsActionRestriction.NOT_IN_TARGET_WORLD
+        }
         return when (action) {
-            WorldSettingsAction.SET_SPAWN -> player.world.name == (worldData.customWorldName ?: "my_world.${worldData.uuid}")
-            // ワールドツアーの編集・閲覧導線は、対象ワールド内にいる場合だけ有効にします。
-            WorldSettingsAction.MANAGE_TOUR ->
-                plugin.worldConfigRepository.findByWorldName(player.world.name)?.uuid == worldData.uuid
-            WorldSettingsAction.MANAGE_PORTALS -> plugin.portalRepository.findAll().any { it.worldKey == worldData.worldKey }
-            else -> true
+            WorldSettingsAction.MANAGE_PORTALS ->
+                plugin.portalRepository.findAll().any { it.worldKey == worldData.worldKey } to null
+            else -> true to null
         }
     }
+
+    /** 対象ワールド内にいるかどうか。GUI表示側と同じ isPlayerInWorld 判定へ統一します。 */
+    private fun isInTargetWorld(player: org.bukkit.entity.Player, worldData: WorldData): Boolean =
+        MyWorldManagerApi.getWorldService()?.isPlayerInWorld(player, worldData) == true
 
     private fun warp(player: org.bukkit.entity.Player, worldData: WorldData): MenuActionResult {
         val session = plugin.settingsSessionManager.getSession(player)
