@@ -55,8 +55,9 @@ class TourPolishContractTest {
         assertTrue("rayTraceBlocks" in targetResolver)
         assertTrue("FluidCollisionMode.NEVER" in targetResolver)
         assertTrue("PlayerBlockTargetResolver.find(player)" in listener)
-        assertTrue("PlayerBlockTargetResolver.find(player)" in spawnPreview)
-        assertTrue("PlayerBlockTargetResolver.find(player)" in worldSettingsListener)
+        // スポーン・プレビュー・ツアーは、レイトレースの当たった面に立つ共通の位置解決を使います。
+        assertTrue("PlayerBlockTargetResolver.findStandingLocation(player)" in spawnPreview)
+        assertTrue("PlayerBlockTargetResolver.findStandingLocation(player)" in worldSettingsListener)
         assertTrue("true," in targetResolver)
         assertTrue("clearNavigationActionbar" in manager)
         assertTrue("player.sendActionBar(Component.empty())" in manager)

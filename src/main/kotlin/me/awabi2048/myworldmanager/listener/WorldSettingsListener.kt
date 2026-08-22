@@ -1666,13 +1666,16 @@ class WorldSettingsListener : Listener {
         private fun cancelMemberInviteByDecisionId(
                 player: Player,
                 worldUuid: UUID,
-                decisionId: UUID
+                decisionId: UUID,
+                // Runtimeの確認画面経路ではMenuUpdate.Backで戻るため再表示しない。
+                // レガシーなチャットクリック経路だけが画面更新を必要とします。
+                reopenAfter: Boolean = false,
         ) {
                 val lang = plugin.languageManager
                 val latestWorld = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return
                 if (!canCancelMemberInvite(player, latestWorld)) {
                         player.sendMessage(lang.getMessage(player, CommonKeys.GENERAL_NO_PERMISSION))
-                        reopenMemberManagementLatest(player, worldUuid)
+                        if (reopenAfter) reopenMemberManagementLatest(player, worldUuid)
                         return
                 }
 
@@ -1685,7 +1688,7 @@ class WorldSettingsListener : Listener {
                         player.sendMessage(
                                 lang.getMessage(player, MyworldMessagesKeys.MESSAGES_MEMBER_INVITE_CANCEL_NOT_FOUND)
                         )
-                        reopenMemberManagementLatest(player, worldUuid)
+                        if (reopenAfter) reopenMemberManagementLatest(player, worldUuid)
                         return
                 }
 
@@ -1702,7 +1705,7 @@ class WorldSettingsListener : Listener {
                                 mapOf("player" to targetName)
                         )
                 )
-                reopenMemberManagementLatest(player, worldUuid)
+                if (reopenAfter) reopenMemberManagementLatest(player, worldUuid)
         }
 
         private fun toggleMemberRole(player: Player, worldData: WorldData, memberId: UUID) {
@@ -2297,10 +2300,10 @@ player.sendMessage(
                         val clickedBlock = event.clickedBlock ?: return
 
                         event.isCancelled = true
-                        // プレビューと確定で同じ基準を使い、草・雪などの通過可能ブロックを
-                        // 透過して、その奥のブロックをスポーン位置の基準にします。
-                        val targetBlock = PlayerBlockTargetResolver.find(player) ?: clickedBlock
-                        val loc = targetBlock.location.clone().add(0.5, 1.0, 0.5)
+                        // プレビューと確定で同じ基準を使い、草・雪などの通過可能ブロックを透過して、
+                        // その奥のブロックの面（スラブ等の半端な高さも含む）の直上をスポーン位置にします。
+                        val loc = PlayerBlockTargetResolver.findStandingLocation(player)
+                                ?: clickedBlock.location.clone().add(0.5, 1.0, 0.5)
 
                         val normalizedYaw = plugin.worldSettingsSpawnPreviewService.normalizeToCardinalYaw(player.location.yaw)
 
@@ -4039,7 +4042,7 @@ player.sendMessage(
                                 keyVal.substringAfter("confirm/member_pending_invite_cancel/")
                         val decisionId =
                                 runCatching { UUID.fromString(decisionIdStr) }.getOrNull() ?: return
-                        cancelMemberInviteByDecisionId(player, worldData.uuid, decisionId)
+                        cancelMemberInviteByDecisionId(player, worldData.uuid, decisionId, reopenAfter = true)
                         return
                 }
 

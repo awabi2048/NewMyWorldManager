@@ -29,8 +29,8 @@ internal class WorldSettingsSpawnPreviewService(private val plugin: MyWorldManag
                 stop(player)
                 return@Runnable
             }
-            val targetBlock = PlayerBlockTargetResolver.find(player) ?: return@Runnable
-            val spawnLoc = targetBlock.location.clone().add(0.5, 1.0, 0.5)
+// スポーン設定と同じ基準（当たった面の直上。スラブ等の半端な高さも含む）でプレビューします。
+            val spawnLoc = PlayerBlockTargetResolver.findStandingLocation(player) ?: return@Runnable
             val yaw = normalizeToCardinalYaw(player.location.yaw)
             spawnSpawnPreview(player, spawnLoc, yaw, isSpawnAreaPlaceable(spawnLoc))
         }, 0L, 2L)

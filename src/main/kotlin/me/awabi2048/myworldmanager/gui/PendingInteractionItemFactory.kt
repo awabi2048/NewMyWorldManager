@@ -48,6 +48,7 @@ object PendingInteractionItemFactory {
         actionMode: PendingInteractionActionMode,
         actionId: String,
         actionPayload: Map<String, String>,
+        simplified: Boolean = false,
     ): MenuElement = CCSystem.getAPI().getGuiElementService().menuEntry(
         viewer,
         createSpec(
@@ -62,6 +63,7 @@ object PendingInteractionItemFactory {
             actionId = actionId,
             actionPayload = actionPayload,
             showAction = true,
+            simplified = simplified,
         ),
     )
 
@@ -116,35 +118,61 @@ object PendingInteractionItemFactory {
         actionId: String,
         actionPayload: Map<String, String> = emptyMap(),
         showAction: Boolean,
+        simplified: Boolean = false,
     ): GuiMenuEntrySpec {
         val lang = plugin.languageManager
         val subject = Bukkit.getOfflinePlayer(subjectUuid)
         val subjectName = PlayerNameUtil.getNameOrDefault(subjectUuid, lang.getMessage(viewer, CommonKeys.GENERAL_UNKNOWN))
+        val isOnline = subject.isOnline
+        // PaperのlastSeenは環境依存のため、Bukkit標準のlastPlayed（epoch ms、不明時0）で最終オンラインを表します。
+        val lastSeenMillis = subject.lastPlayed
         return GuiMenuEntrySpec(
             slot = slot,
             material = org.bukkit.Material.PLAYER_HEAD,
-            name = GuiNameSpec.TargetIdentity(
-                lang.getComponent(
-                    viewer,
-                    MyworldGuiCommonKeys.GUI_PENDING_LIST_ITEM_NAME,
-                    mapOf("player" to subjectName, "type" to typeLabel(plugin, viewer, type)),
-                ),
-            ),
+            name = if (simplified) {
+                // メンバー管理の招待中エントリでは種別が文脈で自明なため、プレイヤー名のみを表示します。
+                GuiNameSpec.TargetIdentity(
+                    lang.getComponent(
+                        viewer,
+                        MyworldGuiCommonKeys.GUI_PENDING_LIST_ITEM_NAME_SIMPLE,
+                        mapOf("player" to subjectName),
+                    ),
+                )
+            } else {
+                GuiNameSpec.TargetIdentity(
+                    lang.getComponent(
+                        viewer,
+                        MyworldGuiCommonKeys.GUI_PENDING_LIST_ITEM_NAME,
+                        mapOf("player" to subjectName, "type" to typeLabel(plugin, viewer, type)),
+                    ),
+                )
+            },
             role = if (showAction) GuiElementRole.ACTION else GuiElementRole.CONTENT,
-            data = listOf(
-                GuiMenuEntryData(lang.getMessage(viewer, MyworldGuiCommonKeys.GUI_PENDING_LIST_ITEM_TYPE_LABEL), typeLabel(plugin, viewer, type), GuiValueTone.PRIMARY),
-                GuiMenuEntryData(lang.getMessage(viewer, MyworldGuiCommonKeys.GUI_PENDING_LIST_ITEM_WORLD_LABEL), worldName, GuiValueTone.SUCCESS),
-                GuiMenuEntryData(
+            data = buildList {
+                if (!simplified) {
+                    add(GuiMenuEntryData(lang.getMessage(viewer, MyworldGuiCommonKeys.GUI_PENDING_LIST_ITEM_TYPE_LABEL), typeLabel(plugin, viewer, type), GuiValueTone.PRIMARY))
+                    add(GuiMenuEntryData(lang.getMessage(viewer, MyworldGuiCommonKeys.GUI_PENDING_LIST_ITEM_WORLD_LABEL), worldName, GuiValueTone.SUCCESS))
+                }
+                add(GuiMenuEntryData(
                     lang.getMessage(viewer, MyworldGuiCommonKeys.GUI_PENDING_LIST_ITEM_STATUS_LABEL),
-                    lang.getMessage(viewer, if (subject.isOnline) MyworldGuiCommonKeys.GUI_PENDING_LIST_ITEM_STATUS_ONLINE else MyworldGuiCommonKeys.GUI_PENDING_LIST_ITEM_STATUS_OFFLINE),
-                ),
-                GuiMenuEntryData(lang.getMessage(viewer, MyworldGuiCommonKeys.GUI_PENDING_LIST_ITEM_RECEIVED_LABEL), formatDateTime(plugin, viewer, createdAt)),
-            ),
+                    lang.getMessage(viewer, if (isOnline) MyworldGuiCommonKeys.GUI_PENDING_LIST_ITEM_STATUS_ONLINE else MyworldGuiCommonKeys.GUI_PENDING_LIST_ITEM_STATUS_OFFLINE),
+                ))
+                // オフラインの相手には最終オンライン日時を併記します。
+                if (!isOnline && lastSeenMillis > 0L) {
+                    add(GuiMenuEntryData(
+                        lang.getMessage(viewer, MyworldGuiCommonKeys.GUI_PENDING_LIST_ITEM_LAST_SEEN_LABEL),
+                        formatDateTime(plugin, viewer, lastSeenMillis),
+                        GuiValueTone.MUTED,
+                    ))
+                }
+                add(GuiMenuEntryData(lang.getMessage(viewer, MyworldGuiCommonKeys.GUI_PENDING_LIST_ITEM_RECEIVED_LABEL), formatDateTime(plugin, viewer, createdAt)))
+            },
             actions = if (showAction) {
                 listOf(
                     menuGestureAction(
                         actionId,
-                        MenuGesture.LEFT,
+                        // 左クリックのみだと統合版や操作体系によって反応しないことがあるため、左右クリックで受理します。
+                        MenuGesture.PLAIN_LEFT_RIGHT,
                         lang.getMessage(viewer, actionLineKey(actionMode, type), mapOf("type" to typeLabel(plugin, viewer, type))),
                         actionPayload,
                         safety = MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE,

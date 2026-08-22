@@ -866,14 +866,19 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 // ワールド情報はヘッダー中央、戻るボタンはフッター中央へ固定して、ツアー/Chanpon側と視線を揃える。
                 val backButtonSlot = bottomRowStartSlot + 4
                 val worldInfoSlot = 4
-                val tourSettingSlot = if (isMemberLayout) 42 else 47
+                // チャンポン導入環境ではツアーを slot 30 へ配置し、純粋MWMではフッター右側（8マス目）へ配置します。
+                // フッター3マス目は訪問中プレイヤー管理に空けるためです。
+                val chanponActive = plugin.server.pluginManager.isPluginEnabled("MWMChanpon")
+                val tourSettingSlot = if (chanponActive) 30 else bottomRowStartSlot + 8
 
                 val infoSettingSlot = if (useModeratorCenteredLayout) 21 else 19
                 val iconSettingSlot = if (useModeratorCenteredLayout) 22 else 20
                 val spawnSettingSlot = if (useModeratorCenteredLayout) 23 else 21
-                val tagsSettingSlot = if (useModeratorCenteredLayout) 30 else 28
+                // チャンポン導入環境のモデレーター中央レイアウトではツアーが slot 30 を使用するため、タグ設定を左へ移動します。
+                val tagsSettingSlot = if (useModeratorCenteredLayout) (if (chanponActive) 28 else 30) else 28
                 val announcementSettingSlot = if (useModeratorCenteredLayout) 31 else 29
-                val notificationSettingSlot = if (useModeratorCenteredLayout) 32 else 30
+                // チャンポン導入環境ではツアーが slot 30 を使用するため、通知設定を1つ右へ移動します。
+                val notificationSettingSlot = if (useModeratorCenteredLayout) 32 else (if (chanponActive) 31 else 30)
 
                 val inventory = RuntimeItemBuffer(inventorySize, player)
 
@@ -1631,7 +1636,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         ),
                 )
 
-                // スロット51: 訪問中のプレイヤー管理
+                // フッター3マス目: 訪問中のプレイヤー管理（権限があれば常時表示。0人でも一覧を開けます）
                 val visitors =
                         Bukkit.getWorld(targetWorldName)?.players?.filter {
                                 it.uniqueId != worldData.owner &&
@@ -1639,11 +1644,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         !worldData.members.contains(it.uniqueId)
                         }
                                 ?: emptyList()
-                if (hasManagePermission && visitors.isNotEmpty()) {
+                if (hasManagePermission) {
                         inventory.setMenuEntry(
                                 player,
                                 GuiMenuEntrySpec(
-                                        slot = 51,
+                                        slot = bottomRowStartSlot + 2,
                                         material = plugin.menuConfigManager.getIconMaterial("world_settings", "visitor", Material.SPYGLASS),
                                         name = me.awabi2048.myworldmanager.util.fixedLabelName(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_VISITORS_DISPLAY), GuiNameStyle.DEFAULT),
                                         role = GuiElementRole.ACTION,
@@ -1756,7 +1761,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 if (presentationMode == WorldSettingsDisplayMode.COMPACT_LIMITED_OWNER) {
                                         23
                                 } else {
-                                        bottomRowStartSlot + if (isOwner) 1 else 2
+                                        // フッター3マス目を訪問中プレイヤー管理に空けるため、左側操作は1マス目へ統一します。
+                                        bottomRowStartSlot + 1
                                 },
                         ),
                         mapOf(WORLD_UUID_ARGUMENT to worldData.uuid.toString()),
@@ -2338,6 +2344,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                         ROUTE_TARGET_UUID to entry.playerUuid.toString(),
                                                         ROUTE_DECISION_ID to entry.pendingDecisionId.toString(),
                                                 ),
+                                                // メンバー管理の文脈では種別・対象ワールドが自明なため、簡略表示を使います。
+                                                simplified = true,
                                         ),
                                 )
                         } else {
@@ -2505,6 +2513,21 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 inventory.applyStandardFrame()
 
                 val canForceAdd = PermissionManager.canForceAddMember(player)
+                // 招待可能なプレイヤーが0人の場合は、中央に案内を表示します。
+                if (candidates.isEmpty()) {
+                        inventory.setMenuEntry(
+                                player,
+                                GuiMenuEntrySpec(
+                                        slot = 22,
+                                        material = Material.TROPICAL_FISH,
+                                        name = me.awabi2048.myworldmanager.util.fixedLabelName(
+                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_ADD_MENU_EMPTY),
+                                                GuiNameStyle.DEFAULT,
+                                        ),
+                                        role = GuiElementRole.CONTENT,
+                                ),
+                        )
+                }
                 candidates.drop(pageLayout.startIndex).take(pageLayout.itemCount).forEachIndexed { index, target ->
                         val slot = layout.itemSlots.getOrNull(index) ?: return@forEachIndexed
                         inventory.setMenuEntry(
