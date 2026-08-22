@@ -345,6 +345,9 @@ class FavoriteGui(private val plugin: MyWorldManager) {
         val warningKey = when {
             worldData == null -> MyworldGuiFavoriteKeys.GUI_FAVORITE_FAVORITE_MENU_TOGGLE_LORE_RESTRICTED_NOT_MANAGED
             worldData.owner == player.uniqueId -> MyworldGuiFavoriteKeys.GUI_FAVORITE_FAVORITE_MENU_TOGGLE_LORE_RESTRICTED_OWNER
+            // オーナーと同様、メンバー・モデレーターとして参加中のワールドもお気に入り対象外として扱う。
+            worldData.members.contains(player.uniqueId) || worldData.moderators.contains(player.uniqueId) ->
+                MyworldGuiFavoriteKeys.GUI_FAVORITE_FAVORITE_MENU_TOGGLE_LORE_RESTRICTED_MEMBER
             else -> null
         }
         if (warningKey != null) {

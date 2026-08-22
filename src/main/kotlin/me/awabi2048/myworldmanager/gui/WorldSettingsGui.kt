@@ -253,6 +253,159 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 context.reason,
                                         )
                                 },
+                                // メンバーの入退出・招待受理は他プレイヤーの行動でも起きるため、開いている間は定期再描画する。
+                                autoRefresh = com.awabi2048.ccsystem.api.gui.MenuAutoRefreshPolicy.EVERY_SECOND,
+                        ),
+                )
+                runtime.register(
+                        InventoryMenuDefinition(
+                                owner = RUNTIME_OWNER,
+                                id = RUNTIME_VISITOR_MANAGEMENT_ROUTE,
+                                renderer = { context ->
+                                        val worldUuid =
+                                                context.route.payload[ROUTE_WORLD_UUID]
+                                                        ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+                                                        ?: error("訪問者管理の対象ワールドがありません")
+                                        val worldData =
+                                                plugin.worldConfigRepository.findByUuid(worldUuid)
+                                                        ?: error("訪問者管理の対象ワールドが見つかりません")
+                                        val page =
+                                                context.route.payload[ROUTE_PAGE]
+                                                        ?.toIntOrNull()
+                                                        ?.coerceAtLeast(0)
+                                                        ?: 0
+                                        renderVisitorManagement(context.player, worldData, page)
+                                },
+                                actions = mapOf(
+                                        ACTION_RUNTIME_DISPATCH to
+                                                MenuActionHandler { context ->
+                                                        val worldUuid =
+                                                                context.route.payload[ROUTE_WORLD_UUID]
+                                                                        ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+                                                                        ?: return@MenuActionHandler MenuActionResult.Ignored
+                                                        plugin.worldSettingsListener.handleRuntimeInventoryClick(
+                                                                context.player,
+                                                                context.click,
+                                                                context.item,
+                                                                context.slot,
+                                                                WorldSettingsRuntimeContext(
+                                                                        screen = WorldSettingsRuntimeScreen.VISITOR_MANAGEMENT,
+                                                                        worldUuid = worldUuid,
+                                                                        page = context.route.payload[ROUTE_PAGE]
+                                                                                ?.toIntOrNull()
+                                                                                ?.coerceAtLeast(0)
+                                                                                ?: 0,
+                                                                        operation = runtimeOperation(context.payload),
+                                                                        actionPayload = context.payload,
+                                                                ),
+                                                        )
+                                                },
+                                ),
+                                onClose = { context ->
+                                        plugin.worldSettingsListener.onRuntimeInventoryClose(
+                                                context.player,
+                                                context.reason,
+                                        )
+                                },
+                                // 訪問中のプレイヤーは随時入れ替わるため、開いている間は定期再描画する。
+                                autoRefresh = com.awabi2048.ccsystem.api.gui.MenuAutoRefreshPolicy.EVERY_SECOND,
+                        ),
+                )
+                runtime.register(
+                        InventoryMenuDefinition(
+                                owner = RUNTIME_OWNER,
+                                id = RUNTIME_MEMBER_ADD_ROUTE,
+                                renderer = { context ->
+                                        val worldUuid =
+                                                context.route.payload[ROUTE_WORLD_UUID]
+                                                        ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+                                                        ?: error("メンバー追加の対象ワールドがありません")
+                                        val worldData =
+                                                plugin.worldConfigRepository.findByUuid(worldUuid)
+                                                        ?: error("メンバー追加の対象ワールドが見つかりません")
+                                        val page =
+                                                context.route.payload[ROUTE_PAGE]
+                                                        ?.toIntOrNull()
+                                                        ?.coerceAtLeast(0)
+                                                        ?: 0
+                                        renderMemberAddMenu(context.player, worldData, page)
+                                },
+                                actions = mapOf(
+                                        ACTION_RUNTIME_DISPATCH to
+                                                MenuActionHandler { context ->
+                                                        val worldUuid =
+                                                                context.route.payload[ROUTE_WORLD_UUID]
+                                                                        ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+                                                                        ?: return@MenuActionHandler MenuActionResult.Ignored
+                                                        plugin.worldSettingsListener.handleRuntimeInventoryClick(
+                                                                context.player,
+                                                                context.click,
+                                                                context.item,
+                                                                context.slot,
+                                                                WorldSettingsRuntimeContext(
+                                                                        screen = WorldSettingsRuntimeScreen.MEMBER_ADD_MENU,
+                                                                        worldUuid = worldUuid,
+                                                                        page = context.route.payload[ROUTE_PAGE]
+                                                                                ?.toIntOrNull()
+                                                                                ?.coerceAtLeast(0)
+                                                                                ?: 0,
+                                                                        operation = runtimeOperation(context.payload),
+                                                                        actionPayload = context.payload,
+                                                                ),
+                                                        )
+                                                },
+                                ),
+                                onClose = { context ->
+                                        plugin.worldSettingsListener.onRuntimeInventoryClose(
+                                                context.player,
+                                                context.reason,
+                                        )
+                                },
+                                // オンライン状況・保留中招待は他プレイヤーの行動でも変わるため、開いている間は定期再描画する。
+                                autoRefresh = com.awabi2048.ccsystem.api.gui.MenuAutoRefreshPolicy.EVERY_SECOND,
+                        ),
+                )
+                runtime.register(
+                        InventoryMenuDefinition(
+                                owner = RUNTIME_OWNER,
+                                id = RUNTIME_TAG_EDITOR_ROUTE,
+                                renderer = { context ->
+                                        val worldUuid =
+                                                context.route.payload[ROUTE_WORLD_UUID]
+                                                        ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+                                                        ?: error("タグ編集の対象ワールドがありません")
+                                        val worldData =
+                                                plugin.worldConfigRepository.findByUuid(worldUuid)
+                                                        ?: error("タグ編集の対象ワールドが見つかりません")
+                                        renderTagEditor(context.player, worldData)
+                                },
+                                actions = mapOf(
+                                        ACTION_RUNTIME_DISPATCH to
+                                                MenuActionHandler { context ->
+                                                        val worldUuid =
+                                                                context.route.payload[ROUTE_WORLD_UUID]
+                                                                        ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+                                                                        ?: return@MenuActionHandler MenuActionResult.Ignored
+                                                        plugin.worldSettingsListener.handleRuntimeInventoryClick(
+                                                                context.player,
+                                                                context.click,
+                                                                context.item,
+                                                                context.slot,
+                                                                WorldSettingsRuntimeContext(
+                                                                        screen = WorldSettingsRuntimeScreen.TAG_EDITOR,
+                                                                        worldUuid = worldUuid,
+                                                                        operation = runtimeOperation(context.payload),
+                                                                        actionPayload = context.payload,
+                                                                ),
+                                                        )
+                                                },
+                                ),
+                                onClose = { context ->
+                                        plugin.worldSettingsListener.onRuntimeInventoryClose(
+                                                context.player,
+                                                context.reason,
+                                        )
+                                },
                         ),
                 )
         }
@@ -267,6 +420,33 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 MenuRoute(
                         RUNTIME_OWNER,
                         RUNTIME_MEMBER_MANAGEMENT_ROUTE,
+                        mapOf(
+                                ROUTE_WORLD_UUID to worldUuid.toString(),
+                                ROUTE_PAGE to page.coerceAtLeast(0).toString(),
+                        ),
+                )
+
+        internal fun memberAddRoute(worldUuid: UUID, page: Int = 0): MenuRoute =
+                MenuRoute(
+                        RUNTIME_OWNER,
+                        RUNTIME_MEMBER_ADD_ROUTE,
+                        mapOf(
+                                ROUTE_WORLD_UUID to worldUuid.toString(),
+                                ROUTE_PAGE to page.coerceAtLeast(0).toString(),
+                        ),
+                )
+
+        internal fun tagEditorRoute(worldUuid: UUID): MenuRoute =
+                MenuRoute(
+                        RUNTIME_OWNER,
+                        RUNTIME_TAG_EDITOR_ROUTE,
+                        mapOf(ROUTE_WORLD_UUID to worldUuid.toString()),
+                )
+
+        internal fun visitorManagementRoute(worldUuid: UUID, page: Int = 0): MenuRoute =
+                MenuRoute(
+                        RUNTIME_OWNER,
+                        RUNTIME_VISITOR_MANAGEMENT_ROUTE,
                         mapOf(
                                 ROUTE_WORLD_UUID to worldUuid.toString(),
                                 ROUTE_PAGE to page.coerceAtLeast(0).toString(),
@@ -458,17 +638,22 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         WorldSettingsRuntimeOperation.MANAGE_VISITORS,
                         WorldSettingsRuntimeOperation.MANAGE_PORTALS,
                         WorldSettingsRuntimeOperation.CANCEL,
-                        WorldSettingsRuntimeOperation.PAGE -> MenuActionSafety.NAVIGATION_ONLY
+                        WorldSettingsRuntimeOperation.PAGE,
+                        WorldSettingsRuntimeOperation.VISITOR_INVITE,
+                        WorldSettingsRuntimeOperation.OPEN_MEMBER_ADD -> MenuActionSafety.NAVIGATION_ONLY
                         WorldSettingsRuntimeOperation.EDIT_INFO,
                         WorldSettingsRuntimeOperation.SELECT_ICON,
                         WorldSettingsRuntimeOperation.EDIT_TAGS,
                         WorldSettingsRuntimeOperation.EDIT_ANNOUNCEMENT,
                         WorldSettingsRuntimeOperation.EXPAND_DIRECTION,
                         WorldSettingsRuntimeOperation.MEMBER_OWNER_RESET,
-                        WorldSettingsRuntimeOperation.INVITE_MEMBER -> MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE
+                        WorldSettingsRuntimeOperation.INVITE_MEMBER,
+                        WorldSettingsRuntimeOperation.MEMBER_ADD_ID_INPUT -> MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE
                         WorldSettingsRuntimeOperation.CYCLE_PUBLISH,
                         WorldSettingsRuntimeOperation.TOGGLE_NOTIFICATION -> MenuActionSafety.REVERSIBLE
-                        WorldSettingsRuntimeOperation.WARP -> MenuActionSafety.EXTERNAL_SIDE_EFFECT
+                        WorldSettingsRuntimeOperation.WARP,
+                        WorldSettingsRuntimeOperation.MEMBER_ADD_TARGET,
+                        WorldSettingsRuntimeOperation.TAG_TOGGLE -> MenuActionSafety.EXTERNAL_SIDE_EFFECT
                         WorldSettingsRuntimeOperation.EXPAND_AUTOMATIC,
                         WorldSettingsRuntimeOperation.EXPANSION_STEP_BACK,
                         WorldSettingsRuntimeOperation.RESET_EXPANSION,
@@ -1010,7 +1195,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         },
                                         actions = listOf(menuGestureAction(
                                                 ACTION_RUNTIME_DISPATCH,
-                                                MenuGesture.ANY,
+                                                // リスト操作の共通規則（左=次、右=前）に合わせ、左右クリックを区別します。
+                                                MenuGesture.PLAIN_LEFT_RIGHT,
                                                 lang.getMessage(player, MyworldGuiCommonKeys.GUI_COMMON_ACTION_CYCLE),
                                                 mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.CYCLE_PUBLISH.name),
                                                 safety = MenuActionSafety.REVERSIBLE,
@@ -2023,6 +2209,27 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 }
         }
 
+        /** メンバー追加メニュー（オンライン一覧 + ID入力）を開きます。 */
+        fun openMemberAddMenu(
+                player: Player,
+                worldData: WorldData,
+                page: Int = 0,
+                replaceCurrent: Boolean = false
+        ) {
+                plugin.settingsSessionManager.updateSessionAction(
+                        player,
+                        worldData.uuid,
+                        SettingsAction.MEMBER_INVITE,
+                        isGui = true,
+                )
+                val route = memberAddRoute(worldData.uuid, page)
+                if (replaceCurrent) {
+                        runtime.replace(player, route)
+                } else {
+                        runtime.navigate(player, route)
+                }
+        }
+
         private fun renderMemberManagement(
                 player: Player,
                 worldData: WorldData,
@@ -2191,8 +2398,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 )
 
-                // メンバー招待ボタン
-                val canForceAddMember = PermissionManager.canForceAddMember(player)
+                // メンバー招待ボタン。クリックで追加メニュー（オンライン一覧 + ID入力）を開きます。
+                // 強制追加の導線は追加メニュー内のスニーククリックに移したため、ボタン上のSHIFT操作は廃止します。
                 inventory.setMenuEntry(
                         player,
                         GuiMenuEntrySpec(
@@ -2201,24 +2408,13 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 name = me.awabi2048.myworldmanager.util.fixedLabelName(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_INVITE_NAME), GuiNameStyle.DEFAULT),
                                 role = GuiElementRole.ACTION,
                                 description = listOf(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_INVITE_DESC)),
-                                actions = buildList {
-                                        add(menuGestureAction(
-                                                ACTION_RUNTIME_DISPATCH,
-                                                MenuGesture.PLAIN_LEFT_RIGHT,
-                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_INVITE_ACTION_NORMAL),
-                                                mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.INVITE_MEMBER.name),
-                                                safety = MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE,
-                                        ))
-                                        if (canForceAddMember) add(menuGestureAction(
-                                                ACTION_RUNTIME_DISPATCH,
-                                                MenuGesture.SHIFT_LEFT_RIGHT,
-                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_INVITE_ACTION_FORCE),
-                                                mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.INVITE_MEMBER.name),
-                                                safety = MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE,
-                                        ))
-                                },
-                                // 強制招待操作が無い場合だけ、通常操作を単一操作として案内します。
-                                interactionGuidance = GuiInteractionGuidance.SINGLE_ACTION_CLICK,
+                                actions = listOf(menuGestureAction(
+                                        ACTION_RUNTIME_DISPATCH,
+                                        MenuGesture.ANY,
+                                        lang.getMessage(player, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_ADD_MENU_OPEN_ACTION),
+                                        mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.OPEN_MEMBER_ADD.name),
+                                        safety = MenuActionSafety.NAVIGATION_ONLY,
+                                )),
                         ),
                 )
 
@@ -2231,7 +2427,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         inventory.setMenuEntry(
                                 player,
                                 GuiMenuEntrySpec(
-                                        slot = footerStart + 2,
+                                        // フッター3マス目はパスワード設定（チャンポンcapability）に空けるため、ヘッダー3スロット目へ移動する。
+                                        slot = 2,
                                         material = Material.NAME_TAG,
                                         name = me.awabi2048.myworldmanager.util.fixedLabelName(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_ADMIN_OWNER_RESET_NAME), GuiNameStyle.DEFAULT),
                                         role = GuiElementRole.ACTION,
@@ -2264,6 +2461,262 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         standardFrame = false,
                         playerInventoryInteraction = PlayerInventoryInteraction.INTERACTIVE,
                 )
+        }
+
+        /**
+         * メンバー追加メニュー。オンラインの招待候補一覧と、フッター3マス目のID入力アイコンで構成する。
+         * 一覧アイテムは通常クリックで招待、権限があればスニーククリックで強制追加として扱う。
+         */
+        private fun renderMemberAddMenu(
+                player: Player,
+                worldData: WorldData,
+                page: Int,
+        ): InventoryMenuView {
+                val lang = plugin.languageManager
+                val title = lang.getMessage(player, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_ADD_MENU_TITLE)
+                // メンバー・モデレーター・オーナーを除いたオンラインプレイヤーが招待候補です。
+                val candidates =
+                        plugin.playerVisibilityService.getVisibleOnlinePlayers(player)
+                                .filter {
+                                        it.uniqueId != worldData.owner &&
+                                                !worldData.moderators.contains(it.uniqueId) &&
+                                                !worldData.members.contains(it.uniqueId)
+                                }
+                                .sortedBy { it.name.orEmpty().lowercase() }
+                // 保留中の招待があるプレイヤーには重複招待を防ぐためアクションを出しません。
+                val pendingInviteTargets =
+                        plugin.pendingInteractionRepository
+                                .findByWorldAndType(worldData.uuid, PendingInteractionType.MEMBER_INVITE)
+                                .mapTo(mutableSetOf()) { it.targetUuid }
+
+                val pageLayout = CCSystem.getAPI().getGuiLayoutService().sevenColumnPage(candidates.size, page)
+                val layout = pageLayout.layout
+                val footerStart = layout.size - 9
+                val inventory = RuntimeItemBuffer(layout.size, player)
+                inventory.applyStandardFrame()
+
+                val canForceAdd = PermissionManager.canForceAddMember(player)
+                candidates.drop(pageLayout.startIndex).take(pageLayout.itemCount).forEachIndexed { index, target ->
+                        val slot = layout.itemSlots.getOrNull(index) ?: return@forEachIndexed
+                        inventory.setMenuEntry(
+                                player,
+                                createMemberAddTargetEntry(
+                                        player,
+                                        slot,
+                                        target,
+                                        canForceAdd,
+                                        target.uniqueId in pendingInviteTargets,
+                                ),
+                        )
+                }
+
+                // フッター3マス目: ID入力アイコン。オフラインや一覧にないプレイヤーはID入力で招待します。
+                inventory.setMenuEntry(
+                        player,
+                        GuiMenuEntrySpec(
+                                slot = footerStart + 2,
+                                material = Material.NAME_TAG,
+                                name = me.awabi2048.myworldmanager.util.fixedLabelName(
+                                        lang.getMessage(player, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_ADD_MENU_ID_INPUT_NAME),
+                                        GuiNameStyle.DEFAULT,
+                                ),
+                                role = GuiElementRole.ACTION,
+                                description = lang.getMessageList(player, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_ADD_MENU_ID_INPUT_DESC),
+                                actions = listOf(menuGestureAction(
+                                        ACTION_RUNTIME_DISPATCH,
+                                        MenuGesture.ANY,
+                                        lang.getMessage(player, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_ADD_MENU_DIALOG_CONFIRM),
+                                        mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.MEMBER_ADD_ID_INPUT.name),
+                                        safety = MenuActionSafety.INPUT_OR_EXTERNAL_SURFACE,
+                                )),
+                        ),
+                )
+
+                // ナビゲーション
+                if (pageLayout.page > 0) {
+                        inventory.setItem(layout.previousPageSlot, pageItemSpec(player, previous = true))
+                        inventory.bindRuntimeOperation(
+                                layout.previousPageSlot,
+                                WorldSettingsRuntimeOperation.PAGE,
+                                payload = mapOf(ROUTE_PAGE to (pageLayout.page - 1).toString()),
+                        )
+                }
+                if (pageLayout.page < pageLayout.totalPages - 1) {
+                        inventory.setItem(layout.nextPageSlot, pageItemSpec(player, previous = false))
+                        inventory.bindRuntimeOperation(
+                                layout.nextPageSlot,
+                                WorldSettingsRuntimeOperation.PAGE,
+                                payload = mapOf(ROUTE_PAGE to (pageLayout.page + 1).toString()),
+                        )
+                }
+
+                // 戻るボタン
+                inventory.setElement(
+                        CCSystem.getAPI().getGuiElementService().backEntry(
+                                player,
+                                layout.actionSlot,
+                                plugin.menuConfigManager.getIconMaterial("world_settings", "back", Material.REDSTONE),
+                        )
+                )
+
+                // 背景埋め
+                val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
+                for (i in 9 until layout.size - 9) {
+                        if (!inventory.isOccupied(i)) inventory.setItem(i, grayPane)
+                }
+
+                return runtimeView(title, inventory)
+        }
+
+        private fun createMemberAddTargetEntry(
+                viewer: Player,
+                slot: Int,
+                target: Player,
+                canForceAdd: Boolean,
+                hasPendingInvite: Boolean,
+        ): GuiMenuEntrySpec {
+                val lang = plugin.languageManager
+                return GuiMenuEntrySpec(
+                        slot = slot,
+                        material = Material.PLAYER_HEAD,
+                        name = GuiNameSpec.FixedLabel(
+                                LegacyComponentSerializer.legacySection()
+                                        .deserialize(target.name ?: lang.getMessage(viewer, CommonKeys.GENERAL_UNKNOWN))
+                                        .decoration(TextDecoration.ITALIC, false),
+                        ),
+                        role = GuiElementRole.ACTION,
+                        data = buildList {
+                                if (hasPendingInvite) {
+                                        add(GuiMenuEntryData(
+                                                lang.getMessage(viewer, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_ADD_MENU_ALREADY_PENDING),
+                                                "",
+                                                GuiValueTone.WARNING,
+                                        ))
+                                } else if (canForceAdd) {
+                                        add(GuiMenuEntryData(
+                                                lang.getMessage(viewer, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_ADD_MENU_FORCE_HINT),
+                                                "",
+                                                GuiValueTone.MUTED,
+                                        ))
+                                }
+                        },
+                        actions = if (hasPendingInvite) emptyList() else buildList {
+                                add(menuGestureAction(
+                                        ACTION_RUNTIME_DISPATCH,
+                                        MenuGesture.PLAIN_LEFT_RIGHT,
+                                        lang.getMessage(viewer, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_ADD_MENU_ITEM_INVITE),
+                                        mapOf(
+                                                ROUTE_OPERATION to WorldSettingsRuntimeOperation.MEMBER_ADD_TARGET.name,
+                                                ROUTE_TARGET_UUID to target.uniqueId.toString(),
+                                        ),
+                                        safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT,
+                                ))
+                                // 強制追加はこのメニュー内でのスニーククリックで扱います。
+                                if (canForceAdd) add(menuGestureAction(
+                                        ACTION_RUNTIME_DISPATCH,
+                                        MenuGesture.SHIFT_LEFT_RIGHT,
+                                        lang.getMessage(viewer, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_ADD_MENU_ITEM_FORCE),
+                                        mapOf(
+                                                ROUTE_OPERATION to WorldSettingsRuntimeOperation.MEMBER_ADD_TARGET.name,
+                                                ROUTE_TARGET_UUID to target.uniqueId.toString(),
+                                        ),
+                                        safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT,
+                                ))
+                        },
+                        playerHeadOwner = target.uniqueId,
+                )
+        }
+
+        /** ワールドタグの設定をインベントリGUIで開きます（ダイアログ形式から差し戻し）。 */
+        fun openTagEditor(player: Player, worldData: WorldData) {
+                plugin.settingsSessionManager.updateSessionAction(
+                        player,
+                        worldData.uuid,
+                        SettingsAction.MANAGE_TAGS,
+                        isGui = true,
+                )
+                runtime.navigate(player, tagEditorRoute(worldData.uuid))
+        }
+
+        /**
+         * ワールドタグの設定GUI。本文先頭7枠（10〜16）にタグを並べ、クリックで有効/無効を切り替えます。
+         * 設定可能なタグが7件を超える場合は17スロットに超過数を表示し、22スロットが戻るです。
+         */
+        private fun renderTagEditor(player: Player, worldData: WorldData): InventoryMenuView {
+                val lang = plugin.languageManager
+                val title = lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_TAGS_EDITOR_TITLE)
+                val editableTags = plugin.worldTagManager.getEditableTagIds(worldData.tags)
+                val inventory = RuntimeItemBuffer(27, player)
+                inventory.applyStandardFrame()
+
+                editableTags.take(MAX_VISIBLE_TAGS).forEachIndexed { index, tagId ->
+                        val enabled = tagId in worldData.tags
+                        inventory.setMenuEntry(
+                                player,
+                                GuiMenuEntrySpec(
+                                        slot = 10 + index,
+                                        material = if (enabled) Material.ENCHANTED_BOOK else Material.BOOK,
+                                        name = GuiNameSpec.FixedLabel(
+                                                Component.text(plugin.worldTagManager.getDisplayName(player, tagId)),
+                                        ),
+                                        role = GuiElementRole.ACTION,
+                                        data = listOf(GuiMenuEntryData(
+                                                lang.getMessage(
+                                                        player,
+                                                        if (enabled) {
+                                                                MyworldGuiSettingsKeys.GUI_SETTINGS_TAGS_EDITOR_ACTIVE
+                                                        } else {
+                                                                MyworldGuiSettingsKeys.GUI_SETTINGS_TAGS_EDITOR_INACTIVE
+                                                        },
+                                                ),
+                                                "",
+                                                if (enabled) GuiValueTone.SUCCESS else GuiValueTone.MUTED,
+                                        )),
+                                        actions = listOf(menuGestureAction(
+                                                ACTION_RUNTIME_DISPATCH,
+                                                MenuGesture.ANY,
+                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_TAGS_EDITOR_ACTION_TOGGLE),
+                                                mapOf(
+                                                        ROUTE_OPERATION to WorldSettingsRuntimeOperation.TAG_TOGGLE.name,
+                                                        ROUTE_TAG_ID to tagId,
+                                                ),
+                                                safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT,
+                                        )),
+                                ),
+                        )
+                }
+                if (editableTags.size > MAX_VISIBLE_TAGS) {
+                        inventory.setItem(
+                                17,
+                                createItem(
+                                        Material.PAPER,
+                                        lang.getMessage(
+                                                player,
+                                                MyworldGuiSettingsKeys.GUI_SETTINGS_TAGS_EDITOR_OVER_LIMIT,
+                                                mapOf("count" to (editableTags.size - MAX_VISIBLE_TAGS)),
+                                        ),
+                                        GuiLoreSpec.None,
+                                        null,
+                                ),
+                        )
+                }
+
+                // 戻るボタン
+                inventory.setElement(
+                        CCSystem.getAPI().getGuiElementService().backEntry(
+                                player,
+                                22,
+                                plugin.menuConfigManager.getIconMaterial("world_settings", "back", Material.REDSTONE),
+                        )
+                )
+
+                // 背景埋め（本文行の空き）
+                val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)
+                for (i in 9 until 18) {
+                        if (!inventory.isOccupied(i)) inventory.setItem(i, grayPane)
+                }
+
+                return runtimeView(title, inventory)
         }
 
         fun openMemberPendingInviteCancelConfirmation(
@@ -2742,11 +3195,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         SettingsAction.MANAGE_VISITORS,
                         isGui = true
                 )
-                val targetRoute = runtimeRoute(
-                        WorldSettingsRuntimeScreen.VISITOR_MANAGEMENT,
-                        worldData.uuid,
-                        page = page,
-                )
+                val targetRoute = visitorManagementRoute(worldData.uuid, page)
                 if (replaceCurrent) {
                         runtime.replace(player, targetRoute)
                 } else {
@@ -2784,10 +3233,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         worldData.owner == player.uniqueId ||
                                 worldData.moderators.contains(player.uniqueId) ||
                                 isAdminFlow
+                // 保留中の招待がある訪問者には重複招待を防ぐため招待アクションを出しません。
+                val pendingInviteTargets =
+                        plugin.pendingInteractionRepository
+                                .findByWorldAndType(worldData.uuid, me.awabi2048.myworldmanager.model.PendingInteractionType.MEMBER_INVITE)
+                                .mapTo(mutableSetOf()) { it.targetUuid }
 
                 currentPageVisitors.forEachIndexed { index, visitor ->
                         val slot = layout.itemSlots[index]
-                        inventory.setMenuEntry(player, createVisitorEntrySpec(player, slot, visitor.uniqueId, canKick))
+                        inventory.setMenuEntry(player, createVisitorEntrySpec(player, slot, visitor.uniqueId, canKick, visitor.uniqueId in pendingInviteTargets))
                 }
 
                 // ナビゲーション
@@ -2857,6 +3311,27 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         player,
                         runtimeRoute(
                                 WorldSettingsRuntimeScreen.VISITOR_KICK_CONFIRM,
+                                worldData.uuid,
+                                targetUuid = targetUuid,
+                        ),
+                )
+        }
+
+        fun openVisitorInviteConfirmation(
+                player: Player,
+                worldData: WorldData,
+                targetUuid: java.util.UUID
+        ) {
+                plugin.settingsSessionManager.updateSessionAction(
+                        player,
+                        worldData.uuid,
+                        SettingsAction.VISITOR_INVITE_CONFIRM,
+                        isGui = true
+                )
+                runtime.navigate(
+                        player,
+                        runtimeRoute(
+                                WorldSettingsRuntimeScreen.VISITOR_INVITE_CONFIRM,
                                 worldData.uuid,
                                 targetUuid = targetUuid,
                         ),
@@ -2938,11 +3413,87 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 return runtimeView(title, inventory)
         }
 
+        private fun renderVisitorInviteConfirmation(
+                player: Player,
+                targetUuid: UUID,
+        ): InventoryMenuView {
+                val lang = plugin.languageManager
+                val targetName = PlayerNameUtil.getNameOrDefault(targetUuid, lang.getMessage(player, CommonKeys.GENERAL_UNKNOWN))
+                val title =
+                        lang.getMessage(
+                                player,
+                                MyworldGuiSettingsKeys.GUI_VISITOR_MANAGEMENT_INVITE_CONFIRM_TITLE,
+                                mapOf("player" to targetName)
+                        )
+                val inventory = RuntimeItemBuffer(GuiHelper.confirmationLayout().size, player)
+                inventory.applyStandardFrame()
+
+                inventory.setItem(
+                        22,
+                        createItem(
+                                Material.PAPER,
+                                lang.getMessage(
+                                        player,
+                                        MyworldGuiSettingsKeys.GUI_VISITOR_MANAGEMENT_INVITE_CONFIRM_QUESTION
+                                ),
+                                me.awabi2048.myworldmanager.util.semanticLore(listOf(
+                                        GuiLoreLine.Data(
+                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_VISITOR_MANAGEMENT_INVITE_CONFIRM_PLAYER_LABEL),
+                                                targetName,
+                                                "§f"
+                                        ),
+                                        GuiLoreLine.Spacer,
+                                        GuiLoreLine.Metadata("UUID", targetUuid)
+                                ), GuiLoreFrame.BOTH),
+                                ItemTag.TYPE_GUI_INFO
+                        )
+                )
+
+                inventory.setItem(
+                        20,
+                        createItem(
+                                Material.LIME_WOOL,
+                                lang.getMessage(
+                                        player,
+                                        MyworldGuiSettingsKeys.GUI_VISITOR_MANAGEMENT_INVITE_CONFIRM_CANCEL
+                                ),
+                                me.awabi2048.myworldmanager.util.semanticLore(listOf(GuiLoreLine.Text(
+                                        lang.getMessage(
+                                                player,
+                                                MyworldGuiSettingsKeys.GUI_VISITOR_MANAGEMENT_INVITE_CONFIRM_CANCEL_DESC
+                                        )
+                                )), GuiLoreFrame.NONE),
+                                ItemTag.TYPE_GUI_CANCEL
+                        )
+                )
+                inventory.setItem(
+                        24,
+                        createItem(
+                                Material.GREEN_WOOL,
+                                lang.getMessage(
+                                        player,
+                                        MyworldGuiSettingsKeys.GUI_VISITOR_MANAGEMENT_INVITE_CONFIRM_CONFIRM
+                                ),
+                                me.awabi2048.myworldmanager.util.semanticLore(listOf(GuiLoreLine.Text(
+                                        lang.getMessage(
+                                                player,
+                                                MyworldGuiSettingsKeys.GUI_VISITOR_MANAGEMENT_INVITE_CONFIRM_CONFIRM_DESC
+                                        )
+                                )), GuiLoreFrame.NONE),
+                                ItemTag.TYPE_GUI_CONFIRM
+                        )
+                )
+
+                inventory.bindConfirmation(confirmSlot = 24, cancelSlot = 20)
+                return runtimeView(title, inventory)
+        }
+
         private fun createVisitorEntrySpec(
                 viewer: Player,
                 slot: Int,
                 uuid: java.util.UUID,
-                canKick: Boolean
+                canKick: Boolean,
+                hasPendingInvite: Boolean = false,
         ): GuiMenuEntrySpec {
                 val lang = plugin.languageManager
                 val player = Bukkit.getOfflinePlayer(uuid)
@@ -2963,21 +3514,47 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 ).decoration(TextDecoration.ITALIC, false),
                         ),
                         role = if (canKick) GuiElementRole.ACTION else GuiElementRole.CONTENT,
-                        data = listOf(GuiMenuEntryData(
-                                lang.getMessage(viewer, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_ITEM_ONLINE_LABEL),
-                                statusText,
-                                if (isOnline) GuiValueTone.SUCCESS else GuiValueTone.DANGER,
-                        )),
-                        actions = if (canKick) listOf(menuGestureAction(
-                                ACTION_RUNTIME_DISPATCH,
-                                MenuGesture.ANY,
-                                lang.getMessage(viewer, MyworldGuiSettingsKeys.GUI_VISITOR_MANAGEMENT_ITEM_KICK),
-                                mapOf(
-                                        ROUTE_OPERATION to WorldSettingsRuntimeOperation.VISITOR.name,
-                                        ROUTE_TARGET_UUID to uuid.toString(),
-                                ),
-                                safety = MenuActionSafety.CONFIRM_ENTRY,
-                        )) else emptyList(),
+                        data = buildList {
+                                add(GuiMenuEntryData(
+                                        lang.getMessage(viewer, MyworldGuiSettingsKeys.GUI_MEMBER_MANAGEMENT_ITEM_ONLINE_LABEL),
+                                        statusText,
+                                        if (isOnline) GuiValueTone.SUCCESS else GuiValueTone.DANGER,
+                                ))
+                                if (hasPendingInvite) {
+                                        add(GuiMenuEntryData(
+                                                lang.getMessage(viewer, MyworldGuiSettingsKeys.GUI_VISITOR_MANAGEMENT_ALREADY_PENDING),
+                                                "",
+                                                GuiValueTone.WARNING,
+                                        ))
+                                }
+                        },
+                        actions = buildList {
+                                if (canKick) {
+                                        add(menuGestureAction(
+                                                ACTION_RUNTIME_DISPATCH,
+                                                MenuGesture.ANY,
+                                                lang.getMessage(viewer, MyworldGuiSettingsKeys.GUI_VISITOR_MANAGEMENT_ITEM_KICK),
+                                                mapOf(
+                                                        ROUTE_OPERATION to WorldSettingsRuntimeOperation.VISITOR.name,
+                                                        ROUTE_TARGET_UUID to uuid.toString(),
+                                                ),
+                                                safety = MenuActionSafety.CONFIRM_ENTRY,
+                                        ))
+                                        // 保留中の招待がある訪問者には重複招待を防ぐため招待アクションを出しません。
+                                        if (!hasPendingInvite) {
+                                                add(menuGestureAction(
+                                                        ACTION_RUNTIME_DISPATCH,
+                                                        MenuGesture.ANY,
+                                                        lang.getMessage(viewer, MyworldGuiSettingsKeys.GUI_VISITOR_MANAGEMENT_ITEM_INVITE),
+                                                        mapOf(
+                                                                ROUTE_OPERATION to WorldSettingsRuntimeOperation.VISITOR_INVITE.name,
+                                                                ROUTE_TARGET_UUID to uuid.toString(),
+                                                        ),
+                                                        safety = MenuActionSafety.EXTERNAL_SIDE_EFFECT,
+                                                ))
+                                        }
+                                }
+                        },
                         playerHeadOwner = uuid,
                 )
         }
@@ -3023,7 +3600,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 ?: worldData.spawnPosMember
                                 ?: worldData.spawnPosGuest
                                 ?: plugin.server.worlds.firstOrNull()?.spawnLocation
-                val initialSize = plugin.config.getDouble("expansion.initial_size", 100.0)
+                val initialSize = plugin.config.getDouble("expansion.initial_size", 500.0)
                 val size = initialSize * Math.pow(2.0, currentLevel.toDouble())
                 return BorderInfo(
                         centerX = center?.x ?: 0.0,
@@ -3401,8 +3978,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
         private fun borderResetTargetForReset(worldData: WorldData): Pair<Location, Double>? {
                 val world = resolveWorld(worldData) ?: return null
-                val center = world.spawnLocation.clone()
-                val size = plugin.config.getDouble("expansion.initial_size", 100.0)
+                // スポーン基準のボーダー中心はブロック中央(x.5, z.5)で統一する。
+                val center = world.spawnLocation.clone().add(0.5, 0.0, 0.5)
+                val size = plugin.config.getDouble("expansion.initial_size", 500.0)
                 return center to size
         }
 
@@ -3718,6 +4296,14 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                         worldData,
                                                         runtimePage(route) ?: 0,
                                         )
+                                WorldSettingsRuntimeScreen.MEMBER_ADD_MENU ->
+                                        renderMemberAddMenu(
+                                                        player,
+                                                        worldData,
+                                                        runtimePage(route) ?: 0,
+                                        )
+                                WorldSettingsRuntimeScreen.TAG_EDITOR ->
+                                        renderTagEditor(player, worldData)
                                 WorldSettingsRuntimeScreen.MEMBER_PENDING_INVITE_CANCEL_CONFIRM ->
                                         renderMemberPendingInviteCancelConfirmation(
                                                         player,
@@ -3743,6 +4329,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         )
                                 WorldSettingsRuntimeScreen.VISITOR_KICK_CONFIRM ->
                                         renderVisitorKickConfirmation(
+                                                        player,
+                                                        requireNotNull(runtimeTargetUuid(route)),
+                                        )
+                                WorldSettingsRuntimeScreen.VISITOR_INVITE_CONFIRM ->
+                                        renderVisitorInviteConfirmation(
                                                         player,
                                                         requireNotNull(runtimeTargetUuid(route)),
                                         )
@@ -3921,6 +4512,9 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 const val RUNTIME_ROUTE = "world_settings_runtime"
                 const val RUNTIME_SELECTION_ROUTE = "world_settings_runtime_icon_selection"
                 const val RUNTIME_MEMBER_MANAGEMENT_ROUTE = "member_management"
+                const val RUNTIME_MEMBER_ADD_ROUTE = "member_add"
+                const val RUNTIME_VISITOR_MANAGEMENT_ROUTE = "visitor_management"
+                const val RUNTIME_TAG_EDITOR_ROUTE = "tag_editor"
                 const val ACTION_RUNTIME_DISPATCH = "dispatch"
                 private const val WORLD_UUID_ARGUMENT = "world_uuid"
                 private val WORLD_SETTINGS_CAPABILITY_SLOTS = listOf(51)
@@ -3929,10 +4523,13 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 const val ROUTE_PAGE = "page"
                 const val ROUTE_TARGET_UUID = "target_uuid"
                 const val ROUTE_DECISION_ID = "decision_id"
+                const val ROUTE_TAG_ID = "tag_id"
                 private const val ROUTE_OPERATION = "operation"
                 private const val ROUTE_EXPANSION_COST = "expansion_cost"
                 private const val ROUTE_EXPANSION_DIRECTION = "expansion_direction"
                 private const val ROUTE_NULL_VALUE = "none"
+                /** タグエディタ本文に一度に表示するタグの上限。 */
+                private const val MAX_VISIBLE_TAGS = 7
         }
 }
 

@@ -6,6 +6,7 @@ import me.awabi2048.myworldmanager.api.extension.ReversibleWorldPublishPolicy
 import me.awabi2048.myworldmanager.api.extension.WorldPublishReversibleState
 import me.awabi2048.myworldmanager.model.PublishLevel
 import me.awabi2048.myworldmanager.model.WorldData
+import com.awabi2048.ccsystem.api.gui.GuiCycleDirection
 import org.bukkit.entity.Player
 import java.time.LocalDateTime
 import java.time.Instant
@@ -131,7 +132,11 @@ class WorldPublishService(private val plugin: MyWorldManager) {
         return plan
     }
 
-    fun cycle(player: Player, worldData: WorldData): WorldPublishCycleSource {
+    fun cycle(
+        player: Player,
+        worldData: WorldData,
+        direction: GuiCycleDirection = GuiCycleDirection.NEXT,
+    ): WorldPublishCycleSource {
         val policy = MyWorldManagerApi.getWorldPublishPolicy()
         if (policy.handlesPublishCycle(worldData)) {
             require(policy is ReversibleWorldPublishPolicy) {
@@ -146,7 +151,7 @@ class WorldPublishService(private val plugin: MyWorldManager) {
         }
 
         val before = worldData.publishSnapshot()
-        worldData.publishLevel = nextPublishLevel(before.publishLevel)
+        worldData.publishLevel = cyclePublishLevel(before.publishLevel, direction)
         if (worldData.publishLevel == PublishLevel.PUBLIC) {
             worldData.publicAt = nowText()
         }
@@ -243,6 +248,15 @@ class WorldPublishService(private val plugin: MyWorldManager) {
 
     private fun nextPublishLevel(level: PublishLevel): PublishLevel =
         PublishLevel.entries[(PublishLevel.entries.indexOf(level) + 1) % PublishLevel.entries.size]
+
+    /** リスト操作の共通規則（左=次、右=前）に従い、公開レベルを循環させます。 */
+    private fun cyclePublishLevel(level: PublishLevel, direction: GuiCycleDirection): PublishLevel {
+        val delta = when (direction) {
+            GuiCycleDirection.NEXT -> 1
+            GuiCycleDirection.PREVIOUS -> -1
+        }
+        return PublishLevel.entries[Math.floorMod(PublishLevel.entries.indexOf(level) + delta, PublishLevel.entries.size)]
+    }
 
     private fun nowText(): String = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
 }

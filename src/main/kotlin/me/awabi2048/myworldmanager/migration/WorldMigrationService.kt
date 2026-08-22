@@ -633,6 +633,8 @@ class WorldMigrationService(
             if (hasMigrationFailure() || metadataResults.any { it.state == ApiMigrationParticipantResultState.FAILED }) {
                 send(sender, MyworldMessagesKeys.MESSAGES_MIGRATION_INCOMPLETE)
             } else {
+                // 全移行が成功した時点で、過去の移行バックアップ残骸も一括整理する。
+                cleanupMigrationBackups()
                 send(sender, MyworldMessagesKeys.MESSAGES_MIGRATION_COMPLETED)
             }
             return
@@ -695,6 +697,32 @@ class WorldMigrationService(
         states.values.any { it.status == MigrationWorldStatus.FAILED } ||
             hasMetadataRemaining() ||
             stateFileUnreadableReason != null
+
+    /**
+     * 移行が全て成功した時点で、過去の移行バックアップ（*.pre-migration-*.bak）を一括削除する。
+     * 失敗分はリストア用に残すため、失敗が残っている間は実行しない。
+     * 対象は自プラグインのデータ領域（直下・my_worlds・playerdata）に限定し、
+     * 他プラグイン由来の残骸（*.bak-* 等）やロールバック用途の
+     * paper-world.yml.pre-mwm-end-policy.bak には触れない。
+     */
+    private fun cleanupMigrationBackups() {
+        val directories = buildList {
+            add(plugin.dataFolder)
+            File(plugin.dataFolder, "my_worlds").takeIf { it.isDirectory }?.let(::add)
+            File(plugin.dataFolder, "playerdata").takeIf { it.isDirectory }?.let(::add)
+        }
+        var removed = 0
+        for (directory in directories) {
+            directory.listFiles { file ->
+                file.isFile && file.name.contains(".pre-migration-") && file.name.endsWith(".bak")
+            }?.forEach { file ->
+                if (file.delete()) removed++
+            }
+        }
+        if (removed > 0) {
+            plugin.logger.info("移行バックアップを $removed 件削除しました（移行完了後の整理）")
+        }
+    }
 
     private fun migrateMetadata(sender: CommandSender, force: Boolean) = buildList {
         plugin.worldConfigRepository.quarantinedWorlds()
@@ -856,6 +884,8 @@ class WorldMigrationService(
             val completionKey = if (hasMigrationFailure()) {
                 MyworldMessagesKeys.MESSAGES_MIGRATION_INCOMPLETE
             } else {
+                // 全移行が成功した時点で、過去の移行バックアップ残骸も一括整理する。
+                cleanupMigrationBackups()
                 MyworldMessagesKeys.MESSAGES_MIGRATION_COMPLETED
             }
             plugin.server.consoleSender.sendMessage(plugin.languageManager.getMessage(completionKey))

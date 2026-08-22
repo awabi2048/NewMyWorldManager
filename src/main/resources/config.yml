@@ -52,7 +52,8 @@ default_expiration:
   automatic_archive: true
 
 expansion:
-  initial_size: 100
+  # 新規作成ワールドの初期ボーダーサイズ。既存ワールドのボーダーには影響しません。
+  initial_size: 500
   costs:
     1: 100
     2: 200

@@ -121,7 +121,7 @@ class EnvironmentLogicListener(private val plugin: MyWorldManager) : Listener {
         if (baseBiome != null) {
             val center = worldData.borderCenterPos ?: world.spawnLocation
             val expansion = worldData.borderExpansionLevel
-            val initialSize = plugin.config.getDouble(expansionInitialSizeConfigKey, 100.0)
+            val initialSize = plugin.config.getDouble(expansionInitialSizeConfigKey, 500.0)
             val size = if (expansion == WorldData.EXPANSION_LEVEL_SPECIAL) {
                 60000000.0
             } else {

@@ -380,6 +380,8 @@ class PendingInteractionRepository(private val plugin: MyWorldManager) {
             } catch (_: AtomicMoveNotSupportedException) {
                 Files.move(temporary.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING)
             }
+            // 移行成功後のバックアップは復元に不要なため削除する。失敗時は従来どおりリストア用に残す。
+            if (allowMigrationWrite) runCatching { backup.delete() }
         } catch (e: Exception) {
             Files.deleteIfExists(temporary.toPath())
             if (allowMigrationWrite && backup.exists()) {

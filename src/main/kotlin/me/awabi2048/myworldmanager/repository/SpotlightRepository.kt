@@ -227,6 +227,8 @@ class SpotlightRepository(private val plugin: MyWorldManager) {
             FileChannel.open(temporary.toPath(), StandardOpenOption.WRITE).use { it.force(true) }
             loadStrict(temporary)
             moveAtomically(temporary, file)
+            // 移行成功後のバックアップは復元に不要なため削除する。失敗時は従来どおりリストア用に残す。
+            runCatching { backup.delete() }
         } catch (error: Exception) {
             Files.deleteIfExists(temporary.toPath())
             if (backup.isFile) Files.copy(backup.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING)

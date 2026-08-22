@@ -77,7 +77,8 @@ class BorderResetSpawnCalculatorTest {
                 List.of(72)
         );
 
-        assertEquals(new BorderResetSpawnPosition(1.0, 72.0, 0.0), changes.getGuest().getReplacement());
+        // 補正後のスポーンはブロック中央(x.5, z.5)に統一される。
+        assertEquals(new BorderResetSpawnPosition(1.5, 72.0, 0.5), changes.getGuest().getReplacement());
     }
 
     @Test

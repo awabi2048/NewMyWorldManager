@@ -215,7 +215,7 @@ class MemberManagementClickBranchesTest {
         val gui = Path.of("src/main/kotlin/me/awabi2048/myworldmanager/gui/WorldSettingsGui.kt").readText()
         val listener = Path.of("src/main/kotlin/me/awabi2048/myworldmanager/listener/WorldSettingsListener.kt").readText()
 
-        assertEquals(3, Regex("InventoryMenuDefinition\\(").findAll(gui).count())
+        assertEquals(6, Regex("InventoryMenuDefinition\\(").findAll(gui).count())
         assertTrue("memberManagementEntryInteraction(" in gui)
         assertFalse("ACTION_CAPABILITY" in gui)
         assertFalse("ROUTE_CAPABILITY_ID" in gui)
