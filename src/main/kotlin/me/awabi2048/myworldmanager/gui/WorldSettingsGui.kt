@@ -203,7 +203,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 },
                         ),
                 )
-                runtime.register(
+                val memberManagementDefinition =
                         InventoryMenuDefinition(
                                 owner = RUNTIME_OWNER,
                                 id = RUNTIME_MEMBER_MANAGEMENT_ROUTE,
@@ -253,11 +253,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 context.reason,
                                         )
                                 },
-                                // メンバーの入退出・招待受理は他プレイヤーの行動でも起きるため、開いている間は定期再描画する。
-                                autoRefresh = com.awabi2048.ccsystem.api.gui.MenuAutoRefreshPolicy.EVERY_SECOND,
-                        ),
-                )
-                runtime.register(
+                        )
+                // メンバーの入退出・招待受理は他プレイヤーの行動でも起きるため、開いている間は定期再描画する。
+                memberManagementDefinition.autoRefresh = com.awabi2048.ccsystem.api.gui.MenuAutoRefreshPolicy.EVERY_SECOND
+                runtime.register(memberManagementDefinition)
+                val visitorManagementDefinition =
                         InventoryMenuDefinition(
                                 owner = RUNTIME_OWNER,
                                 id = RUNTIME_VISITOR_MANAGEMENT_ROUTE,
@@ -307,11 +307,11 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 context.reason,
                                         )
                                 },
-                                // 訪問中のプレイヤーは随時入れ替わるため、開いている間は定期再描画する。
-                                autoRefresh = com.awabi2048.ccsystem.api.gui.MenuAutoRefreshPolicy.EVERY_SECOND,
-                        ),
-                )
-                runtime.register(
+                        )
+                // 訪問中のプレイヤーは随時入れ替わるため、開いている間は定期再描画する。
+                visitorManagementDefinition.autoRefresh = com.awabi2048.ccsystem.api.gui.MenuAutoRefreshPolicy.EVERY_SECOND
+                runtime.register(visitorManagementDefinition)
+                val memberAddDefinition =
                         InventoryMenuDefinition(
                                 owner = RUNTIME_OWNER,
                                 id = RUNTIME_MEMBER_ADD_ROUTE,
@@ -361,10 +361,10 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                                 context.reason,
                                         )
                                 },
-                                // オンライン状況・保留中招待は他プレイヤーの行動でも変わるため、開いている間は定期再描画する。
-                                autoRefresh = com.awabi2048.ccsystem.api.gui.MenuAutoRefreshPolicy.EVERY_SECOND,
-                        ),
-                )
+                        )
+                // オンライン状況・保留中招待は他プレイヤーの行動でも変わるため、開いている間は定期再描画する。
+                memberAddDefinition.autoRefresh = com.awabi2048.ccsystem.api.gui.MenuAutoRefreshPolicy.EVERY_SECOND
+                runtime.register(memberAddDefinition)
                 runtime.register(
                         InventoryMenuDefinition(
                                 owner = RUNTIME_OWNER,
@@ -2447,6 +2447,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 ),
                         )
                 }
+
+                // フッター3マス目: 外部アドオン（チャンポンの建築許可パスワード設定等）のボタン配置。
+                applyCapabilities(
+                        inventory,
+                        player,
+                        MemberManagementCapabilityContract.FOOTER_PLACEMENT,
+                        listOf(footerStart + 2),
+                        mapOf(MemberManagementCapabilityContract.WORLD_UUID_ARGUMENT to worldData.uuid.toString()),
+                )
 
                 // 背景埋め
                 val grayPane = createDecorationItem(Material.GRAY_STAINED_GLASS_PANE)

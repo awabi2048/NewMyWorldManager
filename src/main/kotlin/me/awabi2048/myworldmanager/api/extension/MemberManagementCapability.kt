@@ -12,7 +12,10 @@ data class MemberManagementCapabilitySubject(
 )
 
 object MemberManagementCapabilityContract {
+    /** メンバー一覧の各行へホスト増強するための配置です。 */
     const val PLACEMENT = "myworldmanager.member-management.member"
+    /** メンバー管理画面のフッターへ独立ボタンを配置するためのプレースメントです（例: 建築許可パスワード設定）。 */
+    const val FOOTER_PLACEMENT = "myworldmanager.member-management.footer"
     const val WORLD_UUID_ARGUMENT = "world_uuid"
     const val TARGET_PLAYER_UUID_ARGUMENT = "target_player_uuid"
     @Deprecated("opaque attribute境界はcontract 6で廃止されました")
