@@ -174,7 +174,7 @@ class WorldEnvironmentService(private val plugin: MyWorldManager) : ApiWorldEnvi
         }
         val restoredBorderSize = worldData.latestBorderExpansionRecord()?.newSize
             ?: worldData.borderExpansionLevel.takeIf { it >= 0 }?.let { level ->
-                Math.scalb(plugin.config.getDouble("expansion.initial_size", 100.0), level)
+                Math.scalb(plugin.config.getDouble("expansion.initial_size", 500.0), level)
             }
         if (restoredBorderSize != null && restoredBorderSize > 0.0) {
             world.worldBorder.size = restoredBorderSize

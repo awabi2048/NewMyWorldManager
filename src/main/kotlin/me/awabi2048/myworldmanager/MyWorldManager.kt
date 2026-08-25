@@ -408,6 +408,8 @@ class MyWorldManager : JavaPlugin() {
         server.pluginManager.registerEvents(ItemConversionListener(this), this)
         tourListener = TourListener(this)
         server.pluginManager.registerEvents(tourListener, this)
+        // スポーン位置への貫通不可ブロックの新規配置を禁止します。
+        server.pluginManager.registerEvents(SpawnBlockPlaceProtectionListener(this), this)
 
         // コマンドの登録
         val mwmCmd = WorldCommand(worldService, creationSessionManager)

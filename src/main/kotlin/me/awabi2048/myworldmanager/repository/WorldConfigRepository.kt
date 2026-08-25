@@ -390,13 +390,15 @@ class WorldConfigRepository(private val plugin: JavaPlugin) {
             check(loadWorldData(file)?.let { isCurrentWorldData(file, uuid, it) } == true) {
                 "migrated world data could not be deserialized: $uuid"
             }
-            if (file.absoluteFile != canonicalFile.absoluteFile) {
+if (file.absoluteFile != canonicalFile.absoluteFile) {
                 try {
                     Files.move(file.toPath(), canonicalFile.toPath(), StandardCopyOption.ATOMIC_MOVE)
                 } catch (_: AtomicMoveNotSupportedException) {
                     Files.move(file.toPath(), canonicalFile.toPath())
                 }
             }
+            // 移行成功後のバックアップは復元に不要なため削除する。失敗時は従来どおりリストア用に残す。
+            runCatching { backup.delete() }
             return MetadataMigrationResult(MetadataMigrationStatus.MIGRATED, "migrated: $uuid")
         } catch (e: Exception) {
             temporary.delete()

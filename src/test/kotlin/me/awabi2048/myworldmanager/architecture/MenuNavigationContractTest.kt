@@ -174,8 +174,7 @@ class MenuNavigationContractTest {
             "src/main/kotlin/me/awabi2048/myworldmanager/service/WorldSettingsInputService.kt",
         ).readText()
         listOf(
-            "showMemberInviteDialog(player, forceAddMode)",
-            "showTagEditorDialog(player, worldData)",
+            "showMemberInviteDialog(player, forceAddMode = false)",
         ).forEach { dialogCall ->
             val callIndex = listener.indexOf(dialogCall)
             assertTrue(callIndex >= 0, "Dialog call was not found: $dialogCall")

@@ -117,6 +117,8 @@ class WorldSettingsListener : Listener {
                 handleIconSelectionTopInventoryClick(runtimeContext)?.let { return it }
                 handleConfirmationRuntimeClick(player, item, runtimeContext)?.let { return it }
                 handleMemberManagementInviteClick(player, click, item, runtimeContext)?.let { return it }
+                handleMemberAddMenuClick(player, click, item, runtimeContext)?.let { return it }
+                handleTagEditorRuntimeClick(player, click, item, runtimeContext)?.let { return it }
                 handleMemberManagementRouteClick(player, click, item, runtimeContext)?.let { return it }
                 handleVisitorManagementRuntimeClick(player, click, item, runtimeContext)?.let { return it }
                 handleExpansionMethodSelectionRuntimeClick(player, item, runtimeContext)?.let { return it }
@@ -208,12 +210,17 @@ class WorldSettingsListener : Listener {
                                 )
                         }
                         WorldSettingsRuntimeOperation.CYCLE_PUBLISH -> {
-                                plugin.worldPublishService.cycle(player, worldData)
+                                // リスト操作の共通規則（左=次、右=前）に合わせ、クリック方向で循環方向を決めます。
+                                val direction = com.awabi2048.ccsystem.api.gui.GuiCycle.direction(click)
+                                        ?: return MenuActionResult.Ignored
+                                plugin.worldPublishService.cycle(player, worldData, direction)
                                 return reopenWorldSettingsLatest(player, worldData)
                         }
                         WorldSettingsRuntimeOperation.EDIT_TAGS -> {
                                 plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.MANAGE_TAGS, isGui = true)
-                                showTagEditorDialog(player, worldData)
+                                return MenuActionResult.Success(
+                                        MenuUpdate.Navigate(plugin.worldSettingsGui.tagEditorRoute(worldData.uuid)),
+                                )
                         }
                         WorldSettingsRuntimeOperation.MANAGE_VISITORS -> {
                                 val world = Bukkit.getWorld(worldData.customWorldName ?: "my_world.${worldData.uuid}")
@@ -226,10 +233,7 @@ class WorldSettingsListener : Listener {
                                 }
                                 return MenuActionResult.Success(
                                         MenuUpdate.Navigate(
-                                                plugin.worldSettingsGui.runtimeRoute(
-                                                        WorldSettingsRuntimeScreen.VISITOR_MANAGEMENT,
-                                                        worldData.uuid,
-                                                ),
+                                                plugin.worldSettingsGui.visitorManagementRoute(worldData.uuid),
                                         ),
                                 )
                         }
@@ -350,11 +354,7 @@ class WorldSettingsListener : Listener {
                                 ?: return MenuActionResult.Ignored
                         return MenuActionResult.Success(
                                 MenuUpdate.Replace(
-                                        plugin.worldSettingsGui.runtimeRoute(
-                                                WorldSettingsRuntimeScreen.VISITOR_MANAGEMENT,
-                                                worldData.uuid,
-                                                page = targetPage,
-                                        ),
+                                        plugin.worldSettingsGui.visitorManagementRoute(worldData.uuid, targetPage),
                                 ),
                         )
                 }
@@ -367,6 +367,21 @@ class WorldSettingsListener : Listener {
                                 MenuUpdate.Navigate(
                                         plugin.worldSettingsGui.runtimeRoute(
                                                 WorldSettingsRuntimeScreen.VISITOR_KICK_CONFIRM,
+                                                worldData.uuid,
+                                                targetUuid = visitorUuid,
+                                        ),
+                                ),
+                        )
+                }
+                if (operation == WorldSettingsRuntimeOperation.VISITOR_INVITE && (click.isLeftClick || click.isRightClick)) {
+                        val visitorUuid = runtimeContext.actionPayload[WorldSettingsGui.ROUTE_TARGET_UUID]
+                                ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+                                ?: return MenuActionResult.Ignored
+                        // 確認画面へ遷移してから招待を発行するため、この時点では発行しません。
+                        return MenuActionResult.Success(
+                                MenuUpdate.Navigate(
+                                        plugin.worldSettingsGui.runtimeRoute(
+                                                WorldSettingsRuntimeScreen.VISITOR_INVITE_CONFIRM,
                                                 worldData.uuid,
                                                 targetUuid = visitorUuid,
                                         ),
@@ -627,6 +642,13 @@ class WorldSettingsListener : Listener {
                                         worldData,
                                         runtimeContext.targetUuid,
                                 )
+                        WorldSettingsRuntimeScreen.VISITOR_INVITE_CONFIRM ->
+                                handleVisitorInviteConfirmationRuntime(
+                                        player,
+                                        runtimeContext.operation,
+                                        worldData,
+                                        runtimeContext.targetUuid,
+                                )
                         WorldSettingsRuntimeScreen.EXPANSION_CONFIRM ->
                                 handleExpansionConfirmationRuntime(player, runtimeContext.operation, worldData)
                         WorldSettingsRuntimeScreen.EXPANSION_STEP_BACK_CONFIRM ->
@@ -738,6 +760,68 @@ class WorldSettingsListener : Listener {
                                         visitor.sendMessage(plugin.languageManager.getMessage(visitor, MyworldMessagesKeys.MESSAGES_KICKED))
                                         player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_KICKED_SUCCESS, mapOf("player" to visitor.name)))
                                 }
+                                MenuActionResult.Success(MenuUpdate.Back)
+                        }
+                        else -> MenuActionResult.Ignored
+                }
+        }
+
+        /**
+         * 訪問中のプレイヤーへのメンバー招待の確認画面。
+         * 確定時に対象がまだワールド内にいること、既メンバー・保留中招待でないことを再確認してから発行します。
+         */
+        private fun handleVisitorInviteConfirmationRuntime(
+                player: Player,
+                operation: WorldSettingsRuntimeOperation?,
+                worldData: WorldData,
+                visitorUuid: UUID?,
+        ): MenuActionResult {
+                return when (operation) {
+                        WorldSettingsRuntimeOperation.CANCEL ->
+                                MenuActionResult.Success(MenuUpdate.Back)
+                        WorldSettingsRuntimeOperation.CONFIRM -> {
+                                val targetUuid = visitorUuid ?: return MenuActionResult.Ignored
+                                val lang = plugin.languageManager
+                                val worldFolderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
+                                val target = Bukkit.getPlayer(targetUuid)
+                                // 確認画面を開いている間にワールドを出たプレイヤーには発行しません。
+                                if (target == null || target.world.name != worldFolderName) {
+                                        player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_NOT_FOUND))
+                                        return MenuActionResult.Success(MenuUpdate.Back)
+                                }
+                                if (
+                                        worldData.members.contains(targetUuid) ||
+                                        worldData.moderators.contains(targetUuid) ||
+                                        worldData.owner == targetUuid
+                                ) {
+                                        player.sendMessage(lang.getMessage(player, CommonKeys.ERROR_INVITE_ALREADY_MEMBER))
+                                        return MenuActionResult.Success(MenuUpdate.Back)
+                                }
+                                if (
+                                        plugin.pendingInteractionRepository.existsByTargetWorldAndType(
+                                                targetUuid,
+                                                worldData.uuid,
+                                                PendingInteractionType.MEMBER_INVITE,
+                                        )
+                                ) {
+                                        player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_MEMBER_INVITE_ALREADY_SENT))
+                                        return MenuActionResult.Success(MenuUpdate.Back)
+                                }
+                                val invite = plugin.memberInviteManager.addInvite(targetUuid, worldData.uuid, player.uniqueId)
+                                plugin.pendingNotificationService.send(
+                                        target,
+                                        me.awabi2048.myworldmanager.service.PendingDecisionManager.PendingType.MEMBER_INVITE,
+                                        invite.actionCode,
+                                        player.uniqueId,
+                                        worldData.uuid,
+                                )
+                                player.sendMessage(
+                                        lang.getMessage(
+                                                player,
+                                                MyworldMessagesKeys.MESSAGES_INVITE_SENT_SUCCESS,
+                                                mapOf("player" to (target.name ?: "Unknown"), "world" to worldData.name),
+                                        )
+                                )
                                 MenuActionResult.Success(MenuUpdate.Back)
                         }
                         else -> MenuActionResult.Ignored
@@ -953,7 +1037,7 @@ class WorldSettingsListener : Listener {
                 runtimeContext: WorldSettingsRuntimeContext,
         ): MenuActionResult? {
                 if (runtimeContext.screen != WorldSettingsRuntimeScreen.MEMBER_MANAGEMENT ||
-                                runtimeContext.operation != WorldSettingsRuntimeOperation.INVITE_MEMBER
+                                runtimeContext.operation != WorldSettingsRuntimeOperation.OPEN_MEMBER_ADD
                 ) {
                         return null
                 }
@@ -963,13 +1047,11 @@ class WorldSettingsListener : Listener {
                                 ?: return MenuActionResult.Ignored
                 val worldData = plugin.worldConfigRepository.findByUuid(worldUuid)
                         ?: return MenuActionResult.Ignored
-                val forceAddMode = PermissionManager.canForceAddMember(player) && click.isShiftClick
-
-                if (openBedrockMemberInviteInputForm(player, worldData, forceAddMode)) {
-                        return MenuActionResult.Success(MenuUpdate.None)
-                }
+                // 統合版はインベントリ一覧の操作ができないため、従来どおりID入力フォームを直接開きます。
                 if (plugin.playerPlatformResolver.isBedrock(player)) {
-                        reopenMemberManagementLatest(player, worldData.uuid)
+                        if (openBedrockMemberInviteInputForm(player, worldData, false)) {
+                                return MenuActionResult.Success(MenuUpdate.None)
+                        }
                         return MenuActionResult.Success(MenuUpdate.None)
                 }
 
@@ -979,8 +1061,68 @@ class WorldSettingsListener : Listener {
                         SettingsAction.MEMBER_INVITE,
                         isGui = true,
                 )
-                showMemberInviteDialog(player, forceAddMode)
-                return MenuActionResult.Success(MenuUpdate.None)
+                return MenuActionResult.Success(
+                        MenuUpdate.Navigate(
+                                plugin.worldSettingsGui.memberAddRoute(worldData.uuid),
+                        ),
+                )
+        }
+
+        /**
+         * メンバー追加メニューのクリック処理。一覧アイテムの通常クリック=招待、
+         * スニーククリック=強制追加、フッター3マス目のID入力アイコン=入力ダイアログを扱います。
+         */
+        private fun handleMemberAddMenuClick(
+                player: Player,
+                click: ClickType,
+                item: ItemStack,
+                runtimeContext: WorldSettingsRuntimeContext,
+        ): MenuActionResult? {
+                if (runtimeContext.screen != WorldSettingsRuntimeScreen.MEMBER_ADD_MENU) return null
+                val worldUuid = runtimeContext.worldUuid ?: return MenuActionResult.Ignored
+                val worldData = plugin.worldConfigRepository.findByUuid(worldUuid)
+                        ?: return MenuActionResult.Ignored
+                when (runtimeContext.operation) {
+                        WorldSettingsRuntimeOperation.PAGE -> {
+                                val targetPage = runtimeContext.actionPayload[WorldSettingsGui.ROUTE_PAGE]
+                                        ?.toIntOrNull()
+                                        ?: return MenuActionResult.Ignored
+                                return MenuActionResult.Success(
+                                        MenuUpdate.Replace(
+                                                plugin.worldSettingsGui.memberAddRoute(worldData.uuid, targetPage),
+                                        ),
+                                )
+                        }
+                        WorldSettingsRuntimeOperation.MEMBER_ADD_TARGET -> {
+                                val targetUuid = runtimeContext.actionPayload[WorldSettingsGui.ROUTE_TARGET_UUID]
+                                        ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+                                        ?: return MenuActionResult.Ignored
+                                val target = Bukkit.getPlayer(targetUuid) ?: return MenuActionResult.Ignored
+                                // 強制追加はこのメニュー内のスニーククリックで扱います。
+                                val forceAddMode =
+                                        PermissionManager.canForceAddMember(player) && click.isShiftClick
+                                // 名前入力経路と同じ検証・発行ロジックを再利用します（オンラインなので解決は確実）。
+                                applyMemberInvite(
+                                        player,
+                                        worldData,
+                                        target.name ?: targetUuid.toString(),
+                                        forceAddMode,
+                                        reopenAfter = false,
+                                )
+                                return MenuActionResult.Success(MenuUpdate.Refresh)
+                        }
+                        WorldSettingsRuntimeOperation.MEMBER_ADD_ID_INPUT -> {
+                                plugin.settingsSessionManager.updateSessionAction(
+                                        player,
+                                        worldData.uuid,
+                                        SettingsAction.MEMBER_INVITE,
+                                        isGui = true,
+                                )
+                                showMemberInviteDialog(player, forceAddMode = false)
+                                return MenuActionResult.Success(MenuUpdate.None)
+                        }
+                        else -> return MenuActionResult.Ignored
+                }
         }
 
         /** Route 固有で、外部入力を開始しないメンバー管理操作です。 */
@@ -1524,13 +1666,16 @@ class WorldSettingsListener : Listener {
         private fun cancelMemberInviteByDecisionId(
                 player: Player,
                 worldUuid: UUID,
-                decisionId: UUID
+                decisionId: UUID,
+                // Runtimeの確認画面経路ではMenuUpdate.Backで戻るため再表示しない。
+                // レガシーなチャットクリック経路だけが画面更新を必要とします。
+                reopenAfter: Boolean = false,
         ) {
                 val lang = plugin.languageManager
                 val latestWorld = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return
                 if (!canCancelMemberInvite(player, latestWorld)) {
                         player.sendMessage(lang.getMessage(player, CommonKeys.GENERAL_NO_PERMISSION))
-                        reopenMemberManagementLatest(player, worldUuid)
+                        if (reopenAfter) reopenMemberManagementLatest(player, worldUuid)
                         return
                 }
 
@@ -1543,7 +1688,7 @@ class WorldSettingsListener : Listener {
                         player.sendMessage(
                                 lang.getMessage(player, MyworldMessagesKeys.MESSAGES_MEMBER_INVITE_CANCEL_NOT_FOUND)
                         )
-                        reopenMemberManagementLatest(player, worldUuid)
+                        if (reopenAfter) reopenMemberManagementLatest(player, worldUuid)
                         return
                 }
 
@@ -1560,7 +1705,7 @@ class WorldSettingsListener : Listener {
                                 mapOf("player" to targetName)
                         )
                 )
-                reopenMemberManagementLatest(player, worldUuid)
+                if (reopenAfter) reopenMemberManagementLatest(player, worldUuid)
         }
 
         private fun toggleMemberRole(player: Player, worldData: WorldData, memberId: UUID) {
@@ -2155,10 +2300,10 @@ player.sendMessage(
                         val clickedBlock = event.clickedBlock ?: return
 
                         event.isCancelled = true
-                        // プレビューと確定で同じ基準を使い、草・雪などの通過可能ブロックを
-                        // 透過して、その奥のブロックをスポーン位置の基準にします。
-                        val targetBlock = PlayerBlockTargetResolver.find(player) ?: clickedBlock
-                        val loc = targetBlock.location.clone().add(0.5, 1.0, 0.5)
+                        // プレビューと確定で同じ基準を使い、草・雪などの通過可能ブロックを透過して、
+                        // その奥のブロックの面（スラブ等の半端な高さも含む）の直上をスポーン位置にします。
+                        val loc = PlayerBlockTargetResolver.findStandingLocation(player)
+                                ?: clickedBlock.location.clone().add(0.5, 1.0, 0.5)
 
                         val normalizedYaw = plugin.worldSettingsSpawnPreviewService.normalizeToCardinalYaw(player.location.yaw)
 
@@ -2493,7 +2638,7 @@ player.sendMessage(
 
                 val center = worldData.borderCenterPos ?: world.spawnLocation
                 val expansion = worldData.borderExpansionLevel
-                val initialSize = plugin.config.getDouble(expansionInitialSizeConfigKey, 100.0)
+                val initialSize = plugin.config.getDouble(expansionInitialSizeConfigKey, 500.0)
                 // Adjust for special level or calculate size
                 val size =
                         if (expansion == WorldData.EXPANSION_LEVEL_SPECIAL) 60000000.0
@@ -2861,46 +3006,36 @@ player.sendMessage(
             )
         }
 
-        private fun showTagEditorDialog(player: Player, worldData: WorldData) {
-                val lang = plugin.languageManager
-                val currentTags = worldData.tags
-                val allTags = plugin.worldTagManager.getEditableTagIds(currentTags)
-
-                val inputs = allTags.map { tagId ->
-                        val tagName = plugin.worldTagManager.getDisplayName(player, tagId)
-                        val isSelected = currentTags.contains(tagId)
-                        MenuDialogInput.BooleanInput("tag_$tagId", Component.text(tagName), isSelected)
-                }
-
-                CCSystem.getAPI().getMenuDialogService().show(
-                    player,
-                    MenuDialogRequest(
-                        owner = "myworldmanager",
-                        id = "settings-tags",
-                        title = Component.text("タグ設定", NamedTextColor.YELLOW),
-                        body = listOf(
-                            Component.text("ワールドのタグを設定します。\n有効にするタグのスイッチをオンにしてください。"),
-                        ),
-                        inputs = inputs,
-                        confirm = MenuDialogButton(
-                            Component.text("Submit", NamedTextColor.GREEN),
-                            MenuDialogHandler { target, response ->
-                                worldData.tags.clear()
-                                worldData.tags.addAll(
-                                    allTags.filter { tagId -> response.booleanValue("tag_$tagId") },
-                                )
+        /**
+         * タグエディタのクリック処理。タグアイテムのクリックで有効/無効を切り替えます。
+         */
+        private fun handleTagEditorRuntimeClick(
+                player: Player,
+                click: ClickType,
+                item: ItemStack,
+                runtimeContext: WorldSettingsRuntimeContext,
+        ): MenuActionResult? {
+                if (runtimeContext.screen != WorldSettingsRuntimeScreen.TAG_EDITOR) return null
+                val worldUuid = runtimeContext.worldUuid ?: return MenuActionResult.Ignored
+                val worldData = plugin.worldConfigRepository.findByUuid(worldUuid)
+                        ?: return MenuActionResult.Ignored
+                when (runtimeContext.operation) {
+                        WorldSettingsRuntimeOperation.TAG_TOGGLE -> {
+                                val rawTagId = runtimeContext.actionPayload[WorldSettingsGui.ROUTE_TAG_ID]
+                                        ?: return MenuActionResult.Ignored
+                                // 表示に使った正規化IDだけを受け入れ、任意文字列の混入を防ぎます。
+                                val tagId = plugin.worldTagManager.normalizeTagId(rawTagId)
+                                        ?: return MenuActionResult.Ignored
+                                if (tagId in worldData.tags) {
+                                        worldData.tags.remove(tagId)
+                                } else {
+                                        worldData.tags.add(tagId)
+                                }
                                 plugin.worldConfigRepository.save(worldData)
-                                MenuActionResult.Success(MenuUpdate.Resume)
-                            },
-                        ),
-                        cancel = MenuDialogButton(
-                            Component.text("Close", NamedTextColor.GRAY),
-                            MenuDialogHandler { target, _ ->
-                                MenuActionResult.Success(MenuUpdate.Resume)
-                            },
-                        ),
-                    ),
-                )
+                                return MenuActionResult.Success(MenuUpdate.Refresh)
+                        }
+                        else -> return MenuActionResult.Ignored
+                }
         }
 
         private fun openExpandConfirmationByPreference(
@@ -3194,8 +3329,9 @@ player.sendMessage(
 
         private fun worldDataResetTarget(worldData: WorldData): Pair<Location, Double>? {
                 val world = resolveWorld(worldData) ?: return null
-                val center = world.spawnLocation.clone()
-                val size = plugin.config.getDouble(expansionInitialSizeConfigKey, 100.0)
+                // スポーン基準のボーダー中心はブロック中央(x.5, z.5)で統一する。
+                val center = world.spawnLocation.clone().add(0.5, 0.0, 0.5)
+                val size = plugin.config.getDouble(expansionInitialSizeConfigKey, 500.0)
                 return center to size
         }
 
@@ -3300,8 +3436,9 @@ player.sendMessage(
                 val world = resolveWorld(worldData)
 
                 if (world != null) {
-                        val initialSize = plugin.config.getDouble(expansionInitialSizeConfigKey, 100.0)
-                        val spawnLocation = world.spawnLocation.clone()
+                        val initialSize = plugin.config.getDouble(expansionInitialSizeConfigKey, 500.0)
+                        // スポーン基準のボーダー中心はブロック中央(x.5, z.5)で統一する。
+                        val spawnLocation = world.spawnLocation.clone().add(0.5, 0.0, 0.5)
                         world.worldBorder.size = initialSize
                         world.worldBorder.center = spawnLocation
                         worldData.borderCenterPos = spawnLocation
@@ -3704,6 +3841,7 @@ player.sendMessage(
                         SettingsAction.EXPAND_CONFIRM -> plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
                         SettingsAction.STEP_BACK_EXPANSION_CONFIRM -> plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
                         SettingsAction.VISITOR_KICK_CONFIRM -> plugin.worldSettingsGui.openVisitorManagement(player, worldData)
+                        SettingsAction.VISITOR_INVITE_CONFIRM -> plugin.worldSettingsGui.openVisitorManagement(player, worldData)
                         SettingsAction.MEMBER_REMOVE_CONFIRM,
                         SettingsAction.MEMBER_TRANSFER_CONFIRM,
                         SettingsAction.MEMBER_PENDING_INVITE_CANCEL_CONFIRM ->
@@ -3904,7 +4042,7 @@ player.sendMessage(
                                 keyVal.substringAfter("confirm/member_pending_invite_cancel/")
                         val decisionId =
                                 runCatching { UUID.fromString(decisionIdStr) }.getOrNull() ?: return
-                        cancelMemberInviteByDecisionId(player, worldData.uuid, decisionId)
+                        cancelMemberInviteByDecisionId(player, worldData.uuid, decisionId, reopenAfter = true)
                         return
                 }
 

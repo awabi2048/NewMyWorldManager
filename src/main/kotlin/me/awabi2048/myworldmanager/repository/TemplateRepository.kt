@@ -215,6 +215,8 @@ class TemplateRepository(private val plugin: MyWorldManager) {
                 config.save(temporary)
                 moveAtomically(temporary, configFile)
                 loadTemplates()
+                // 移行成功後のバックアップは復元に不要なため削除する。失敗時は従来どおりリストア用に残す。
+                runCatching { backup.delete() }
                 MetadataMigrationResult(MetadataMigrationStatus.MIGRATED, "migrated: templates.yml")
             } catch (e: Exception) {
                 temporary.delete()
@@ -280,6 +282,8 @@ class TemplateRepository(private val plugin: MyWorldManager) {
             moveAtomically(temporary, configFile)
             loadTemplates()
             check(!isQuarantined(id)) { "migrated template remains invalid: $id" }
+            // 移行成功後のバックアップは復元に不要なため削除する。失敗時は従来どおりリストア用に残す。
+            runCatching { backup.delete() }
             return MetadataMigrationResult(MetadataMigrationStatus.MIGRATED, "migrated: $id")
         } catch (e: Exception) {
             temporary.delete()

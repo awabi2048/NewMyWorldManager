@@ -1,5 +1,7 @@
 package me.awabi2048.myworldmanager.util
 
+import kotlin.math.floor
+
 /**
  * ボーダー後退後の保存スポーン補正を、Bukkitの状態から分離して判定する。
  * 実ワールドのブロック検査は呼び出し側で済ませ、ここでは保存値と補正候補だけを扱う。
@@ -67,8 +69,12 @@ object BorderResetSpawnCalculator {
     ): BorderResetSpawnChanges {
         val replacementY = safeYCoordinates.firstOrNull()
         // ボーダー境界線上はプレイヤーの当たり判定が外側へ出るため、内側へ余白を確保する。
+        // 補正後のスポーンはブロック中央(x.5, z.5)に揃える。入力が整数（Bukkit標準スポーン）でも
+        // 中央化済み（設定・読込値）でも結果を統一するため、ブロック座標へ丸めてから中央を付与する。
         val replacement = resultingBorder.clampInside(defaultPosition.x, defaultPosition.z)?.let { (x, z) ->
-            replacementY?.let { y -> BorderResetSpawnPosition(x, y.toDouble(), z) }
+            replacementY?.let { y ->
+                BorderResetSpawnPosition(floor(x) + 0.5, y.toDouble(), floor(z) + 0.5)
+            }
         }
 
         return BorderResetSpawnChanges(

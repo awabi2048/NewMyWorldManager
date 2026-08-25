@@ -47,7 +47,9 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
             // 最初の衝突対象として返すことがあります。位置設定ではそれらを貫通し、
             // ワールドスポーン設定と同じく、実際に足場となる候補ブロックを選びます。
             val targetBlock = PlayerBlockTargetResolver.find(player) ?: event.clickedBlock ?: return
-            val spawnLocation = targetBlock.location.clone().add(0.5, 1.0, 0.5)
+            // スポーン設定と同じ基準（当たった面の直上。スラブ等の半端な高さも含む）で経由地点を決めます。
+            val spawnLocation = PlayerBlockTargetResolver.findStandingLocation(player)
+                ?: targetBlock.location.clone().add(0.5, 1.0, 0.5)
             if (!plugin.worldSettingsSpawnPreviewService.isSpawnAreaPlaceable(spawnLocation)) {
                 player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_TOUR_WAYPOINT_INVALID_LOCATION))
                 return
@@ -150,7 +152,8 @@ class TourListener(private val plugin: MyWorldManager) : Listener {
                 return@Runnable
             }
             val targetBlock = PlayerBlockTargetResolver.find(player) ?: return@Runnable
-            val spawnLocation = targetBlock.location.clone().add(0.5, 1.0, 0.5)
+            // スポーン設定と同じ基準（当たった面の直上）でプレビュー位置を決めます。
+            val spawnLocation = PlayerBlockTargetResolver.findStandingLocation(player) ?: return@Runnable
             val placeable = plugin.worldSettingsSpawnPreviewService.isSpawnAreaPlaceable(spawnLocation)
             val frameDust = Particle.DustOptions(
                 if (placeable) Color.fromRGB(64, 255, 120) else Color.fromRGB(255, 80, 80),

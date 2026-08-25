@@ -6,7 +6,7 @@
 
     <groupId>awabi2048</groupId>
     <artifactId>my-world-manager</artifactId>
-    <version>26.822.1</version>
+    <version>26.823.4</version>
     <packaging>jar</packaging>
 
     <name>MyWorldManager</name>
@@ -47,7 +47,7 @@
         <dependency>
             <groupId>com.awabi2048</groupId>
             <artifactId>CC-System</artifactId>
-            <version>26.822.1</version>
+            <version>26.823.4</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -148,9 +148,9 @@
                         <configuration>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                             <relocations>
-                                <!-- kotlin パッケージの relocate は、他プラグインから Kotlin 関数を
-                                     呼ぶ際の型不一致（kotlin.Unit vs me.awabi2048...kotlin.Unit 等）を
-                                     引き起こすため廃止。 -->
+                                <!-- kotlin パッケージの relocate は、他�Eラグインから Kotlin 関数めE
+                                     呼ぶ際�E型不一致�E�Eotlin.Unit vs me.awabi2048...kotlin.Unit 等）を
+                                     引き起こすため廁E��、E-->
                             </relocations>
                             <filters>
                                 <filter>
