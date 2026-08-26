@@ -83,21 +83,24 @@ class WorldEnvironmentService(private val plugin: MyWorldManager) : ApiWorldEnvi
 
     fun resetAttributes(entity: Entity) {
         if (entity !is LivingEntity) return
+        // 自キーのmodifierのみ除去し、他システム（ガリバー系等）が設定したbaseValueは一切変更しない。
         entity.getAttribute(Attribute.GRAVITY)?.let { attr ->
             attr.modifiers.filter { it.key == gravityKey }.forEach { attr.removeModifier(it.key) }
-            attr.baseValue = DEFAULT_GRAVITY
         }
         entity.getAttribute(Attribute.SCALE)?.let { attr ->
             attr.modifiers.filter { it.key == scaleKey }.forEach { attr.removeModifier(it.key) }
-            attr.baseValue = DEFAULT_SCALE
         }
     }
 
     fun applyAttributes(entity: Entity, worldName: String) {
         if (entity !is LivingEntity) return
         val worldData = plugin.worldConfigRepository.findByWorldName(worldName) ?: return
+        // 重力はワールド物理として全LivingEntityへ適用。
         applyGravity(entity, worldData.gravityValue)
-        applyScale(entity, worldData.fixedScale)
+        // スケールは仕様上プレイヤーのみの環境設定のため、他エンティティ（Mob・アーマースタンド等）へは適用しない。
+        if (entity is Player) {
+            applyScale(entity, worldData.fixedScale)
+        }
     }
 
     fun applyFlight(player: Player, worldName: String): Boolean {
@@ -155,8 +158,12 @@ class WorldEnvironmentService(private val plugin: MyWorldManager) : ApiWorldEnvi
 
     private fun applyAttributes(world: World, worldData: WorldData) {
         world.entities.forEach { entity ->
+            // 重力はワールド物理として全LivingEntityへ適用。
             if (entity is LivingEntity) {
                 applyGravity(entity, worldData.gravityValue)
+            }
+            // スケールは仕様上プレイヤーのみの環境設定のため、他エンティティへは適用しない。
+            if (entity is Player) {
                 applyScale(entity, worldData.fixedScale)
             }
         }
@@ -186,7 +193,7 @@ class WorldEnvironmentService(private val plugin: MyWorldManager) : ApiWorldEnvi
     private fun applyGravity(entity: LivingEntity, gravity: Double?) {
         val attr = entity.getAttribute(Attribute.GRAVITY) ?: return
         attr.modifiers.filter { it.key == gravityKey }.forEach { attr.removeModifier(it.key) }
-        attr.baseValue = DEFAULT_GRAVITY
+        // baseValueは他システムの初期値（カスタムMOB等）を維持するため書き換えない。差分は自キーmodifierのみで表現。
         if (gravity != null && gravity != DEFAULT_GRAVITY) {
             attr.addModifier(AttributeModifier(gravityKey, gravity - DEFAULT_GRAVITY, AttributeModifier.Operation.ADD_NUMBER))
         }
@@ -195,9 +202,11 @@ class WorldEnvironmentService(private val plugin: MyWorldManager) : ApiWorldEnvi
     private fun applyScale(entity: LivingEntity, scale: Double?) {
         val attr = entity.getAttribute(Attribute.SCALE) ?: return
         attr.modifiers.filter { it.key == scaleKey }.forEach { attr.removeModifier(it.key) }
-        attr.baseValue = DEFAULT_SCALE
+        // baseValueは書き換えず、自キーmodifierのみで表現。
+        // ADD_SCALAR(amount=scale-1) により baseValue に対して比例合成（base×scale）されるため、
+        // 他システムが設定したプレイヤーのbaseValue（ガリバー系等）も維持されたまま世界スケールが掛かる。
         if (scale != null && scale != DEFAULT_SCALE) {
-            attr.addModifier(AttributeModifier(scaleKey, scale - DEFAULT_SCALE, AttributeModifier.Operation.ADD_NUMBER))
+            attr.addModifier(AttributeModifier(scaleKey, scale - DEFAULT_SCALE, AttributeModifier.Operation.ADD_SCALAR))
         }
     }
 
