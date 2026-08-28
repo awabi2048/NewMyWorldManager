@@ -7,7 +7,10 @@ import me.awabi2048.myworldmanager.api.service.ApiMacroService
 import java.io.File
 
 /**
- * 外部設定ファイルに基づき、特定イベント発生時にコンソールコマンドを実行するマネージャー
+ * 外部設定ファイルに基づき、特定イベント発生時にコンソールコマンドを実行するマネージャーです。
+ *
+ * 遅延はこのクラスで解釈せず、設定された `delay <時間> <コマンド>` を
+ * CC-Systemへ渡します。遅延スケジューリングの責務をCC-Systemへ集約するためです。
  */
 class MacroManager(
     private val plugin: JavaPlugin,
@@ -30,47 +33,22 @@ class MacroManager(
     }
 
     /**
-     * 指定されたトリガーのマクロを実行する
+     * 指定されたトリガーのマクロを実行します。
+     * `macros.<trigger>` の文字列リストを読み込み、プレースホルダーを置換して
+     * コンソールから実行します。設定が種類別セクションへ拡張されても、
+     * 呼出側が渡すトリガー単位の引数だけを扱う境界は変えません。
      */
     override fun execute(trigger: String, params: Map<String, String>) {
         val macros = config.getStringList("macros.$trigger")
         if (macros.isEmpty()) return
 
-        var accumulatedDelay = 0L
-        val delayRegex = Regex("""^\[delay:\s*(\d+)([ts]?)\]\s*(.*)$""")
-
         for (macro in macros) {
-            var rawCommand = macro
-            var delayTicks = 0L
-
-            // 遅延の解析
-            val match = delayRegex.find(rawCommand)
-            if (match != null) {
-                val value = match.groupValues[1].toLong()
-                val unit = match.groupValues[2]
-                val commandPart = match.groupValues[3]
-
-                delayTicks = if (unit == "s") value * 20 else value
-                rawCommand = commandPart
-            }
-
-            accumulatedDelay += delayTicks
-
-            var command = rawCommand
+            var command = macro.trim().removePrefix("/")
             // プレースホルダーの置換
             params.forEach { (key, value) ->
                 command = command.replace("%$key%", value)
             }
-
-            if (accumulatedDelay == 0L) {
-                // 即時実行
-                dispatch(command)
-            } else {
-                // 遅延実行
-                Bukkit.getScheduler().runTaskLater(plugin, Runnable {
-                    dispatch(command)
-                }, accumulatedDelay)
-            }
+            if (command.isNotBlank()) dispatch(command)
         }
     }
 
