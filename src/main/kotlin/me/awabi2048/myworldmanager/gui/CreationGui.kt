@@ -33,6 +33,7 @@ import com.awabi2048.ccsystem.api.gui.MenuActionSafety
 import com.awabi2048.ccsystem.api.gui.MenuGesture
 import com.awabi2048.ccsystem.api.gui.MenuCloseContext
 import com.awabi2048.ccsystem.api.gui.MenuCloseHandler
+import com.awabi2048.ccsystem.api.gui.MenuCloseReason
 import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuSoundPresets
@@ -78,6 +79,19 @@ internal fun resolveCreationTypeAvailability(
 }
 
 internal fun templateCreationTypeUpdate(route: MenuRoute): MenuUpdate = MenuUpdate.Navigate(route)
+
+/**
+ * 作成画面のクローズが、画面遷移に伴う一時的なものか、作成フロー自体の終了かを判定します。
+ * 戻る操作は各アクションが明示的に処理するため、ユーザーが画面を閉じた場合は戻り先を開きません。
+ */
+internal fun shouldPreserveCreationSessionOnClose(
+    reason: MenuCloseReason,
+    phase: WorldCreationPhase,
+): Boolean = reason == MenuCloseReason.ROUTE_REPLACED || phase in setOf(
+    WorldCreationPhase.SEED_INPUT,
+    WorldCreationPhase.NAME_INPUT,
+    WorldCreationPhase.SPAWN_INPUT,
+)
 
 class CreationGui(private val plugin: MyWorldManager) {
     private val runtime = CCSystem.getAPI().getMenuRuntimeService()
@@ -304,17 +318,10 @@ class CreationGui(private val plugin: MyWorldManager) {
             if (plugin.previewSessionManager.isInPreview(context.player)) return@Runnable
             val session = plugin.creationSessionManager.getSession(context.player.uniqueId)
                 ?: return@Runnable
-            // 名前・シード・スポーン入力のダイアログを表示中のクローズは、入力続行のための一時クローズです。
-            // それ以外の画面で閉じた場合は、作成を中断してセッションを解放します。
-            // （以前は refresh で画面を開き直していたため、閉じたのにセッションと画面が残る不具合がありました）
-            if (
-                session.phase == WorldCreationPhase.SEED_INPUT ||
-                session.phase == WorldCreationPhase.NAME_INPUT ||
-                session.phase == WorldCreationPhase.SPAWN_INPUT
-            ) {
-                return@Runnable
-            }
-            plugin.creationGuiListener.cancelAndReturnToMyWorld(context.player)
+            // 正規の画面遷移と外部入力開始に伴うクローズだけはセッションを維持します。
+            // E/Esc等の手動クローズは「戻る」と区別し、別画面を開かず作成フローを強制終了します。
+            if (shouldPreserveCreationSessionOnClose(context.reason, session.phase)) return@Runnable
+            plugin.creationSessionManager.endSession(context.player.uniqueId)
         }, 2L)
     }
 
