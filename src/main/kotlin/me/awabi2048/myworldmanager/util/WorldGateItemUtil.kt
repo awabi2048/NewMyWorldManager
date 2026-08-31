@@ -8,7 +8,6 @@ import com.awabi2048.ccsystem.api.gui.GuiLoreLine
 import com.awabi2048.ccsystem.api.gui.GuiLoreSpec
 import com.awabi2048.ccsystem.api.gui.MenuGesture
 import io.papermc.paper.datacomponent.DataComponentTypes
-import io.papermc.paper.datacomponent.item.CustomModelData
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
 import org.bukkit.entity.Player
@@ -30,11 +29,12 @@ object WorldGateItemUtil {
         } catch (_: Exception) {
         }
 
-        meta.setItemModel(NamespacedKey("kota_server", "mwm_misc"))
+        // ワールドゲートはバニラの鍛冶型モデルを直接参照します。
+        // 行動判定はItemTag/PDCが担うため、見た目用CustomModelDataを保持しません。
+        meta.setItemModel(NamespacedKey.minecraft("spire_armor_trim_smithing_template"))
         item.itemMeta = meta
 
         item.unsetData(DataComponentTypes.CONSUMABLE)
-        item.setData(DataComponentTypes.CUSTOM_MODEL_DATA, CustomModelData.customModelData().addString("world_gate").build())
 
         ItemTag.tagItem(item, ItemTag.TYPE_WORLD_GATE)
         return item

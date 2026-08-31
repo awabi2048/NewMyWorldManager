@@ -15,7 +15,6 @@ import org.bukkit.NamespacedKey
 import org.bukkit.inventory.ItemFlag
 import com.google.common.collect.ArrayListMultimap
 import io.papermc.paper.datacomponent.DataComponentTypes
-import io.papermc.paper.datacomponent.item.CustomModelData
 
 enum class CustomItem(val id: String) {
     WORLD_PORTAL("world_portal") {
@@ -41,11 +40,12 @@ enum class CustomItem(val id: String) {
             ))
 
             meta.setMaxStackSize(4)
-            meta.setItemModel(NamespacedKey("kota_server", "mwm_misc"))
+            // このアイテムはリソースパック独自モデルではなく、バニラの瓶モデルを直接使用します。
+            // PDCの識別情報は見た目と独立しているため、モデル切替用のCustomModelDataは不要です。
+            meta.setItemModel(NamespacedKey.minecraft("glass_bottle"))
             item.itemMeta = meta
 
             item.unsetData(DataComponentTypes.CONSUMABLE)
-            item.setData(DataComponentTypes.CUSTOM_MODEL_DATA, CustomModelData.customModelData().addString("empty_biome_bottle").build())
 
             ItemTag.tagItem(item, ItemTag.TYPE_EMPTY_BIOME_BOTTLE)
             return item
@@ -74,11 +74,11 @@ enum class CustomItem(val id: String) {
             ))
 
             meta.setMaxStackSize(1)
-            meta.setItemModel(NamespacedKey("kota_server", "mwm_misc"))
+            // 月の石はバニラの鉄鉱石モデルを直接参照し、見た目用の分岐を持たせません。
+            meta.setItemModel(NamespacedKey.minecraft("raw_iron"))
             item.itemMeta = meta
 
             item.unsetData(DataComponentTypes.CONSUMABLE)
-            item.setData(DataComponentTypes.CUSTOM_MODEL_DATA, CustomModelData.customModelData().addString("moon_stone").build())
 
             ItemTag.tagItem(item, ItemTag.TYPE_MOON_STONE)
             return item
@@ -128,7 +128,6 @@ enum class CustomItem(val id: String) {
             item.itemMeta = meta
 
             item.unsetData(DataComponentTypes.CONSUMABLE)
-            item.setData(DataComponentTypes.CUSTOM_MODEL_DATA, CustomModelData.customModelData().addString("tour_sign").build())
 
             ItemTag.tagItem(item, ItemTag.TYPE_TOUR_SIGN)
             return item
@@ -157,11 +156,11 @@ enum class CustomItem(val id: String) {
         ))
 
         meta.setMaxStackSize(1)
-        meta.setItemModel(NamespacedKey("kota_server", "mwm_misc"))
+        // バイオーム空気瓶も、リソースパックの選択モデルを経由せずバニラモデルを直接参照します。
+        meta.setItemModel(NamespacedKey.minecraft("dragon_breath"))
         item.itemMeta = meta
 
         item.unsetData(DataComponentTypes.CONSUMABLE)
-        item.setData(DataComponentTypes.CUSTOM_MODEL_DATA, CustomModelData.customModelData().addString("bottled_biome_air").build())
 
         ItemTag.tagItem(item, ItemTag.TYPE_BOTTLED_BIOME_AIR)
         ItemTag.setBiomeId(item, biomeId)
