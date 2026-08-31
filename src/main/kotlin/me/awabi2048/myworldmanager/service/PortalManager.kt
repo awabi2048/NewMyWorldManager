@@ -36,6 +36,8 @@ class PortalManager(private val plugin: MyWorldManager) {
     private val activeDisplayWorlds = ConcurrentHashMap.newKeySet<String>()
     private val portalDisplayKey = NamespacedKey(plugin, "portal_display_id")
     private val warpCooldowns = ConcurrentHashMap<UUID, Long>()
+    /** 外部ワールドのロード待ち中に、同じポータル処理を再入場させないための予約です。 */
+    private val pendingExternalPortalWarps = ConcurrentHashMap.newKeySet<UUID>()
     private val ignorePlayers = ConcurrentHashMap.newKeySet<UUID>()
     private val portalGracePeriods = ConcurrentHashMap<UUID, ConcurrentHashMap<UUID, Long>>() // PlayerUUID -> (PortalUUID -> Expiry)
     private val blockedMessageCooldowns = ConcurrentHashMap<UUID, ConcurrentHashMap<UUID, Long>>() // PlayerUUID -> (PortalUUID -> NextMessageAt)
@@ -434,9 +436,16 @@ class PortalManager(private val plugin: MyWorldManager) {
     fun teleportPlayerToWorldSpawn(
         player: Player,
         targetWorldKey: String,
-        afterTeleported: (() -> Unit)? = null
+        afterTeleported: (() -> Unit)? = null,
+        afterFailed: (() -> Unit)? = null,
     ): Boolean {
-        return teleportPlayerWithLoadWait(player, normalizeWorldKey(targetWorldKey), { it.spawnLocation }, afterTeleported)
+        return teleportPlayerWithLoadWait(
+            player = player,
+            targetWorldKey = targetWorldKey,
+            locationProvider = { it.spawnLocation },
+            afterTeleported = afterTeleported,
+            afterFailed = afterFailed,
+        )
     }
 
     private fun buildPortalEntryLocation(player: Player, portal: PortalData, world: World): Location {
@@ -461,34 +470,63 @@ class PortalManager(private val plugin: MyWorldManager) {
         player: Player,
         targetWorldKey: String,
         locationProvider: (World) -> Location,
-        afterTeleported: (() -> Unit)? = null
+        afterTeleported: (() -> Unit)? = null,
+        afterFailed: (() -> Unit)? = null,
     ): Boolean {
-        val loadResult = plugin.worldService.loadWorldByKey(normalizeWorldKey(targetWorldKey))
+        val normalizedWorldKey = try {
+            normalizeWorldKey(targetWorldKey)
+        } catch (failure: Throwable) {
+            afterFailed?.invoke()
+            throw failure
+        }
+        val loadResult = try {
+            plugin.worldService.loadWorldByKey(normalizedWorldKey)
+        } catch (failure: Throwable) {
+            afterFailed?.invoke()
+            throw failure
+        }
         if (!loadResult.isSuccess) {
             val failure = loadResult.failure ?: WorldLoadFailure.BUKKIT_LOAD_FAILED
             player.sendMessage(failure.message(plugin, player))
+            afterFailed?.invoke()
             return false
         }
-        val targetWorld = requireNotNull(loadResult.world)
+        val targetWorld = loadResult.world ?: run {
+            afterFailed?.invoke()
+            return false
+        }
         val waitTicks = plugin.config.getLong("warp.load_wait_ticks", 10L).coerceAtLeast(0L)
 
         val doTeleport = Runnable {
-            if (!player.isOnline) {
-                return@Runnable
+            var teleported = false
+            try {
+                if (!player.isOnline) {
+                    return@Runnable
+                }
+                if (Bukkit.getWorld(targetWorld.key) == null || !player.teleport(locationProvider(targetWorld))) {
+                    player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_TELEPORT_FAILED))
+                    plugin.logger.warning(
+                        "Portal teleport did not complete: player=${player.uniqueId} world=$targetWorldKey"
+                    )
+                    return@Runnable
+                }
+                teleported = true
+                afterTeleported?.invoke()
+            } finally {
+                if (!teleported) {
+                    afterFailed?.invoke()
+                }
             }
-            if (Bukkit.getWorld(targetWorld.key) == null || !player.teleport(locationProvider(targetWorld))) {
-                player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_TELEPORT_FAILED))
-                plugin.logger.warning(
-                    "Portal teleport did not complete: player=${player.uniqueId} world=$targetWorldKey"
-                )
-                return@Runnable
-            }
-            afterTeleported?.invoke()
         }
 
         if (loadResult.loadedNow) {
             player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_LOADING))
-            Bukkit.getScheduler().runTaskLater(plugin, doTeleport, waitTicks)
+            try {
+                Bukkit.getScheduler().runTaskLater(plugin, doTeleport, waitTicks)
+            } catch (failure: Throwable) {
+                afterFailed?.invoke()
+                throw failure
+            }
         } else {
             doTeleport.run()
         }
@@ -716,13 +754,26 @@ class PortalManager(private val plugin: MyWorldManager) {
             val targetWorldKey = portal.targetWorldKey!!
             val displayName = plugin.config.getString("portal_targets.${portal.targetRuntimeName}")
                 ?: portal.targetRuntimeName!!
-            if (!teleportPlayerToWorldSpawn(player, targetWorldKey) {
+
+            // 外部ワールドはこのクラス自身がロード待ちを管理するため、要求時点で予約します。
+            // MWM管理ワールド側はWorldServiceの共通ゲートが同じ責務を担います。
+            if (!pendingExternalPortalWarps.add(player.uniqueId)) return
+            val accepted = teleportPlayerToWorldSpawn(
+                player = player,
+                targetWorldKey = targetWorldKey,
+                afterTeleported = {
+                    pendingExternalPortalWarps.remove(player.uniqueId)
                     warpCooldowns[player.uniqueId] = System.currentTimeMillis()
                     player.sendMessage(
                         lang.getMessage(player, MyworldMessagesKeys.MESSAGES_PORTAL_WARPED, mapOf("destination" to displayName))
                     )
-                }
-            ) {
+                },
+                afterFailed = {
+                    pendingExternalPortalWarps.remove(player.uniqueId)
+                },
+            )
+            if (!accepted) {
+                pendingExternalPortalWarps.remove(player.uniqueId)
                 return
             }
          }
