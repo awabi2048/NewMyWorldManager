@@ -3,13 +3,16 @@ package me.awabi2048.myworldmanager.service
 import org.bukkit.Bukkit
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.plugin.java.JavaPlugin
+import me.awabi2048.myworldmanager.api.service.ApiMacroService
 import java.io.File
 
 /**
  * 外部設定ファイルに基づき、特定イベント発生時にコンソールコマンドを実行するマネージャー
  */
-class MacroManager(private val plugin: JavaPlugin) {
-    private val file = File(plugin.dataFolder, "macro.yml")
+class MacroManager(
+    private val plugin: JavaPlugin,
+    private val file: File = File(plugin.dataFolder, "macro.yml"),
+) : ApiMacroService {
     private var config: YamlConfiguration = YamlConfiguration()
 
     init {
@@ -29,7 +32,7 @@ class MacroManager(private val plugin: JavaPlugin) {
     /**
      * 指定されたトリガーのマクロを実行する
      */
-    fun execute(trigger: String, params: Map<String, String>) {
+    override fun execute(trigger: String, params: Map<String, String>) {
         val macros = config.getStringList("macros.$trigger")
         if (macros.isEmpty()) return
 

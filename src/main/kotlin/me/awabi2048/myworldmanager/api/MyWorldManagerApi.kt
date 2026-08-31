@@ -28,6 +28,7 @@ import me.awabi2048.myworldmanager.api.extension.WorldWorkPermissionPolicy
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.api.service.ApiMemberManager
 import me.awabi2048.myworldmanager.api.service.ApiBedrockFormService
+import me.awabi2048.myworldmanager.api.service.ApiMacroService
 import me.awabi2048.myworldmanager.api.service.ApiMigrationParticipant
 import me.awabi2048.myworldmanager.api.service.ApiMigrationParticipantResult
 import me.awabi2048.myworldmanager.api.service.ApiMigrationPreflight
@@ -47,6 +48,7 @@ import me.awabi2048.myworldmanager.api.service.WorldOperationLease
 import me.awabi2048.myworldmanager.api.service.WorldOperationLocks
 import me.awabi2048.myworldmanager.api.service.WorldPointBillingMode
 import java.util.UUID
+import java.io.File
 import java.util.concurrent.CopyOnWriteArrayList
 import org.bukkit.Location
 import org.bukkit.Material
@@ -640,6 +642,21 @@ object MyWorldManagerApi {
     @JvmStatic
     fun getMemberManager(): ApiMemberManager? {
         return memberManager
+    }
+
+    /**
+     * 指定された設定ファイルを使うマクロサービスを生成します。
+     *
+     * 設定ファイルは呼出側のデータフォルダに配置し、存在確認と初期ファイルの
+     * 配布も呼出側が担当します。これにより外部プラグインがこのAPIを利用しても、
+     * MyWorldManager本体のmacro.ymlを読み替えたり上書きしたりしません。
+     */
+    @JvmStatic
+    fun createMacroService(plugin: JavaPlugin, configFile: File): ApiMacroService {
+        require(configFile.isFile) {
+            "Macro configuration file is missing: ${configFile.absolutePath}"
+        }
+        return me.awabi2048.myworldmanager.service.MacroManager(plugin, configFile)
     }
 
     @JvmStatic
