@@ -51,6 +51,8 @@ class WorldService(
 ) {
     /** UUIDを持たない外部ワールドでも、同じキーのロードを同時実行しないための短期ロックです。 */
     private val keyedWorldLoads = ConcurrentHashMap.newKeySet<NamespacedKey>()
+    /** ロード待ちを含む、プレイヤーごとのワープ実行中状態です。 */
+    private val warpRequestGate = WarpRequestGate()
 
     private val creatingWorlds = mutableSetOf<String>()
     private val expansionInitialSizeConfigKey = listOf("expansion", "initial_size").joinToString(".")
@@ -1036,7 +1038,12 @@ class WorldService(
         error("Unable to allocate unique MyWorld warp id after 100 attempts")
     }
 
-    /** プレイヤーを指定されたワールドにテレポートさせる */
+    /**
+     * プレイヤーを指定されたワールドにテレポートさせます。
+     *
+     * 成功表示などの後処理は、要求受付時ではなく実際の [Player.teleport] 成功後に行う必要が
+     * あります。戻り値はワープ要求を受け付けたかどうかであり、遅延中の重複要求はfalseです。
+     */
     fun teleportToWorld(
             player: Player,
             worldUuid: UUID,
@@ -1045,122 +1052,168 @@ class WorldService(
             reason: MwmWarpReason = MwmWarpReason.DIRECT,
             closeInventoryOnLoad: Boolean = true,
             afterTeleported: (() -> Unit)? = null
-    ) {
+    ): Boolean {
         if (plugin.worldMigrationService.isPending(worldUuid)) {
             plugin.logger.info("World warp rejected because migration is pending: $worldUuid")
             player.sendMessage(
                 plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_MIGRATION_REQUIRED)
             )
-            return
+            return false
         }
         if (MyWorldManagerApi.getActiveWorldOperation(worldUuid) != null) {
             plugin.logger.info(
                 "World warp rejected while operation ${MyWorldManagerApi.getActiveWorldOperation(worldUuid)} is active: $worldUuid"
             )
             player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_OPERATION_LOCKED))
-            return
+            return false
         }
-        val worldData = repository.findByUuid(worldUuid) ?: return
+        val worldData = repository.findByUuid(worldUuid) ?: return false
         val worldKey = NamespacedKey.fromString(worldData.worldKey) ?: run {
             player.sendMessage(WorldLoadFailure.INVALID_KEY.message(plugin, player))
-            return
+            return false
         }
         val needsLoad = Bukkit.getWorld(worldKey) == null
         var world = Bukkit.getWorld(worldKey)
+        // ロード待ちの間も元のポータル処理は継続するため、Player.teleport直前ではなく要求受付時に予約します。
+        val lease = warpRequestGate.tryAcquire(player.uniqueId, worldUuid) ?: return false
 
         if (needsLoad) {
-            if (closeInventoryOnLoad) {
-                CCSystem.getAPI().getMenuRuntimeService().close(player)
+            try {
+                if (closeInventoryOnLoad) {
+                    CCSystem.getAPI().getMenuRuntimeService().close(player)
+                }
+                player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_LOADING))
+                val loadResult = loadWorldDetailed(worldUuid)
+                if (!loadResult.isSuccess) {
+                    val failure = loadResult.failure ?: WorldLoadFailure.BUKKIT_LOAD_FAILED
+                    player.sendMessage(failure.message(plugin, player))
+                    warpRequestGate.release(lease)
+                    return false
+                }
+                world = loadResult.world
+            } catch (failure: Throwable) {
+                warpRequestGate.release(lease)
+                throw failure
             }
-            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_LOADING))
-            val loadResult = loadWorldDetailed(worldUuid)
-            if (!loadResult.isSuccess) {
-                val failure = loadResult.failure ?: WorldLoadFailure.BUKKIT_LOAD_FAILED
-                player.sendMessage(failure.message(plugin, player))
-                return
-            }
-            world = loadResult.world
         }
 
-        if (world == null) {
+        val targetWorld = world ?: run {
             player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_LOAD_FAILED))
-            return
+            warpRequestGate.release(lease)
+            return false
         }
 
-        plugin.worldEnvironmentService.applyAll(world, worldData)
+        try {
+            plugin.worldEnvironmentService.applyAll(targetWorld, worldData)
+        } catch (failure: Throwable) {
+            warpRequestGate.release(lease)
+            throw failure
+        }
 
-        if (!validateSeedSpawn(player, worldData, world)) return
+        val seedSpawnValid = try {
+            validateSeedSpawn(player, worldData, targetWorld)
+        } catch (failure: Throwable) {
+            warpRequestGate.release(lease)
+            throw failure
+        }
+        if (!seedSpawnValid) {
+            warpRequestGate.release(lease)
+            return false
+        }
 
-        // スポーン地点の決定
-        val selectedLoc =
-                location
-                        ?: if (worldData.spawnPosMember != null &&
-                                        (worldData.owner == player.uniqueId ||
-                                                worldData.members.contains(player.uniqueId) ||
-                                                worldData.moderators.contains(player.uniqueId))
-                        ) {
-                            worldData.spawnPosMember!!
-                        } else if (worldData.spawnPosGuest != null) {
-                            worldData.spawnPosGuest!!
-                        } else {
-                            world.spawnLocation
-                        }
+        val targetLoc = try {
+            // スポーン地点の決定
+            val selectedLoc =
+                    location
+                            ?: if (worldData.spawnPosMember != null &&
+                                            (worldData.owner == player.uniqueId ||
+                                                    worldData.members.contains(player.uniqueId) ||
+                                                    worldData.moderators.contains(player.uniqueId))
+                            ) {
+                                worldData.spawnPosMember!!
+                            } else if (worldData.spawnPosGuest != null) {
+                                worldData.spawnPosGuest!!
+                            } else {
+                                targetWorld.spawnLocation
+                            }
 
-        // 再ロード後の保存済みLocationは停止済みの古いWorldを保持している場合があるため、現在のWorldへ差し替える。
-        // 保存済みLocationは古いWorld参照を持つことがあるため、現在ロード済みのWorldへ差し替える。
-        val selectedTargetLoc = selectedLoc.clone()
-        selectedTargetLoc.world = world
+            // 再ロード後の保存済みLocationは停止済みの古いWorldを保持している場合があるため、現在のWorldへ差し替える。
+            // 保存済みLocationは古いWorld参照を持つことがあるため、現在ロード済みのWorldへ差し替える。
+            val selectedTargetLoc = selectedLoc.clone()
+            selectedTargetLoc.world = targetWorld
 
-        // スポーン/ポータル/個別指定がボーダー外に出ている場合でも、保存値は変えずに中央の安全地点へ逃がす。
-        val targetLoc = resolveBorderSafeWarpLocation(world, selectedTargetLoc)
+            // スポーン/ポータル/個別指定がボーダー外に出ている場合でも、保存値は変えずに中央の安全地点へ逃がす。
+            resolveBorderSafeWarpLocation(targetWorld, selectedTargetLoc)
+        } catch (failure: Throwable) {
+            warpRequestGate.release(lease)
+            throw failure
+        }
 
         val executeTeleport = Runnable {
-            if (!player.isOnline) {
-                return@Runnable
-            }
-
-            // ロード待機中にアンロードされた場合やBukkitが移動を拒否した場合は、成功後処理を実行しません。
-            if (Bukkit.getWorld(world.key) == null || !player.teleport(targetLoc)) {
-                player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_TELEPORT_FAILED))
-                plugin.logger.warning(
-                    "World teleport did not complete: player=${player.uniqueId} world=$worldUuid reason=$reason"
-                )
-                return@Runnable
-            }
-
-            plugin.soundManager.playTeleportSound(player)
-
-            Bukkit.getPluginManager().callEvent(
-                    MwmWorldWarpedEvent(
-                            playerUuid = player.uniqueId,
-                            playerName = player.name,
-                            worldUuid = worldUuid,
-                            toLocation = targetLoc.clone(),
-                            reason = reason
+            // 失敗時も必ずLeaseを解放し、次回の正当なワープを妨げないようにします。
+            val completed = try {
+                if (!player.isOnline) {
+                    false
+                } else if (Bukkit.getWorld(targetWorld.key) == null || !player.teleport(targetLoc)) {
+                    // ロード待機中にアンロードされた場合やBukkitが移動を拒否した場合は、成功後処理を実行しません。
+                    player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_TELEPORT_FAILED))
+                    plugin.logger.warning(
+                        "World teleport did not complete: player=${player.uniqueId} world=$worldUuid reason=$reason"
                     )
-            )
+                    false
+                } else {
+                    plugin.soundManager.playTeleportSound(player)
 
-            // マクロ実行
-            if (runMacro) {
-                plugin.macroManager.execute(
-                        "on_join",
-                        mapOf("player" to player.name, "world_uuid" to worldUuid.toString())
-                )
+                    Bukkit.getPluginManager().callEvent(
+                            MwmWorldWarpedEvent(
+                                    playerUuid = player.uniqueId,
+                                    playerName = player.name,
+                                    worldUuid = worldUuid,
+                                    toLocation = targetLoc.clone(),
+                                    reason = reason
+                            )
+                    )
+
+                    // マクロ実行
+                    if (runMacro) {
+                        plugin.macroManager.execute(
+                                "on_join",
+                                mapOf("player" to player.name, "world_uuid" to worldUuid.toString())
+                        )
+                    }
+                    true
+                }
+            } finally {
+                warpRequestGate.release(lease)
             }
 
-            afterTeleported?.invoke()
+            // Leaseを解放してから呼び出し元の後処理を実行します。後処理から次のワープを開始できます。
+            if (completed) {
+                afterTeleported?.invoke()
+            }
         }
 
         if (needsLoad) {
             val waitTicks = plugin.config.getLong("warp.load_wait_ticks", 10L).coerceAtLeast(0L)
-            Bukkit.getScheduler().runTaskLater(plugin, executeTeleport, waitTicks)
-            return
+            try {
+                Bukkit.getScheduler().runTaskLater(plugin, executeTeleport, waitTicks)
+            } catch (failure: Throwable) {
+                warpRequestGate.release(lease)
+                throw failure
+            }
+            return true
         }
 
         executeTeleport.run()
+        return true
 
         // 最終アクセス日時の更新などはaccessControlListener等で行うのが良いかもしれないが、
         // 明示的にここで更新する手もある。
+    }
+
+    /** プラグイン停止時に、実行されなくなった遅延ワープの予約を破棄します。 */
+    fun clearPendingWarpRequests() {
+        warpRequestGate.clear()
     }
 
     /** プレイヤーの既存のワールドデータをすべて削除してリセットする（デバッグ用・管理者用） */

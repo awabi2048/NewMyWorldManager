@@ -67,6 +67,16 @@ interface ApiWorldService {
         worldUuid: UUID
     )
 
+    /**
+     * 実際のテレポート成功後にだけ呼び出し元の後処理を実行します。
+     * 戻り値は要求受付結果であり、ロード待ち中の重複要求は受け付けません。
+     */
+    fun teleportToWorldWithCompletion(
+        player: Player,
+        worldUuid: UUID,
+        afterTeleported: Runnable?
+    ): Boolean
+
     fun loadWorld(worldUuid: UUID): Boolean
 
     fun getWorldFolderName(worldData: WorldData): String

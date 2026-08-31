@@ -71,6 +71,19 @@ internal class WorldServiceAdapter(private val plugin: MyWorldManager) : ApiWorl
         plugin.worldService.teleportToWorld(player, worldUuid)
     }
 
+    override fun teleportToWorldWithCompletion(
+        player: Player,
+        worldUuid: UUID,
+        afterTeleported: Runnable?
+    ): Boolean {
+        // 公開API境界にはKotlin Function0を出さず、アドオン間のクラスローダ衝突を避けます。
+        return plugin.worldService.teleportToWorld(
+            player = player,
+            worldUuid = worldUuid,
+            afterTeleported = { afterTeleported?.run() },
+        )
+    }
+
     override fun loadWorld(worldUuid: UUID): Boolean {
         return plugin.worldService.loadWorld(worldUuid)
     }
