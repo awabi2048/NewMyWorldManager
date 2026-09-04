@@ -22,7 +22,6 @@ import me.awabi2048.myworldmanager.api.extension.WorldSettingsNavigationRequest
 import me.awabi2048.myworldmanager.api.extension.WorldPublishPolicy
 import me.awabi2048.myworldmanager.api.extension.WorldPortalPolicy
 import me.awabi2048.myworldmanager.api.extension.WorldRuntimePolicy
-import me.awabi2048.myworldmanager.api.extension.WorldPlayerStateDecision
 import me.awabi2048.myworldmanager.api.extension.WorldPlayerStatePolicy
 import me.awabi2048.myworldmanager.api.extension.WorldWorkPermissionPolicy
 import me.awabi2048.myworldmanager.model.WorldData
@@ -708,29 +707,29 @@ object MyWorldManagerApi {
     @JvmStatic
     fun getWorldPlayerStatePolicies(): List<WorldPlayerStatePolicy> = worldPlayerStatePolicies.toList()
 
-    /** 登録されたポリシーを合成し、SPECTATORは一時表示状態として変更しない。 */
+    /**
+     * 登録されたポリシーを合成して建築・飛行制約を同期します。
+     *
+     * ゲームモードはワールドポリシーの責務外です。SPECTATORもプレビュー等の
+     * 一時表示状態として扱い、ポリシーによる状態変更を行いません。
+     */
     @JvmStatic
     fun syncWorldPlayerState(player: Player, worldData: WorldData) {
         if (player.gameMode == org.bukkit.GameMode.SPECTATOR) return
         val decisions = worldPlayerStatePolicies
             .sortedByDescending { it.getPriority() }
             .map { it.evaluate(player, worldData) }
-        val gameMode = decisions.firstNotNullOfOrNull(WorldPlayerStateDecision::gameMode)
-        val effectiveGameMode = gameMode ?: player.gameMode
-        val gameModeAllowsFlight =
-            effectiveGameMode == org.bukkit.GameMode.CREATIVE ||
-                effectiveGameMode == org.bukkit.GameMode.SPECTATOR
+        val currentGameModeAllowsFlight =
+            player.gameMode == org.bukkit.GameMode.CREATIVE ||
+                player.gameMode == org.bukkit.GameMode.SPECTATOR
         val flightAllowed =
-            gameModeAllowsFlight ||
+            currentGameModeAllowsFlight ||
                 (worldData.allowFlight && decisions.all { it.flightAllowed != false })
 
-        gameMode?.let { desired ->
-            if (player.gameMode != desired) player.gameMode = desired
-        }
         if (!flightAllowed) {
             player.allowFlight = false
             if (player.isFlying) player.isFlying = false
-        } else if (gameModeAllowsFlight || decisions.any { it.flightAllowed == true }) {
+        } else if (currentGameModeAllowsFlight || decisions.any { it.flightAllowed == true }) {
             player.allowFlight = true
         }
     }
