@@ -304,17 +304,10 @@ class CreationGui(private val plugin: MyWorldManager) {
             if (plugin.previewSessionManager.isInPreview(context.player)) return@Runnable
             val session = plugin.creationSessionManager.getSession(context.player.uniqueId)
                 ?: return@Runnable
-            // 名前・シード・スポーン入力のダイアログを表示中のクローズは、入力続行のための一時クローズです。
-            // それ以外の画面で閉じた場合は、作成を中断してセッションを解放します。
-            // （以前は refresh で画面を開き直していたため、閉じたのにセッションと画面が残る不具合がありました）
-            if (
-                session.phase == WorldCreationPhase.SEED_INPUT ||
-                session.phase == WorldCreationPhase.NAME_INPUT ||
-                session.phase == WorldCreationPhase.SPAWN_INPUT
-            ) {
-                return@Runnable
-            }
-            plugin.creationGuiListener.cancelAndReturnToMyWorld(context.player)
+            // ルート置換に伴う一時クローズと外部入力開始中のクローズは、作成セッションを維持します。
+            // ユーザーの手動クローズは「戻る」と区別し、作成フローを終了してセッションを解放します。
+            if (CreationClosePolicy.shouldPreserveSession(context.reason, session.phase)) return@Runnable
+            plugin.creationSessionManager.endSession(context.player.uniqueId)
         }, 2L)
     }
 
