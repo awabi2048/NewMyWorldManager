@@ -1152,16 +1152,20 @@ class WorldService(
         val executeTeleport = Runnable {
             // 失敗時も必ずLeaseを解放し、次回の正当なワープを妨げないようにします。
             val completed = try {
-                if (!player.isOnline) {
-                    false
-                } else if (Bukkit.getWorld(targetWorld.key) == null || !player.teleport(targetLoc)) {
-                    // ロード待機中にアンロードされた場合やBukkitが移動を拒否した場合は、成功後処理を実行しません。
-                    player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_TELEPORT_FAILED))
-                    plugin.logger.warning(
-                        "World teleport did not complete: player=${player.uniqueId} world=$worldUuid reason=$reason"
-                    )
-                    false
-                } else {
+                val teleported = when {
+                    !player.isOnline -> false
+                    // ロード待機中にアンロードされた場合は、成功後処理を実行しません。
+                    Bukkit.getWorld(targetWorld.key) == null -> {
+                        player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_TELEPORT_FAILED))
+                        plugin.logger.warning(
+                            "World teleport did not complete: player=${player.uniqueId} world=$worldUuid " +
+                                "reason=$reason cause=world_missing_at_teleport"
+                        )
+                        false
+                    }
+                    else -> player.teleport(targetLoc) || teleportAsyncFallback(player, targetLoc, worldUuid, reason)
+                }
+                if (teleported) {
                     plugin.soundManager.playTeleportSound(player)
 
                     Bukkit.getPluginManager().callEvent(
@@ -1181,8 +1185,8 @@ class WorldService(
                                 mapOf("player" to player.name, "world_uuid" to worldUuid.toString())
                         )
                     }
-                    true
                 }
+                teleported
             } finally {
                 warpRequestGate.release(lease)
             }
@@ -1209,6 +1213,34 @@ class WorldService(
 
         // 最終アクセス日時の更新などはaccessControlListener等で行うのが良いかもしれないが、
         // 明示的にここで更新する手もある。
+    }
+
+    /**
+     * 同期teleportが拒否された場合のフォールバックです。
+     *
+     * Chiyogamiはワールドごとに独立スレッドを持つため、ロード直後の同期teleportは
+     * 対象チャンク未ロードやスレッド境界で失敗することがあります。Paperの
+     * [Player.teleportAsync]はチャンク読み込みとスレッド移行を安全に扱えるため、
+     * 同期teleportの失敗時だけフォールバックとして使います。Futureはテレポート実行
+     * スレッドで完了するため、ここでのjoinはデッドロックしません。
+     */
+    private fun teleportAsyncFallback(
+        player: Player,
+        targetLoc: Location,
+        worldUuid: UUID,
+        reason: MwmWarpReason,
+    ): Boolean {
+        val asyncCompleted = player.teleportAsync(targetLoc).join()
+        if (!asyncCompleted) {
+            player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_TELEPORT_FAILED))
+            plugin.logger.warning(
+                "World teleport did not complete: player=${player.uniqueId} world=$worldUuid " +
+                    "reason=$reason cause=teleport_rejected " +
+                    "target=${targetLoc.world?.name}(${targetLoc.blockX},${targetLoc.blockY},${targetLoc.blockZ}) " +
+                    "current=${player.world.name}(${player.location.blockX},${player.location.blockY},${player.location.blockZ})"
+            )
+        }
+        return asyncCompleted
     }
 
     /** プラグイン停止時に、実行されなくなった遅延ワープの予約を破棄します。 */
