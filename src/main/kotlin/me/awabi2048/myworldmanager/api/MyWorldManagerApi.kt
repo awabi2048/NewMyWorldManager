@@ -708,10 +708,10 @@ object MyWorldManagerApi {
     fun getWorldPlayerStatePolicies(): List<WorldPlayerStatePolicy> = worldPlayerStatePolicies.toList()
 
     /**
-     * 登録されたポリシーを合成して建築・飛行制約を同期します。
+     * 登録されたポリシーを合成して、建築・飛行制約だけを同期します。
      *
-     * ゲームモードはワールドポリシーの責務外です。SPECTATORもプレビュー等の
-     * 一時表示状態として扱い、ポリシーによる状態変更を行いません。
+     * ゲームモードはワールドポリシーの責務外です。プレビューやFreeCamなどの
+     * 明示的な一時セッションが管理する状態を、通常のワールド遷移で上書きしないためです。
      */
     @JvmStatic
     fun syncWorldPlayerState(player: Player, worldData: WorldData) {

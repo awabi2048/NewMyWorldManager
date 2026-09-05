@@ -1,5 +1,6 @@
 package me.awabi2048.myworldmanager.service
 
+import com.awabi2048.ccsystem.CCSystem
 import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
 import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiPortalKeys
 import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
@@ -613,6 +614,8 @@ class PortalManager(private val plugin: MyWorldManager) {
              }
          }
 
+         // 既存表示の復元時も同じマーカーを再付与し、更新前に残った表示体を保護します。
+         CCSystem.getAPI().getSystemEntityRegistry().mark(display, plugin)
          textDisplays[portal.id] = display
          displayToPortal[display.uniqueId] = portal.id
          updateDisplayText(display, portal, lang)
