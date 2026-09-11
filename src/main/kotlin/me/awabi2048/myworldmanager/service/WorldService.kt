@@ -54,7 +54,22 @@ class WorldService(
     /** ロード待ちを含む、プレイヤーごとのワープ実行中状態です。 */
     private val warpRequestGate = WarpRequestGate()
 
-    private val creatingWorlds = mutableSetOf<String>()
+    /**
+     * 作成中（キュー待ち中を含む）のプレイヤー集合です。
+     * 公開 API 経由で別スレッドから提出される場合もあるためスレッドセーフにし、
+     * 判定は add の戻り値で原子的に行います。contains 後の add は行いません。
+     */
+    private val creatingWorlds = ConcurrentHashMap.newKeySet<String>()
+
+    /**
+     * 生成全体をサーバー全体で1件ずつ直列化するパイプラインです。
+     * テンプレートの非同期コピーも許可の範囲に含め、ディスク競合も抑止します。
+     */
+    private val creationPipeline = WorldCreationPipeline(
+        isMainThread = { Bukkit.isPrimaryThread() },
+        canDispatch = { plugin.isEnabled },
+        dispatchOnMain = { runnable -> Bukkit.getScheduler().runTask(plugin, runnable) },
+    )
     private val expansionInitialSizeConfigKey = listOf("expansion", "initial_size").joinToString(".")
 
     private fun resolveSeed(seedInput: String?): Long? {
@@ -88,6 +103,45 @@ class WorldService(
              initialSpawn: WorldSpawnCoordinates? = null,
              cost: Int = 0,
              billingMode: WorldPointBillingMode = WorldPointBillingMode.STANDARD
+    ): Boolean {
+        // 同一プレイヤーの多重作成を抑止する。判定は add の戻り値で原子的に行う。
+        val creationKey = player.uniqueId.toString()
+        if (!creatingWorlds.add(creationKey)) {
+            player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_CREATION_IN_PROGRESS))
+            return false
+        }
+        // サーバー全体の直列化。同期版は即時実行のみであり、使用中は待ち行列に入れず false で返す。
+        // キュー経由の実行が必要な呼出は generateWorld を使用する。
+        val permit = creationPipeline.tryAcquire()
+        if (permit == null) {
+            creatingWorlds.remove(creationKey)
+            player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_CREATION_IN_PROGRESS))
+            return false
+        }
+        try {
+            return executeSeedCreation(player, worldName, seed, environment, generator, worldType, initialSpawn, cost, billingMode)
+        } finally {
+            creatingWorlds.remove(creationKey)
+            permit.release()
+        }
+    }
+
+    /**
+     * シード・ランダム生成の実体。上限・名前・フォルダー確認から Bukkit 生成・確定までを行う。
+     * 直列化パイプラインの許可内で実行されること。キュー待ち後の再検証を兼ねるため、
+     * 判定系はここに置き、呼出側では行わない。
+     * 作成中フラグと許可の解放は呼出側が担い、ここでは行わない。
+     */
+    private fun executeSeedCreation(
+            player: Player,
+            worldName: String,
+            seed: String?,
+            environment: org.bukkit.World.Environment,
+            generator: String? = null,
+            worldType: WorldType = WorldType.NORMAL,
+            initialSpawn: WorldSpawnCoordinates? = null,
+            cost: Int = 0,
+            billingMode: WorldPointBillingMode = WorldPointBillingMode.STANDARD
     ): Boolean {
         // 移行待ちのプレイヤーデータを持つ場合は、作成自体が直接操作にあたるため事前に拒否する
         try {
@@ -131,19 +185,8 @@ class WorldService(
             return false
         }
 
-        // 作成中フラグ
-        if (creatingWorlds.contains(player.uniqueId.toString())) {
-            player.sendMessage(
-                    plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_CREATION_IN_PROGRESS)
-            )
-            return false
-        }
-        creatingWorlds.add(player.uniqueId.toString())
-
-        // 非同期でワールド作成（BukkitのWorldCreatorはメインスレッドで呼ぶ必要があるが、準備等の重い処理を分割できるか検討。
-        // ただし、WorldCreator.createWorld()自体はメインスレッド必須。
-        // ここでは、ラグ軽減のため、チャット送信などを先に行い、1tick後に作成開始するなどの工夫が可能だが、
-        // ひとまずはメインスレッドで実行する。
+        // 非同期でワールド作成（BukkitのWorldCreatorはメインスレッドで呼ぶ必要があるため、
+        // 直列化パイプラインの許可内でそのまま実行する。
 
         try {
             val dimension = ManagedDimension.fromBukkit(environment)
@@ -175,7 +218,6 @@ class WorldService(
                 player.sendMessage(
                         plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_CREATION_FAILED)
                 )
-                creatingWorlds.remove(player.uniqueId.toString())
                 return false
             }
             plugin.managedWorldCreatorFactory.requireMatchingDimension(world, dimension)
@@ -203,14 +245,12 @@ class WorldService(
                 player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_MIGRATION_OPERATION_REQUIRED))
                 repository.delete(uuid)
                 cleanupFailedCreatedWorld(worldFolderName, preferredActiveWorldDirectory(worldFolderName))
-                creatingWorlds.remove(player.uniqueId.toString())
                 return false
             }
             plugin.logger.log(Level.SEVERE, "Failed to create world: $worldName", e)
             player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_INTERNAL_ERROR))
             repository.delete(uuid)
             cleanupFailedCreatedWorld(worldFolderName, preferredActiveWorldDirectory(worldFolderName))
-            creatingWorlds.remove(player.uniqueId.toString())
             return false
         }
     }
@@ -256,15 +296,64 @@ class WorldService(
             future.complete(false)
             return future
         }
+        // 直列化パイプラインに提出する。上限・名前の事前判定は提出時に行い、
+        // ポイント残高は確定直前に本体側で再確認する。
+        val result = creationPipeline.submit(
+            request.ownerUuid,
+            onQueued = {
+                player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_CREATION_PROCESSING))
+            },
+            task = { permit ->
+                try {
+                    future.complete(executeManagedCreation(player, request, chargedCost, creationType))
+                } catch (error: Exception) {
+                    plugin.logger.log(Level.SEVERE, "Failed to create managed world: ${request.worldName}", error)
+                    player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_INTERNAL_ERROR))
+                    future.complete(false)
+                } finally {
+                    creatingWorlds.remove(creationKey)
+                    permit.release()
+                }
+            },
+            onFailure = {
+                creatingWorlds.remove(creationKey)
+                future.complete(false)
+            },
+        )
+        if (result != WorldCreationPipeline.SubmitResult.STARTED &&
+            result != WorldCreationPipeline.SubmitResult.QUEUED
+        ) {
+            rejectCreationSubmission(player, creationKey, future)
+        }
+        return future
+    }
 
+    /**
+     * アドオン生成の実体。Bukkit 生成・アドオン初期化・確定までを行う。
+     * 直列化パイプラインの許可内で実行されること。
+     * 既知の拒否（上限・フォルダー競合）は文言通知のうえ false を返し、
+     * 予期せぬ失敗は例外で呼出側へ伝える。
+     */
+    private fun executeManagedCreation(
+        player: Player,
+        request: ManagedWorldCreationRequest,
+        chargedCost: Int,
+        creationType: WorldCreationType,
+    ): Boolean {
+        // キュー待ち中に上限へ達している場合があるため、実行時にも再判定する。
+        if (!WorldCreationChecks.checkLimits(plugin, player, request.ownerUuid) ||
+            !WorldCreationChecks.check(player, type = creationType)
+        ) {
+            return false
+        }
         val uuid = generateUniqueWorldUuid()
         val folderName = "my_world.$uuid"
+        if (Bukkit.getWorld(folderName) != null || worldFolderExists(folderName)) {
+            // 採番直後の UUID が衝突した場合のみ到達する。
+            player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_ALREADY_EXISTS))
+            return false
+        }
         try {
-            if (Bukkit.getWorld(folderName) != null || worldFolderExists(folderName)) {
-                player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_ALREADY_EXISTS))
-                future.complete(false)
-                return future
-            }
             val dimension = ManagedDimension.fromBukkit(request.environment)
             val creator = plugin.managedWorldCreatorFactory.create(
                 NamespacedKey.minecraft(folderName),
@@ -299,17 +388,12 @@ class WorldService(
                 request.sourceId,
                 spawn
             )
-            future.complete(true)
+            return true
         } catch (error: Exception) {
-            plugin.logger.log(Level.SEVERE, "Failed to create managed world: ${request.worldName}", error)
-            player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_INTERNAL_ERROR))
             repository.delete(uuid)
             cleanupFailedCreatedWorld(folderName, preferredActiveWorldDirectory(folderName))
-            future.complete(false)
-        } finally {
-            creatingWorlds.remove(creationKey)
+            throw error
         }
-        return future
     }
 
     private fun prepareGeneratedEndWorld(world: org.bukkit.World) {
@@ -508,7 +592,6 @@ class WorldService(
             )
 
             teleportToWorld(player, uuid)
-            creatingWorlds.remove(player.uniqueId.toString())
         } catch (e: Exception) {
             repository.delete(uuid)
             if (pointsCharged) {
@@ -520,7 +603,6 @@ class WorldService(
             if (e is IllegalStateException && me.awabi2048.myworldmanager.util.MigrationFeedback.isMigrationRequired(e)) {
                 player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_MIGRATION_OPERATION_REQUIRED))
                 plugin.logger.warning("World creation finalize rejected for ${player.uniqueId} due to migration: ${e.message}")
-                creatingWorlds.remove(player.uniqueId.toString())
                 return
             }
             throw e
@@ -541,7 +623,10 @@ class WorldService(
         }
     }
 
-    /** ワールドの生成処理（async互換用） */
+    /**
+     * ワールドの生成処理（async互換用）。
+     * 直列化パイプラインに提出し、使用中は待ち行列で順番を待つ。完了は Future で通知される。
+     */
     fun generateWorld(
             ownerUuid: UUID,
             worldName: String,
@@ -557,16 +642,56 @@ class WorldService(
             future.complete(false)
             return future
         }
-        val success = createWorld(
-                player,
-                worldName,
-                seed,
-                environment,
-                 initialSpawn = initialSpawn,
-                 cost = cost,
-                 billingMode = billingMode
+        // 同一プレイヤーの多重作成を抑止する。キュー待ち中も保持され、完了時に解放される。
+        val creationKey = player.uniqueId.toString()
+        if (!creatingWorlds.add(creationKey)) {
+            player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_CREATION_IN_PROGRESS))
+            future.complete(false)
+            return future
+        }
+        val result = creationPipeline.submit(
+            ownerUuid,
+            onQueued = {
+                player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_CREATION_PROCESSING))
+            },
+            task = { permit ->
+                try {
+                    // キュー待ち中にログアウトしている場合があるため、実行時点で取り直す。
+                    val current = Bukkit.getPlayer(ownerUuid)
+                    if (current == null) {
+                        future.complete(false)
+                    } else {
+                        future.complete(
+                            executeSeedCreation(
+                                current,
+                                worldName,
+                                seed,
+                                environment,
+                                initialSpawn = initialSpawn,
+                                cost = cost,
+                                billingMode = billingMode
+                            )
+                        )
+                    }
+                } catch (error: Exception) {
+                    plugin.logger.log(java.util.logging.Level.SEVERE, "Failed to create world: $worldName", error)
+                    player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_INTERNAL_ERROR))
+                    future.complete(false)
+                } finally {
+                    creatingWorlds.remove(creationKey)
+                    permit.release()
+                }
+            },
+            onFailure = {
+                creatingWorlds.remove(creationKey)
+                future.complete(false)
+            },
         )
-        future.complete(success)
+        if (result != WorldCreationPipeline.SubmitResult.STARTED &&
+            result != WorldCreationPipeline.SubmitResult.QUEUED
+        ) {
+            rejectCreationSubmission(player, creationKey, future)
+        }
         return future
     }
 
@@ -631,6 +756,58 @@ class WorldService(
             return future
         }
 
+        // 同一プレイヤーの多重作成を抑止する。キュー待ち中も保持され、完了時に解放される。
+        val creationKey = player.uniqueId.toString()
+        if (!creatingWorlds.add(creationKey)) {
+            player.sendMessage(
+                    plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_CREATION_IN_PROGRESS)
+            )
+            future.complete(false)
+            return future
+        }
+        // 直列化パイプラインに提出する。許可は非同期コピーを含む生成全体を覆う。
+        val result = creationPipeline.submit(
+            ownerUuid,
+            onQueued = {
+                player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_CREATION_PROCESSING))
+            },
+            task = { permit ->
+                try {
+                    executeTemplateCreation(player, ownerUuid, template, worldName, chargedCost, creationKey, permit, future)
+                } catch (error: Exception) {
+                    plugin.logger.log(Level.SEVERE, "Failed to schedule template copy: ${template.id}", error)
+                    player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_INTERNAL_ERROR))
+                    endTemplateCreation(creationKey, permit, future, false)
+                }
+            },
+            onFailure = {
+                creatingWorlds.remove(creationKey)
+                future.complete(false)
+            },
+        )
+        if (result != WorldCreationPipeline.SubmitResult.STARTED &&
+            result != WorldCreationPipeline.SubmitResult.QUEUED
+        ) {
+            rejectCreationSubmission(player, creationKey, future)
+        }
+        return future
+    }
+
+    /**
+     * テンプレート生成の実体。UUID 採番・フォルダー確認・非同期コピー・メインスレッドでの読込を行う。
+     * 直列化パイプラインの許可内で開始され、許可は読込完了（成功・失敗を問わず）まで保持される。
+     * すべての完了経路で [endTemplateCreation] をちょうど一度呼ぶこと。
+     */
+    private fun executeTemplateCreation(
+            player: Player,
+            ownerUuid: UUID,
+            template: me.awabi2048.myworldmanager.model.TemplateData,
+            worldName: String,
+            chargedCost: Int,
+            creationKey: String,
+            permit: WorldCreationPipeline.Permit,
+            future: java.util.concurrent.CompletableFuture<Boolean>
+    ) {
         val uuid = generateUniqueWorldUuid()
         val worldFolderName = "my_world.${uuid}"
 
@@ -640,25 +817,15 @@ class WorldService(
             player.sendMessage(
                     plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_ALREADY_EXISTS)
             )
-            future.complete(false)
-            return future
+            endTemplateCreation(creationKey, permit, future, false)
+            return
         }
-
-        if (creatingWorlds.contains(player.uniqueId.toString())) {
-            player.sendMessage(
-                    plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_CREATION_IN_PROGRESS)
-            )
-            future.complete(false)
-            return future
-        }
-        creatingWorlds.add(player.uniqueId.toString())
 
         val templateFolder = plugin.worldDirectoryResolver.inspect(template.path)?.existingPath?.toFile()
         if (templateFolder == null || !templateFolder.exists() || !templateFolder.isDirectory) {
             player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_TEMPLATE_DIRECTORY_MISSING))
-            creatingWorlds.remove(player.uniqueId.toString())
-            future.complete(false)
-            return future
+            endTemplateCreation(creationKey, permit, future, false)
+            return
         }
 
         val targetFolder = preferredActiveWorldDirectory(worldFolderName)
@@ -697,9 +864,8 @@ class WorldService(
 
                         if (world == null) {
                             player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_CREATION_FAILED))
-                            creatingWorlds.remove(player.uniqueId.toString())
+                            endTemplateCreation(creationKey, permit, future, false)
                             cleanupFailedTemplateWorld(worldFolderName, targetFolder)
-                            future.complete(false)
                             return@Runnable
                         }
 
@@ -708,9 +874,8 @@ class WorldService(
                         val latestStats = playerStatsRepository.findByUuid(ownerUuid)
                         if (latestStats.worldPoint < chargedCost) {
                             cleanupFailedTemplateWorld(worldFolderName, targetFolder)
-                            creatingWorlds.remove(player.uniqueId.toString())
                             player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_CREATION_INSUFFICIENT_POINTS))
-                            future.complete(false)
+                            endTemplateCreation(creationKey, permit, future, false)
                             return@Runnable
                         }
                         plugin.managedWorldCreatorFactory.requireMatchingDimension(world, template.dimension)
@@ -721,28 +886,31 @@ class WorldService(
                             player, uuid, worldName, worldFolderName, world, template.dimension,
                             chargedCost, template.id, initialSpawn
                         )
-                        future.complete(true)
+                        endTemplateCreation(creationKey, permit, future, true)
                     } catch (e: Exception) {
                         plugin.logger.log(Level.SEVERE, "Failed to load copied world: $worldName", e)
                         player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_INTERNAL_ERROR))
                         repository.delete(uuid)
-                        creatingWorlds.remove(player.uniqueId.toString())
+                        endTemplateCreation(creationKey, permit, future, false)
                         cleanupFailedTemplateWorld(worldFolderName, targetFolder)
-                        future.complete(false)
                     }
                 })
             } catch (e: Exception) {
                 plugin.logger.log(Level.SEVERE, "Failed to copy template: ${template.id}", e)
-                Bukkit.getScheduler().runTask(plugin, Runnable {
-                    player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_TEMPLATE_COPY_FAILED))
-                    creatingWorlds.remove(player.uniqueId.toString())
+                try {
+                    Bukkit.getScheduler().runTask(plugin, Runnable {
+                        player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_TEMPLATE_COPY_FAILED))
+                        endTemplateCreation(creationKey, permit, future, false)
+                        cleanupFailedTemplateWorld(worldFolderName, targetFolder)
+                    })
+                } catch (scheduleFailure: Exception) {
+                    // 無効化競合などでメインスレッドへ戻せない場合はここで確定させる。
+                    plugin.logger.log(Level.SEVERE, "Failed to report template copy failure: ${template.id}", scheduleFailure)
+                    endTemplateCreation(creationKey, permit, future, false)
                     cleanupFailedTemplateWorld(worldFolderName, targetFolder)
-                    future.complete(false)
-                })
+                }
             }
         })
-
-        return future
     }
 
     /**
@@ -1253,6 +1421,42 @@ class WorldService(
     /** プラグイン停止時に、実行されなくなった遅延ワープの予約を破棄します。 */
     fun clearPendingWarpRequests() {
         warpRequestGate.clear()
+    }
+
+    /** プラグイン停止時に、待ち行列に残った生成要求を破棄します。 */
+    fun clearPendingCreations() {
+        creationPipeline.shutdown()
+        creatingWorlds.clear()
+    }
+
+    /**
+     * テンプレート生成の完了確定。作成中フラグの除去・許可の解放・Future の完了を
+     * ちょうど一度だけ行う。許可の解放自体も冪等だが、Future の二重完了を避けるため
+     * 各完了経路からはこのヘルパーを一度だけ呼ぶこと。
+     */
+    private fun endTemplateCreation(
+        creationKey: String,
+        permit: WorldCreationPipeline.Permit,
+        future: java.util.concurrent.CompletableFuture<Boolean>,
+        success: Boolean,
+    ) {
+        creatingWorlds.remove(creationKey)
+        permit.release()
+        future.complete(success)
+    }
+
+    /**
+     * 待ち行列の上限超過・シャットダウンなどで提出を受け付けなかった場合の後始末。
+     * 新規言語キーを増やさないため、文言は作成中エラーを再利用する。
+     */
+    private fun rejectCreationSubmission(
+        player: Player,
+        creationKey: String,
+        future: java.util.concurrent.CompletableFuture<Boolean>,
+    ) {
+        creatingWorlds.remove(creationKey)
+        player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_CREATION_IN_PROGRESS))
+        future.complete(false)
     }
 
     /** プレイヤーの既存のワールドデータをすべて削除してリセットする（デバッグ用・管理者用） */
