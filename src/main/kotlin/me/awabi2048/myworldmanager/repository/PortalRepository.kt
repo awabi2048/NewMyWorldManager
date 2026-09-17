@@ -9,7 +9,6 @@ import me.awabi2048.myworldmanager.api.service.ApiMigrationParticipantState
 import me.awabi2048.myworldmanager.api.service.ApiMigrationParticipantStatus
 import me.awabi2048.myworldmanager.model.PortalData
 import me.awabi2048.myworldmanager.model.PortalType
-import org.bukkit.Bukkit
 import org.bukkit.Color
 import org.bukkit.NamespacedKey
 import org.bukkit.configuration.ConfigurationSection
@@ -31,7 +30,8 @@ import java.util.logging.Level
 /**
  * ポータル永続データを管理します。
  *
- * 旧形式はメモリ上でのみ読み取り、通常操作で portals.yml を再構築しません。
+ * 旧形式（`location.world` / `target_world_name`、版数 0/1）は `/mwm migration` で
+ * 現行形式（`location.world_key` / `target_world_key`、版数 2）へ変換します。
  * 隔離レコードは原本へ保持したまま、健全なレコードの更新だけを許可します。
  */
 class PortalRepository(private val plugin: MyWorldManager) {
@@ -53,15 +53,23 @@ class PortalRepository(private val plugin: MyWorldManager) {
                     ApiMigrationParticipantState.FAILED,
                     scan.fileFailure,
                 )
-                scan.quarantined > 0 -> ApiMigrationParticipantStatus(
-                    PARTICIPANT_ID,
-                    ApiMigrationParticipantState.FAILED,
-                    "portals.yml contains quarantined records: ${scan.quarantined}",
-                )
+                // 版数だけでは新旧を区別できません（旧形式も config_version: 1 を持ちます）。
+                // 旧版数は無条件で移行待ちにし、現行版数でも旧キーが残っていれば移行待ちにします。
+                // 隔離件数より先に判定しないと、旧形式が永久に FAILED となって移行できません。
                 scan.configVersion < CURRENT_SCHEMA_VERSION -> ApiMigrationParticipantStatus(
                     PARTICIPANT_ID,
                     ApiMigrationParticipantState.PENDING,
                     "portals.yml requires migration: ${scan.configVersion}->$CURRENT_SCHEMA_VERSION",
+                )
+                scan.configVersion == CURRENT_SCHEMA_VERSION && hasLegacyKeys(scan.config) -> ApiMigrationParticipantStatus(
+                    PARTICIPANT_ID,
+                    ApiMigrationParticipantState.PENDING,
+                    "portals.yml requires migration: legacy portal keys remain",
+                )
+                scan.quarantined > 0 -> ApiMigrationParticipantStatus(
+                    PARTICIPANT_ID,
+                    ApiMigrationParticipantState.FAILED,
+                    "portals.yml contains quarantined records: ${scan.quarantined}",
                 )
                 else -> ApiMigrationParticipantStatus(PARTICIPANT_ID, ApiMigrationParticipantState.CURRENT)
             }
@@ -85,7 +93,9 @@ class PortalRepository(private val plugin: MyWorldManager) {
                     "portals.yml is newer than this plugin: ${scan.configVersion}",
                 )
             }
-            if (scan.configVersion == CURRENT_SCHEMA_VERSION) {
+            // 現行版数でも旧キーが残っていれば変換を試みます（冪等な再移行）。
+            // 旧キーなしの隔離は破損として扱い、変換では直せないため即失敗します。
+            if (scan.configVersion == CURRENT_SCHEMA_VERSION && !hasLegacyKeys(scan.config)) {
                 return ApiMigrationParticipantResult(
                     ApiMigrationParticipantResultState.FAILED,
                     before.message ?: "portals.yml contains quarantined records",
@@ -248,12 +258,27 @@ class PortalRepository(private val plugin: MyWorldManager) {
         val temporary = File(file.parentFile, "${file.name}.migration.tmp")
         try {
             Files.copy(file.toPath(), backup.toPath())
-            config.getConfigurationSection("portals")?.getKeys(false).orEmpty().forEach { rawId ->
+            val portalSection = config.getConfigurationSection("portals")
+            // MyWorld の customWorldName を考慮するため、UUID とフォルダ名の両方から現行 worldKey を引きます。
+            // 未登録ワールドでも形式さえ正しければフォールバック値を返し、データを失いません。
+            val findByUuid: (UUID) -> String? = { uuid ->
+                plugin.worldConfigRepository.findByUuid(uuid)?.worldKey
+            }
+            val findByFolder: (String) -> String? = { folder ->
+                plugin.worldConfigRepository.findByWorldName(folder)?.worldKey
+            }
+            portalSection?.getKeys(false).orEmpty().forEach { rawId ->
                 runCatching {
                     val id = UUID.fromString(rawId)
-                    val section = config.getConfigurationSection("portals.$rawId")
+                    // 上の orEmpty により null の場合は空ループのため、ここでは非 null が確定します。
+                    val parent = portalSection ?: error("portals section is missing: $rawId")
+                    val section = parent.getConfigurationSection(rawId)
                         ?: error("portal record is not a section: $rawId")
-                    writePortal(config.getConfigurationSection("portals")!!, rawId, parsePortal(id, section))
+                    // 旧キーを現行キーへ畳み込んでから正規化して書き戻します。
+                    // 解決できない旧値は推測で上書きせず、元のまま残して隔離に回します。
+                    val migrated = PortalYamlMigration.migrateSection(section, findByUuid, findByFolder)
+                    if (!migrated) error("portal record cannot be migrated to world_key: $rawId")
+                    writePortal(parent, rawId, parsePortal(id, section))
                 }
                 // Invalid records are intentionally retained in the backup/current file for diagnosis.
             }
@@ -269,6 +294,11 @@ class PortalRepository(private val plugin: MyWorldManager) {
             runCatching { Files.copy(backup.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING) }
             throw error
         }
+    }
+
+    private fun hasLegacyKeys(config: YamlConfiguration?): Boolean {
+        if (config == null) return false
+        return runCatching { PortalYamlMigration.needsMigration(config) }.getOrDefault(false)
     }
 
     private fun scanDisk(): PortalScan {
@@ -304,6 +334,12 @@ class PortalRepository(private val plugin: MyWorldManager) {
         val worldKey = section.getString("location.world_key")
             ?: error("location.world_key is missing")
         require(NamespacedKey.fromString(worldKey) != null) { "location.world_key is invalid: $worldKey" }
+        // 行き先の外部キーはワープ時に解決されるため、形式不正だけをここで隔離します。
+        // 存在確認は行わず、削除済み参照でもデータを失いません。
+        val targetWorldKey = section.getString("target_world_key")
+        require(targetWorldKey == null || NamespacedKey.fromString(targetWorldKey) != null) {
+            "target_world_key is invalid: $targetWorldKey"
+        }
         val ownerUuid = parseUuid(section.getString("owner_uuid"), "owner_uuid")
         val type = PortalType.fromKey(section.getString("type", "portal"))
         val area = section.getConfigurationSection("area")
@@ -318,7 +354,7 @@ class PortalRepository(private val plugin: MyWorldManager) {
             y = readInt(section, "location.y", 0),
             z = readInt(section, "location.z", 0),
             worldUuid = worldUuid,
-            targetWorldKey = section.getString("target_world_key"),
+            targetWorldKey = targetWorldKey,
             showText = readBoolean(section, "show_text", true),
             particleColor = Color.fromRGB(readInt(section, "color", Color.AQUA.asRGB())),
             ownerUuid = ownerUuid,
@@ -438,7 +474,9 @@ class PortalRepository(private val plugin: MyWorldManager) {
     )
 
     private companion object {
-        const val CURRENT_SCHEMA_VERSION = 1
+        // 版数 2 で旧形式（location.world / target_world_name）を現行キーへ変換します。
+        // 旧形式も版数 1 を持つため、版数だけでは区別できず旧キー検査を併用します。
+        const val CURRENT_SCHEMA_VERSION = 2
         const val PARTICIPANT_ID = "myworld-portals"
         val DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
     }

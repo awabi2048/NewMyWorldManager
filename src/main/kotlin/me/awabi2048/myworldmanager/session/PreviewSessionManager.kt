@@ -401,7 +401,8 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
         }
 
         val uuidStr = playerUuid.toString()
-        config.set("$uuidStr.world_key", location.world?.key?.toString() ?: "minecraft:world")
+        // フォルダ名 `world` の Paper キーは `minecraft:overworld` です。`minecraft:world` は不正なため使用しません。
+        config.set("$uuidStr.world_key", location.world?.key?.toString() ?: "minecraft:overworld")
         config.set("$uuidStr.x", location.x)
         config.set("$uuidStr.y", location.y)
         config.set("$uuidStr.z", location.z)
