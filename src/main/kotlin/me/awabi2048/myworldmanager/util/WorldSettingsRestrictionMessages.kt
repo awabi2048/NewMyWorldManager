@@ -1,6 +1,7 @@
 package me.awabi2048.myworldmanager.util
 
 import com.awabi2048.ccsystem.api.localization.LocalizationKey
+import com.awabi2048.ccsystem.api.localization.generated.CommonKeys
 import com.awabi2048.ccsystem.api.localization.generated.MyworldGuiSettingsKeys
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsActionRestriction
 
@@ -15,5 +16,24 @@ import me.awabi2048.myworldmanager.api.extension.WorldSettingsActionRestriction
 object WorldSettingsRestrictionMessages {
     fun warningKey(restriction: WorldSettingsActionRestriction): LocalizationKey<String> = when (restriction) {
         WorldSettingsActionRestriction.NOT_IN_TARGET_WORLD -> MyworldGuiSettingsKeys.GUI_SETTINGS_COMMON_MUST_BE_IN_WORLD
+        WorldSettingsActionRestriction.INSUFFICIENT_ROLE_MEMBER,
+        WorldSettingsActionRestriction.INSUFFICIENT_ROLE_MODERATOR -> CommonKeys.GENERAL_NO_PERMISSION
+    }
+
+    /**
+     * 閲覧者の役割別警告を、ワールド外最優先で解決する表示専用ヘルパーです。
+     * 権限判定自体は置換せず、なぜ表示だけなのかをLoreへ伝えるためにだけ用います。
+     */
+    fun viewerRestriction(
+        isInWorld: Boolean,
+        isOwner: Boolean,
+        isModerator: Boolean,
+        isMember: Boolean,
+    ): WorldSettingsActionRestriction? = when {
+        !isInWorld -> WorldSettingsActionRestriction.NOT_IN_TARGET_WORLD
+        isOwner -> null
+        isModerator -> WorldSettingsActionRestriction.INSUFFICIENT_ROLE_MODERATOR
+        isMember -> WorldSettingsActionRestriction.INSUFFICIENT_ROLE_MEMBER
+        else -> null
     }
 }

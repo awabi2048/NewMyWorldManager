@@ -56,8 +56,38 @@ class WorldSettingsActionRestrictionContractTest {
     @Test
     fun `every restriction reason maps to a warning key`() {
         // 理由が追加されたときに写像漏れが起きないよう、全列挙値のキー解決を検証します。
-        WorldSettingsActionRestriction.entries.forEach { restriction ->
-            assertEquals(MyworldGuiSettingsKeys.GUI_SETTINGS_COMMON_MUST_BE_IN_WORLD, WorldSettingsRestrictionMessages.warningKey(restriction))
-        }
+        // ワールド外は滞在警告、役割不足は汎用権限警告に写像します。
+        assertEquals(
+            MyworldGuiSettingsKeys.GUI_SETTINGS_COMMON_MUST_BE_IN_WORLD,
+            WorldSettingsRestrictionMessages.warningKey(WorldSettingsActionRestriction.NOT_IN_TARGET_WORLD),
+        )
+        assertEquals(
+            com.awabi2048.ccsystem.api.localization.generated.CommonKeys.GENERAL_NO_PERMISSION,
+            WorldSettingsRestrictionMessages.warningKey(WorldSettingsActionRestriction.INSUFFICIENT_ROLE_MEMBER),
+        )
+        assertEquals(
+            com.awabi2048.ccsystem.api.localization.generated.CommonKeys.GENERAL_NO_PERMISSION,
+            WorldSettingsRestrictionMessages.warningKey(WorldSettingsActionRestriction.INSUFFICIENT_ROLE_MODERATOR),
+        )
+    }
+
+    @Test
+    fun `viewer restriction prioritizes outside world over roles`() {
+        assertEquals(
+            WorldSettingsActionRestriction.NOT_IN_TARGET_WORLD,
+            WorldSettingsRestrictionMessages.viewerRestriction(false, false, false, true),
+        )
+        assertEquals(
+            null,
+            WorldSettingsRestrictionMessages.viewerRestriction(true, true, false, false),
+        )
+        assertEquals(
+            WorldSettingsActionRestriction.INSUFFICIENT_ROLE_MODERATOR,
+            WorldSettingsRestrictionMessages.viewerRestriction(true, false, true, false),
+        )
+        assertEquals(
+            WorldSettingsActionRestriction.INSUFFICIENT_ROLE_MEMBER,
+            WorldSettingsRestrictionMessages.viewerRestriction(true, false, false, true),
+        )
     }
 }

@@ -48,16 +48,6 @@ object WorldRuntimePolicies {
         return (1..targetLevel).sumOf { expansionCost(config, it) }
     }
 
-    fun environmentCost(config: FileConfiguration, type: String): Int {
-        val configured = when (type) {
-            "gravity" -> config.getInt("environment.gravity.cost", 100)
-            "weather" -> config.getInt("environment.weather.cost", 50)
-            "biome" -> config.getInt("environment.biome.cost", 500)
-            else -> 0
-        }
-        return configured
-    }
-
     fun portalWorldGatePointCostPerBlock(config: FileConfiguration): Int {
         val configured = config.getInt("portal.world_gate.point_cost_per_block", 1).coerceAtLeast(0)
         return configured

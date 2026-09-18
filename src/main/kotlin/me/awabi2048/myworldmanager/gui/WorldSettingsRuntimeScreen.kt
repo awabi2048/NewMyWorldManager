@@ -46,7 +46,6 @@ enum class WorldSettingsRuntimeOperation {
     EDIT_TAGS,
     EDIT_ANNOUNCEMENT,
     TOGGLE_NOTIFICATION,
-    OPEN_ENVIRONMENT,
     OPEN_CRITICAL,
     WARP,
     MANAGE_VISITORS,

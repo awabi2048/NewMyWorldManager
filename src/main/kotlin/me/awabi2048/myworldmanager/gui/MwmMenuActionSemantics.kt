@@ -28,7 +28,6 @@ object MwmMenuActionSemantics {
         Entry("discovery-sort", "DiscoveryGui.kt", "sort", MenuActionSafety.REVERSIBLE, MwmReversibleContracts.MENU_SESSION_PROVIDER, "discovery_sort", "discovery session sort mutation"),
         Entry("discovery-tag", "DiscoveryGui.kt", "tag", MenuActionSafety.REVERSIBLE, MwmReversibleContracts.MENU_SESSION_PROVIDER, "discovery_tag", "discovery session tag mutation"),
         Entry("discovery-special", "DiscoveryGui.kt", "special_filter", MenuActionSafety.REVERSIBLE, MwmReversibleContracts.MENU_SESSION_PROVIDER, "discovery_special_filter", "discovery session filter mutation"),
-        Entry("environment-weather", "EnvironmentGui.kt", "weather", MenuActionSafety.REVERSIBLE, MwmReversibleContracts.SETTINGS_SESSION_PROVIDER, "weather", "temporary weather mutation"),
         Entry("favorite-tag", "FavoriteGui.kt", "tag", MenuActionSafety.REVERSIBLE, MwmReversibleContracts.MENU_SESSION_PROVIDER, "favorite_tag", "favorite session tag mutation"),
         Entry("favorite-toggle", "FavoriteGui.kt", "toggle_current", MenuActionSafety.REVERSIBLE, MwmReversibleContracts.PLAYER_STATE_PROVIDER, "favorite_toggle", "favorite repository mutation"),
         Entry("gate-cancel", "PortalListener.kt", "cancel_gate", MenuActionSafety.NAVIGATION_ONLY, reason = "message and close only"),

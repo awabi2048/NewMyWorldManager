@@ -633,7 +633,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         WorldSettingsRuntimeOperation.BACK,
                         WorldSettingsRuntimeOperation.TOUR,
                         WorldSettingsRuntimeOperation.MANAGE_MEMBERS,
-                        WorldSettingsRuntimeOperation.OPEN_ENVIRONMENT,
                         WorldSettingsRuntimeOperation.OPEN_CRITICAL,
                         WorldSettingsRuntimeOperation.MANAGE_VISITORS,
                         WorldSettingsRuntimeOperation.MANAGE_PORTALS,
@@ -685,7 +684,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 WorldSettingsRuntimeOperation.EDIT_TAGS -> plugin.languageManager.getMessage(viewer, MyworldGuiSettingsKeys.GUI_SETTINGS_TAGS_ACTION_EDIT)
                                 WorldSettingsRuntimeOperation.EDIT_ANNOUNCEMENT -> plugin.languageManager.getMessage(viewer, MyworldGuiSettingsKeys.GUI_SETTINGS_ANNOUNCEMENT_ACTION_SET_MESSAGE)
                                 WorldSettingsRuntimeOperation.TOGGLE_NOTIFICATION -> plugin.languageManager.getMessage(viewer, MyworldGuiSettingsKeys.GUI_SETTINGS_NOTIFICATION_ACTION_TOGGLE)
-                                WorldSettingsRuntimeOperation.OPEN_ENVIRONMENT -> plugin.languageManager.getMessage(viewer, MyworldGuiSettingsKeys.GUI_SETTINGS_ENVIRONMENT_ACTION_OPEN)
                                 WorldSettingsRuntimeOperation.OPEN_CRITICAL -> plugin.languageManager.getMessage(viewer, MyworldGuiSettingsKeys.GUI_SETTINGS_CRITICAL_ACTION_OPEN)
                                 WorldSettingsRuntimeOperation.MANAGE_VISITORS -> plugin.languageManager.getMessage(viewer, MyworldGuiSettingsKeys.GUI_SETTINGS_VISITORS_ACTION_OPEN)
                                 WorldSettingsRuntimeOperation.MANAGE_PORTALS -> plugin.languageManager.getMessage(viewer, MyworldGuiSettingsKeys.GUI_SETTINGS_PORTALS_ACTION_OPEN)
@@ -863,22 +861,20 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         WorldSettingsDisplayMode.DEFAULT -> if (isMemberLayout) 45 else 54
                 }
                 val bottomRowStartSlot = inventorySize - 9
-                // ワールド情報はヘッダー中央、戻るボタンはフッター中央へ固定して、ツアー/Chanpon側と視線を揃える。
+                // ワールド情報はヘッダー中央、戻るボタンはフッター中央へ固定します。
                 val backButtonSlot = bottomRowStartSlot + 4
                 val worldInfoSlot = 4
-                // チャンポン導入環境ではツアーを slot 30 へ配置し、純粋MWMではフッター右側（8マス目）へ配置します。
-                // フッター3マス目は訪問中プレイヤー管理に空けるためです。
-                val chanponActive = plugin.server.pluginManager.isPluginEnabled("MWMChanpon")
-                val tourSettingSlot = if (chanponActive) 30 else bottomRowStartSlot + 8
+                // ツアーはフッター2マス目、重大な設定はフッター7マス目へ配置します。
+                // Chanpon画面とは配置ID・スロット予約を共有しないため、MWM独自の予約に従います。
+                val tourSettingSlot = bottomRowStartSlot + 1
+                val criticalSettingSlot = bottomRowStartSlot + 6
 
                 val infoSettingSlot = if (useModeratorCenteredLayout) 21 else 19
                 val iconSettingSlot = if (useModeratorCenteredLayout) 22 else 20
                 val spawnSettingSlot = if (useModeratorCenteredLayout) 23 else 21
-                // チャンポン導入環境のモデレーター中央レイアウトではツアーが slot 30 を使用するため、タグ設定を左へ移動します。
-                val tagsSettingSlot = if (useModeratorCenteredLayout) (if (chanponActive) 28 else 30) else 28
+                val tagsSettingSlot = if (useModeratorCenteredLayout) 30 else 28
                 val announcementSettingSlot = if (useModeratorCenteredLayout) 31 else 29
-                // チャンポン導入環境ではツアーが slot 30 を使用するため、通知設定を1つ右へ移動します。
-                val notificationSettingSlot = if (useModeratorCenteredLayout) 32 else (if (chanponActive) 31 else 30)
+                val notificationSettingSlot = if (useModeratorCenteredLayout) 32 else 30
 
                 val inventory = RuntimeItemBuffer(inventorySize, player)
 
@@ -955,10 +951,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val targetWorldName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
                 val isInWorld =
                         MyWorldManagerApi.getWorldService()?.isPlayerInWorld(player, worldData) == true
+                // 閲覧役割別の理由表示はワールド外を最優先する。権限判定は置換しない。
+                val viewerRestriction = WorldSettingsRestrictionMessages.viewerRestriction(
+                        isInWorld,
+                        isOwner,
+                        isModerator,
+                        isMember,
+                )
                 val warningLore =
-                        if (!isInWorld)
-                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_COMMON_MUST_BE_IN_WORLD)
-                        else null
+                        viewerRestriction?.let { plugin.languageManager.getMessage(player, WorldSettingsRestrictionMessages.warningKey(it)) }
 
                 // アイコン変更
                 if (hasManagePermission) {
@@ -1427,46 +1428,13 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 }
 
-                // スロット32: 環境設定 (オーナーのみ)
-                if (ownerActionsAllowed && !isBedrock) {
-                        inventory.setMenuEntry(
-                                player,
-                                GuiMenuEntrySpec(
-                                        slot = 32,
-                                        material = plugin.menuConfigManager.getIconMaterial(
-                                                "world_settings",
-                                                "environment",
-                                                Material.GRASS_BLOCK,
-                                        ),
-                                        name = me.awabi2048.myworldmanager.util.fixedLabelName(
-                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_ENVIRONMENT_DISPLAY),
-                                                GuiNameStyle.DEFAULT,
-                                        ),
-                                        role = if (isInWorld) GuiElementRole.ACTION else GuiElementRole.CONTENT,
-                                        description = lang.getMessageList(
-                                                player,
-                                                MyworldGuiSettingsKeys.GUI_SETTINGS_ENVIRONMENT_BLOCKS_SUMMARY,
-                                        ),
-                                        warnings = if (!isInWorld && warningLore != null) listOf(warningLore) else emptyList(),
-                                        actions = if (isInWorld) listOf(menuGestureAction(
-                                                ACTION_RUNTIME_DISPATCH,
-                                                MenuGesture.ANY,
-                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_ENVIRONMENT_ACTION_OPEN),
-                                                mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.OPEN_ENVIRONMENT.name),
-                                                safety = MenuActionSafety.NAVIGATION_ONLY,
-                                        )) else emptyList(),
-                                ),
-                        )
-                }
-
-                // スロット33: 重大な設定 (オーナーのみ)
-                // スロット33: 重大な設定 (オーナーのみ)
+                // フッター7マス目: 重大な設定 (オーナーのみ)
                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
                 if (ownerActionsAllowed && stats.criticalSettingsEnabled) {
                         inventory.setMenuEntry(
                                 player,
                                 GuiMenuEntrySpec(
-                                        slot = 33,
+                                        slot = criticalSettingSlot,
                                         material = plugin.menuConfigManager.getIconMaterial(
                                                 "world_settings",
                                                 "critical",
@@ -1735,15 +1703,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 applyCapabilities(
                         inventory,
                         player,
-                        WorldSettingsCapabilityPlacements.ENVIRONMENT_ACTION,
-                        listOf(32),
-                        mapOf(WORLD_UUID_ARGUMENT to worldData.uuid.toString()),
-                )
-                applyCapabilities(
-                        inventory,
-                        player,
                         WorldSettingsCapabilityPlacements.CRITICAL_ACTION,
-                        listOf(33),
+                        listOf(criticalSettingSlot),
                         mapOf(WORLD_UUID_ARGUMENT to worldData.uuid.toString()),
                 )
                 applyCapabilities(

@@ -98,6 +98,10 @@ data class WorldSettingsActionRequest(
 enum class WorldSettingsActionRestriction {
     /** 対象ワールド内にいる必要がある操作を、ワールド外から実行しようとした。 */
     NOT_IN_TARGET_WORLD,
+    /** 管理権限が必要な表示を、メンバー権限で閲覧している。 */
+    INSUFFICIENT_ROLE_MEMBER,
+    /** オーナー権限が必要な表示を、モデレーター権限で閲覧している。 */
+    INSUFFICIENT_ROLE_MODERATOR,
 }
 
 /**

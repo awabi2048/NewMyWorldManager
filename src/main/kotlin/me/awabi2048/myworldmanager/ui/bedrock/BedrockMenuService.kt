@@ -208,8 +208,8 @@ class BedrockMenuService(
         runtime.navigate(player, settingsRoute(showBackButton, returnPage))
     }
 
-    fun openDiscovery(player: Player, page: Int = 0, showBackButton: Boolean = false) {
-        plugin.discoveryGui.open(player, page, showBackButton)
+    fun openDiscovery(player: Player, showBackButton: Boolean = false) {
+        plugin.discoveryGui.open(player, showBackButton)
     }
 
     fun openFavoriteList(
@@ -1306,6 +1306,29 @@ class BedrockMenuService(
                     .format(Instant.ofEpochMilli(it))
             }
             ?: tr(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_PENDING_BUTTON_NONE)
+        // 件数0時はBARRIER表示専用とし、実行不能操作を非表示にする。
+        if (pendingCount == 0) {
+            return CCSystem.getAPI().getGuiElementService().menuEntry(
+                player,
+                GuiMenuEntrySpec(
+                    slot = slot,
+                    material = Material.BARRIER,
+                    name = GuiNameSpec.Component(plugin.languageManager.getComponent(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_PENDING_BUTTON_DISPLAY)),
+                    role = GuiElementRole.CONTENT,
+                    description = plugin.languageManager.getMessageList(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_PENDING_BUTTON_DESCRIPTION),
+                    data = listOf(
+                        GuiMenuEntryData(
+                            tr(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_PENDING_BUTTON_COUNT_LABEL),
+                            pendingCount,
+                            GuiValueTone.MUTED,
+                        ),
+                        GuiMenuEntryData(tr(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_PENDING_BUTTON_LATEST_LABEL), latest, GuiValueTone.INFO),
+                    ),
+                    actions = emptyList(),
+                    glint = false,
+                ),
+            )
+        }
         return CCSystem.getAPI().getGuiElementService().menuEntry(
             player,
             GuiMenuEntrySpec(
