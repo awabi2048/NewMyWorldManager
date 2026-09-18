@@ -144,10 +144,6 @@ class AdminPortalGui(private val plugin: MyWorldManager) {
         plugin.portalManager.addIgnorePlayer(player)
         plugin.portalManager.addPortalGrace(player, portal.id, 15)
         if (portal.worldUuid != null) {
-            val destination = plugin.worldConfigRepository.findByUuid(portal.worldUuid!!)
-            if (destination != null && Bukkit.getWorld(plugin.worldService.getWorldFolderName(destination)) == null) {
-                player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_LOADING))
-            }
             plugin.worldService.teleportToWorld(
                 player,
                 portal.worldUuid!!,
