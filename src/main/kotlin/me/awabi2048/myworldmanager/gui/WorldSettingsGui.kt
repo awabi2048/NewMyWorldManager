@@ -869,7 +869,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 // チャンポン導入環境ではツアーを slot 30 へ配置し、純粋MWMではフッター右側（8マス目）へ配置します。
                 // フッター3マス目は訪問中プレイヤー管理に空けるためです。
                 val chanponActive = plugin.server.pluginManager.isPluginEnabled("MWMChanpon")
-                val tourSettingSlot = if (chanponActive) 30 else bottomRowStartSlot + 8
+                val tourSettingSlot = if (chanponActive) 30 else bottomRowStartSlot + 7
 
                 val infoSettingSlot = if (useModeratorCenteredLayout) 21 else 19
                 val iconSettingSlot = if (useModeratorCenteredLayout) 22 else 20
