@@ -878,6 +878,33 @@ class PlayerWorldGui(private val plugin: MyWorldManager) {
                                         .format(Instant.ofEpochMilli(it))
                         }
                         ?: lang.getMessage(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_PENDING_BUTTON_NONE)
+                // 件数0時はBARRIER表示専用とし、実行不能操作を非表示にする。
+                if (pendingCount == 0) {
+                        return CCSystem.getAPI().getGuiElementService().menuEntry(
+                                player,
+                                GuiMenuEntrySpec(
+                                        slot = slot,
+                                        material = Material.BARRIER,
+                                        name = GuiNameSpec.FixedLabel(lang.getComponent(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_PENDING_BUTTON_DISPLAY)),
+                                        role = GuiElementRole.CONTENT,
+                                        description = lang.getMessageList(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_PENDING_BUTTON_DESCRIPTION),
+                                        data = listOf(
+                                                GuiMenuEntryData(
+                                                        lang.getMessage(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_PENDING_BUTTON_COUNT_LABEL),
+                                                        pendingCount,
+                                                        GuiValueTone.MUTED,
+                                                ),
+                                                GuiMenuEntryData(
+                                                        lang.getMessage(player, MyworldGuiBedrockKeys.GUI_PLAYER_WORLD_PENDING_BUTTON_LATEST_LABEL),
+                                                        latestPendingText,
+                                                        GuiValueTone.INFO,
+                                                ),
+                                        ),
+                                        actions = emptyList(),
+                                        glint = false,
+                                ),
+                        )
+                }
                 return CCSystem.getAPI().getGuiElementService().menuEntry(
                         player,
                         GuiMenuEntrySpec(

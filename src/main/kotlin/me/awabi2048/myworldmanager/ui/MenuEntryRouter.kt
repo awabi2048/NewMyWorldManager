@@ -84,11 +84,12 @@ class MenuEntryRouter(
             return
         }
         if (platformResolver.isBedrock(player)) {
-            bedrockMenuService.openDiscovery(player, page, showBackButton)
+            bedrockMenuService.openDiscovery(player, showBackButton)
             return
         }
 
-        plugin.discoveryGui.open(player, page, showBackButton)
+        // MWM正仕様ではページングを行わないため、page引数はChanpon等の差し替え専用として扱う。
+        plugin.discoveryGui.open(player, showBackButton)
     }
 
     fun openFavoriteList(

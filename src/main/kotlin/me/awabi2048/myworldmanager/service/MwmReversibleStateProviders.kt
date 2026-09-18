@@ -121,15 +121,6 @@ private class SettingsSessionProvider(private val plugin: MyWorldManager) : Menu
         val world = plugin.worldConfigRepository.findByUuid(before.worldUuid)
             ?: return MenuReversibleProviderCaptureResult.Rejected("settings target world no longer exists: ${before.worldUuid}")
         val expected = when (operation) {
-            "weather" -> {
-                val options = plugin.config.getStringList("environment.weather.options")
-                if (options.isEmpty()) return MenuReversibleProviderCaptureResult.Rejected("weather options are empty")
-                before.copy(tempWeather = GuiCycle.select(
-                    before.tempWeather ?: world.fixedWeather ?: "DEFAULT",
-                    options,
-                    GuiCycleDirection.NEXT,
-                ))
-            }
             else -> return MenuReversibleProviderCaptureResult.Rejected("unsupported settings session operation: $operation")
         }
         return MenuReversibleProviderCaptureResult.Captured(SettingsSessionState(before, expected))

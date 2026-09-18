@@ -51,14 +51,12 @@ import me.awabi2048.myworldmanager.service.WorldLoadFailure
 import me.awabi2048.myworldmanager.session.MenuExternalInput
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.session.SettingsClosePolicy
-import me.awabi2048.myworldmanager.util.BiomeResolver
 import me.awabi2048.myworldmanager.util.ItemTag
 import me.awabi2048.myworldmanager.util.LanguageManager
 import me.awabi2048.myworldmanager.util.PermissionManager
 import me.awabi2048.myworldmanager.util.PlayerBlockTargetResolver
 import me.awabi2048.myworldmanager.util.WorldRuntimePolicies
 import me.awabi2048.myworldmanager.util.WorldCreationChecks
-import me.awabi2048.myworldmanager.util.CatalogKeyResolver
 import me.awabi2048.myworldmanager.util.WorldNameValidation
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -172,7 +170,6 @@ class WorldSettingsListener : Listener {
                 val restrictedOperations = setOf(
                         WorldSettingsRuntimeOperation.SET_SPAWN,
                         WorldSettingsRuntimeOperation.EXPAND,
-                        WorldSettingsRuntimeOperation.OPEN_ENVIRONMENT,
                         WorldSettingsRuntimeOperation.OPEN_CRITICAL,
                 )
                 if (operation in restrictedOperations) {
@@ -252,16 +249,6 @@ class WorldSettingsListener : Listener {
                                                 ),
                                         ),
                                 )
-                        WorldSettingsRuntimeOperation.OPEN_ENVIRONMENT -> {
-                                if (plugin.playerPlatformResolver.isBedrock(player)) {
-                                        player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_BEDROCK_OPTION_UNAVAILABLE))
-                                        return MenuActionResult.Ignored
-                                }
-                                if (!player.hasPermission("myworldmanager.admin")) return MenuActionResult.Ignored
-                                return MenuActionResult.Success(
-                                        MenuUpdate.Navigate(plugin.environmentGui.prepareOpen(player, worldData)),
-                                )
-                        }
                         else -> return MenuActionResult.Ignored
                 }
                 return MenuActionResult.Success(MenuUpdate.None)
@@ -2474,144 +2461,6 @@ player.sendMessage(
                 return true
         }
 
-        fun cycleEnvironmentWeather(player: Player, worldData: WorldData) {
-                val session = plugin.settingsSessionManager.getSession(player) ?: return
-                val config = plugin.config
-                val options = config.getStringList("environment.weather.options")
-                if (options.isEmpty()) return
-
-                val currentTemp = session.tempWeather ?: worldData.fixedWeather ?: "DEFAULT"
-                session.tempWeather =
-                        GuiCycle.select(
-                                currentTemp,
-                                options,
-                                com.awabi2048.ccsystem.api.gui.GuiCycleDirection.NEXT
-                        )
-
-        }
-
-        private fun executeGravityChange(
-                player: Player,
-                worldData: WorldData,
-                confirmItem: org.bukkit.inventory.ItemStack
-        ) {
-                val cost = WorldRuntimePolicies.environmentCost(plugin.config, "gravity")
-                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-
-                if (MyWorldManagerApi.isWorldPointEconomyEnabled() && stats.worldPoint < cost) {
-                        player.sendMessage(
-                                plugin.languageManager.getMessage(
-                                        player,
-                                        MyworldGuiCreationKeys.GUI_CREATION_INSUFFICIENT,
-                                        mapOf("shortage" to (cost - stats.worldPoint))
-                                )
-                        )
-                        plugin.soundManager.playActionSound(
-                                player,
-                                "environment",
-                                "insufficient_points"
-                        )
-                        return
-                }
-
-                worldData.gravityValue = 0.02
-                chargeWorldPoints(stats, worldData, cost)
-
-                plugin.playerStatsRepository.save(stats)
-                plugin.worldConfigRepository.save(worldData)
-
-                removeFromInventory(player, confirmItem)
-
-                player.sendMessage(
-                        plugin.languageManager.getMessage(
-                                player,
-                                MyworldMessagesKeys.MESSAGES_ENV_GRAVITY_CHANGED,
-                                mapOf("gravity" to "Moon", "multiplier" to "0.17")
-                        )
-                )
-                sendEnvironmentCostPaid(player, cost, stats.worldPoint)
-                plugin.soundManager.playActionSound(player, "environment", "gravity_change")
-                plugin.worldEnvironmentService.applyAttributes(worldData.uuid)
-                plugin.environmentGui.open(player, worldData)
-        }
-
-        private fun executeBiomeChange(
-                player: Player,
-                worldData: WorldData,
-                confirmItem: org.bukkit.inventory.ItemStack
-        ) {
-                val biomeId = ItemTag.getBiomeId(confirmItem) ?: return
-                val lang = plugin.languageManager
-                val cost = WorldRuntimePolicies.environmentCost(plugin.config, "biome")
-                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-
-                // Safety Check: Permission & Logic
-                val session = plugin.settingsSessionManager.getSession(player)
-                val isMember =
-                        player.uniqueId == worldData.owner ||
-                                worldData.moderators.contains(player.uniqueId) ||
-                                worldData.members.contains(player.uniqueId) ||
-                                session?.isAdminFlow == true
-                val isAdmin = player.hasPermission("myworldmanager.admin")
-                val worldFolderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
-                val isAdminWorld = worldData.customWorldName != null
-
-                if (isAdminWorld) {
-                        player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
-                        player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_CUSTOM_ITEM_BIOME_BOTTLE_DISABLED))
-                        return
-                }
-
-                if (!isMember) {
-                        player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
-                        player.sendMessage(lang.getMessage(player, CommonKeys.ERROR_CUSTOM_ITEM_NO_PERMISSION))
-                        return
-                }
-
-                if (MyWorldManagerApi.isWorldPointEconomyEnabled() && stats.worldPoint < cost) {
-                        player.sendMessage(
-                                plugin.languageManager.getMessage(
-                                        player,
-                                        MyworldGuiCreationKeys.GUI_CREATION_INSUFFICIENT,
-                                        mapOf("shortage" to (cost - stats.worldPoint))
-                                )
-                        )
-                        plugin.soundManager.playActionSound(
-                                player,
-                                "environment",
-                                "insufficient_points"
-                        )
-                        return
-                }
-
-                try {
-                        BiomeResolver.match(biomeId) ?: throw IllegalArgumentException()
-                        worldData.fixedBiome = biomeId.uppercase()
-                        worldData.partialBiomes.clear()
-                        chargeWorldPoints(stats, worldData, cost)
-
-                        plugin.playerStatsRepository.save(stats)
-                        plugin.worldConfigRepository.save(worldData)
-
-                        removeFromInventory(player, confirmItem)
-
-                        val biomeName = lang.getMessage(player, CatalogKeyResolver.biome(biomeId))
-                        player.sendMessage(
-                                lang.getMessage(
-                                        player,
-                                        MyworldMessagesKeys.MESSAGES_ENV_BIOME_CHANGED,
-                                        mapOf("biome" to biomeName)
-                                )
-                        )
-                        sendEnvironmentCostPaid(player, cost, stats.worldPoint)
-                        plugin.soundManager.playActionSound(player, "environment", "biome_change")
-                        applyBiomeToWorld(worldData)
-                        plugin.environmentGui.open(player, worldData)
-                } catch (e: Exception) {
-                        player.sendMessage("ﾂｧcInvalid biome data.")
-                }
-        }
-
         private fun removeFromInventory(
                 player: Player,
                 templateItem: org.bukkit.inventory.ItemStack
@@ -2623,79 +2472,6 @@ player.sendMessage(
                                 item.amount -= 1
                                 return
                         }
-                }
-        }
-
-        private fun applyBiomeToWorld(worldData: WorldData) {
-                val world = Bukkit.getWorld("my_world.${worldData.uuid}") ?: return
-                val biomeStr = worldData.fixedBiome ?: return
-                val biome =
-                        try {
-                                BiomeResolver.match(biomeStr) ?: throw IllegalArgumentException()
-                        } catch (e: Exception) {
-                                return
-                        }
-
-                val center = worldData.borderCenterPos ?: world.spawnLocation
-                val expansion = worldData.borderExpansionLevel
-                val initialSize = plugin.config.getDouble(expansionInitialSizeConfigKey, 500.0)
-                // Adjust for special level or calculate size
-                val size =
-                        if (expansion == WorldData.EXPANSION_LEVEL_SPECIAL) 60000000.0
-                        else initialSize * Math.pow(2.0, expansion.toDouble())
-                val radius = size / 2.0
-                val applyRadius = radius + 160.0
-
-                val minX = (center.x - applyRadius).toInt()
-                val maxX = (center.x + applyRadius).toInt()
-                val minZ = (center.z - applyRadius).toInt()
-                val maxZ = (center.z + applyRadius).toInt()
-
-                // Iterate loaded chunks instead of all blocks directly to avoid loading unloaded
-                // chunks if
-                // possible,
-                // or iterate chunks in range.
-                // Task says "Change ... to border + 160 blocks range".
-                // Efficient way: iterate loaded chunks, and for each column check if in range.
-                // If we want to ensure *all* blocks in range are changed (even unloaded), we should
-                // iterate
-                // strict range.
-                // However, iterating 60million blocks is bad.
-                // But for a typical MyWorld with expansion 0-3, it's small.
-                // Let's assume we only update loaded chunks because unloaded ones will be handled
-                // by
-                // ChunkLoadEvent.
-
-                world.loadedChunks.forEach { chunk ->
-                        val chunkX = chunk.x * 16
-                        val chunkZ = chunk.z * 16
-
-                        // Optimization: check if chunk overlaps with range
-                        if (chunkX + 15 < minX ||
-                                        chunkX > maxX ||
-                                        chunkZ + 15 < minZ ||
-                                        chunkZ > maxZ
-                        ) {
-                                return@forEach
-                        }
-
-                        for (x in 0..15) {
-                                val worldX = chunkX + x
-                                for (z in 0..15) {
-                                        val worldZ = chunkZ + z
-
-                                        if (worldX in minX..maxX && worldZ in minZ..maxZ) {
-                                                for (y in
-                                                        world.minHeight until
-                                                                world.maxHeight step
-                                                                16) {
-                                                        world.setBiome(worldX, y, worldZ, biome)
-                                                }
-                                        }
-                                }
-                        }
-                        // Update chunk for clients
-                        world.refreshChunk(chunk.x, chunk.z)
                 }
         }
 
@@ -3093,192 +2869,11 @@ player.sendMessage(
                 )
         }
 
-        // Helper to show generic simple confirmation
-        fun showEnvironmentConfirmDialog(
-            player: Player,
-            worldData: WorldData,
-            type: String,
-            cost: Int,
-        ) {
-            val lang = plugin.languageManager
-
-            val titleKey = when (type) {
-                "gravity" -> MyworldGuiSettingsKeys.GUI_ENVIRONMENT_GRAVITY_DISPLAY
-                "weather" -> MyworldGuiSettingsKeys.GUI_ENVIRONMENT_WEATHER_DISPLAY
-                "biome" -> MyworldGuiSettingsKeys.GUI_ENVIRONMENT_BIOME_DISPLAY
-                else -> error("未知の環境設定種別です: $type")
-            }
-            val title = Component.text(lang.getMessage(player, titleKey), NamedTextColor.YELLOW)
-
-            val centerMaterial = when (type) {
-                "gravity" -> Material.FEATHER
-                "weather" -> Material.WHITE_WOOL
-                "biome" -> Material.GRASS_BLOCK
-                else -> Material.PAPER
-            }
-            val centerItem = me.awabi2048.myworldmanager.util.GuiSpecFactory.spec(
-                centerMaterial,
-                title,
-                me.awabi2048.myworldmanager.util.semanticLore(
-                    buildList {
-                        add(GuiLoreLine.Text(lang.getMessage(player, CommonKeys.GUI_COMMON_CONFIRM_ACTION)))
-                        if (MyWorldManagerApi.isWorldPointEconomyEnabled()) {
-                            add(GuiLoreLine.Data(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_EXPAND_BLOCKS_COST), cost, "§e"))
-                        }
-                    },
-                    GuiLoreFrame.BOTH
-                ),
-            )
-            val confirmLabel = lang.getMessage(player, CommonKeys.GUI_COMMON_CONFIRM)
-            val cancelLabel = lang.getMessage(player, CommonKeys.GUI_COMMON_CANCEL)
-            val confirmItem = me.awabi2048.myworldmanager.util.GuiSpecFactory.spec(
-                Material.LIME_CONCRETE,
-                confirmLabel,
-                GuiLoreSpec.None,
-                GuiElementRole.CONFIRM,
-            )
-            val cancelItem = me.awabi2048.myworldmanager.util.GuiSpecFactory.spec(
-                Material.RED_CONCRETE,
-                cancelLabel,
-                GuiLoreSpec.None,
-                GuiElementRole.CANCEL,
-            )
-
-            plugin.confirmationMenuGui.open(
-                player = player,
-                menuId = "environment_confirm",
-                title = title,
-                centerItem = centerItem,
-                confirmItem = confirmItem,
-                cancelItem = cancelItem,
-                confirmActionText = confirmLabel,
-                cancelActionText = cancelLabel,
-                onConfirm = {
-                    val session = plugin.settingsSessionManager.getSession(player)
-                        ?: return@open MenuActionResult.Rejected()
-                    when (type) {
-                        "gravity" -> handleEnvGravityConfirm(player, worldData)
-                        "weather" -> handleWeatherConfirm(player, worldData)
-                        "biome" -> {
-                            val biomeId = session.tempBiomeId
-                                ?: return@open MenuActionResult.Rejected()
-                            handleEnvBiomeConfirm(player, worldData, biomeId)
-                        }
-                    }
-                    MenuActionResult.Success(
-                        MenuUpdate.Navigate(plugin.environmentGui.prepareOpen(player, worldData)),
-                    )
-                },
-                onCancel = { MenuActionResult.Success(MenuUpdate.Back) }
-            )
-        }
-
         private fun showVisitorKickConfirmDialog(player: Player, targetName: String, targetUuid: UUID) {
             val worldData = plugin.worldConfigRepository.findByUuid(plugin.settingsSessionManager.getSession(player)?.worldUuid ?: return) ?: return
             plugin.worldSettingsGui.openVisitorKickConfirmation(player, worldData, targetUuid)
         }
 
-
-        private fun handleEnvGravityConfirm(player: Player, worldData: WorldData) {
-                val cost = WorldRuntimePolicies.environmentCost(plugin.config, "gravity")
-                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-
-                if (MyWorldManagerApi.isWorldPointEconomyEnabled() && stats.worldPoint < cost) {
-                        player.sendMessage(
-                                plugin.languageManager.getMessage(
-                                        player,
-                                        MyworldGuiCreationKeys.GUI_CREATION_INSUFFICIENT,
-                                        mapOf("shortage" to (cost - stats.worldPoint))
-                                )
-                        )
-                        plugin.soundManager.playActionSound(player, "environment", "insufficient_points")
-                        return
-                }
-
-                worldData.gravityValue = 0.02
-                chargeWorldPoints(stats, worldData, cost)
-
-                plugin.playerStatsRepository.save(stats)
-                plugin.worldConfigRepository.save(worldData)
-
-                player.sendMessage(
-                        plugin.languageManager.getMessage(
-                                player,
-                                MyworldMessagesKeys.MESSAGES_ENV_GRAVITY_CHANGED,
-                                mapOf("gravity" to "Moon", "multiplier" to "0.17")
-                        )
-                )
-                sendEnvironmentCostPaid(player, cost, stats.worldPoint)
-                plugin.soundManager.playActionSound(player, "environment", "gravity_change")
-                plugin.worldEnvironmentService.applyAttributes(worldData.uuid)
-        }
-
-        private fun handleWeatherConfirm(player: Player, worldData: WorldData) {
-                val session = plugin.settingsSessionManager.getSession(player) ?: return
-                val nextWeather = session.tempWeather ?: return
-                val cost = WorldRuntimePolicies.environmentCost(plugin.config, "weather")
-                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-
-                if (MyWorldManagerApi.isWorldPointEconomyEnabled() && stats.worldPoint < cost) {
-                        player.sendMessage(
-                                plugin.languageManager.getMessage(
-                                        player,
-                                        MyworldGuiCreationKeys.GUI_CREATION_INSUFFICIENT,
-                                        mapOf("shortage" to (cost - stats.worldPoint))
-                                )
-                        )
-                        plugin.soundManager.playActionSound(player, "environment", "insufficient_points")
-                        return
-                }
-
-                chargeWorldPoints(stats, worldData, cost)
-                worldData.fixedWeather = if (nextWeather == "DEFAULT") null else nextWeather
-                session.tempWeather = null
-
-                plugin.playerStatsRepository.save(stats)
-                plugin.worldConfigRepository.save(worldData)
-
-                sendEnvironmentCostPaid(player, cost, stats.worldPoint)
-                plugin.worldEnvironmentService.applyWeather(worldData.uuid)
-                plugin.soundManager.playActionSound(player, "environment", "weather_change")
-        }
-
-        private fun handleEnvBiomeConfirm(player: Player, worldData: WorldData, biomeId: String) {
-                val lang = plugin.languageManager
-                val cost = WorldRuntimePolicies.environmentCost(plugin.config, "biome")
-                val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
-
-                if (MyWorldManagerApi.isWorldPointEconomyEnabled() && stats.worldPoint < cost) {
-                        player.sendMessage(
-                                plugin.languageManager.getMessage(
-                                        player,
-                                        MyworldGuiCreationKeys.GUI_CREATION_INSUFFICIENT,
-                                        mapOf("shortage" to (cost - stats.worldPoint))
-                                )
-                        )
-                        plugin.soundManager.playActionSound(player, "environment", "insufficient_points")
-                        return
-                }
-
-                try {
-                        BiomeResolver.match(biomeId) ?: throw IllegalArgumentException()
-                        worldData.fixedBiome = biomeId.uppercase()
-                        worldData.partialBiomes.clear()
-                        chargeWorldPoints(stats, worldData, cost)
-
-                        plugin.playerStatsRepository.save(stats)
-                        plugin.worldConfigRepository.save(worldData)
-
-                        val biomeName = lang.getMessage(player, CatalogKeyResolver.biome(biomeId))
-                        player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_ENV_BIOME_CHANGED, mapOf("biome" to biomeName)))
-                        sendEnvironmentCostPaid(player, cost, stats.worldPoint)
-                        plugin.soundManager.playActionSound(player, "environment", "biome_change")
-                        applyBiomeToWorld(worldData)
-
-                } catch (e: Exception) {
-                        player.sendMessage("§cInvalid Biome: $biomeId")
-                }
-        }
 
         private fun handleExpandConfirm(player: Player, worldData: WorldData) {
                 val session = plugin.settingsSessionManager.getSession(player) ?: return
@@ -3575,24 +3170,6 @@ player.sendMessage(
                 worldData.cumulativePoints += cost
         }
 
-        private fun sendEnvironmentCostPaid(player: Player, cost: Int, remaining: Int) {
-                if (!MyWorldManagerApi.isWorldPointEconomyEnabled()) return
-                player.sendMessage(
-                        plugin.languageManager.getMessage(
-                                player,
-                                MyworldMessagesKeys.MESSAGES_ENV_COST_PAID,
-                                mapOf(
-                                        "cost" to cost,
-                                        "remaining_info" to plugin.languageManager.getMessage(
-                                                player,
-                                                MyworldMessagesKeys.MESSAGES_ENV_COST_PAID_REMAINING,
-                                                mapOf("remaining" to remaining)
-                                        )
-                                )
-                        )
-                )
-        }
-
         private fun canOwnerExecuteDelete(worldData: WorldData): Boolean {
                 if (!MyWorldManagerApi.isWorldSlotSystemEnabled()) return true
                 val ownerStats = plugin.playerStatsRepository.findByUuid(worldData.owner)
@@ -3837,7 +3414,6 @@ player.sendMessage(
         private fun handleBedrockDialogCancel(player: Player, worldData: WorldData) {
                 val session = plugin.settingsSessionManager.getSession(player) ?: return
                 when (session.action) {
-                        SettingsAction.ENV_CONFIRM -> plugin.environmentGui.open(player, worldData)
                         SettingsAction.EXPAND_CONFIRM -> plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
                         SettingsAction.STEP_BACK_EXPANSION_CONFIRM -> plugin.worldSettingsGui.openExpansionMethodSelection(player, worldData)
                         SettingsAction.VISITOR_KICK_CONFIRM -> plugin.worldSettingsGui.openVisitorManagement(player, worldData)
@@ -3861,22 +3437,6 @@ player.sendMessage(
 
                 if (keyVal == "confirm/cancel") {
                         handleBedrockDialogCancel(player, worldData)
-                        return
-                }
-
-                val session = plugin.settingsSessionManager.getSession(player) ?: return
-
-                if (keyVal.startsWith("confirm/env_change/")) {
-                        val type = keyVal.substringAfter("confirm/env_change/")
-                        when (type) {
-                                "gravity" -> handleEnvGravityConfirm(player, worldData)
-                                "weather" -> handleWeatherConfirm(player, worldData)
-                                "biome" -> {
-                                        val biomeId = session.tempBiomeId ?: return
-                                        handleEnvBiomeConfirm(player, worldData, biomeId)
-                                }
-                        }
-                        plugin.environmentGui.open(player, worldData)
                         return
                 }
 

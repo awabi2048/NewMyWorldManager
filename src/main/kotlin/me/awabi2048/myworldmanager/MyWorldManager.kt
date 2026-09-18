@@ -76,6 +76,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var memberRequestManager: MemberRequestManager
     lateinit var pendingDecisionManager: PendingDecisionManager
     lateinit var pendingNotificationService: PendingNotificationService
+    lateinit var offlineMemberInviteNotifier: OfflineMemberInviteNotifier
     lateinit var favoriteGroupInviteService: FavoriteGroupInviteService
     lateinit var discoverySessionManager: DiscoverySessionManager
     lateinit var meetSessionManager: MeetSessionManager
@@ -102,7 +103,6 @@ class MyWorldManager : JavaPlugin() {
     lateinit var adminCommandGui: AdminCommandGui
     lateinit var spotlightConfirmGui: SpotlightConfirmGui
     lateinit var spotlightRemoveConfirmGui: SpotlightRemoveConfirmGui
-    lateinit var environmentGui: EnvironmentGui
     lateinit var memberRequestConfirmGui: MemberRequestConfirmGui
     lateinit var memberRequestOwnerConfirmGui: MemberRequestOwnerConfirmGui
     lateinit var worldSeedConfirmGui: WorldSeedConfirmGui
@@ -251,7 +251,6 @@ class MyWorldManager : JavaPlugin() {
         templateWizardGui = TemplateWizardGui(this)
         spotlightConfirmGui = SpotlightConfirmGui(this)
         spotlightRemoveConfirmGui = SpotlightRemoveConfirmGui(this)
-        environmentGui = EnvironmentGui(this)
         memberRequestConfirmGui = MemberRequestConfirmGui(this)
         memberRequestOwnerConfirmGui = MemberRequestOwnerConfirmGui(this)
         worldSeedConfirmGui = WorldSeedConfirmGui(this)
@@ -280,6 +279,7 @@ class MyWorldManager : JavaPlugin() {
         memberRequestManager = MemberRequestManager(this)
         pendingDecisionManager = PendingDecisionManager(this)
         pendingNotificationService = PendingNotificationService(this)
+        offlineMemberInviteNotifier = OfflineMemberInviteNotifier(this)
         favoriteGroupInviteService = FavoriteGroupInviteService(this)
 
         // 設定機能の初期化

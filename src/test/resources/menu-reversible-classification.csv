@@ -6,7 +6,6 @@ creation-cancel,CreationGui.kt,CANCEL,REVERSIBLE,myworldmanager:creation-session
 discovery-sort,DiscoveryGui.kt,sort,REVERSIBLE,myworldmanager:menu-session,discovery session sort mutation
 discovery-tag,DiscoveryGui.kt,tag,REVERSIBLE,myworldmanager:menu-session,discovery session tag mutation
 discovery-special,DiscoveryGui.kt,special_filter,REVERSIBLE,myworldmanager:menu-session,discovery session filter mutation
-environment-weather,EnvironmentGui.kt,weather,REVERSIBLE,myworldmanager:settings-session,temporary weather mutation
 favorite-tag,FavoriteGui.kt,tag,REVERSIBLE,myworldmanager:menu-session,favorite session tag mutation
 favorite-toggle,FavoriteGui.kt,toggle_current,REVERSIBLE,myworldmanager:player-state,favorite repository mutation
 gate-cancel,PortalListener.kt,cancel_gate,NAVIGATION_ONLY,,message and close only

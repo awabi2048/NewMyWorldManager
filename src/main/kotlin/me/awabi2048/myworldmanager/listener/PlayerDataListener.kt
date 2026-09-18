@@ -41,6 +41,10 @@ class PlayerDataListener : Listener {
         }
 
         plugin.pendingNotificationService.resendPersistent(player)
+        // オフライン中に届いたメンバー招待の想起はMWM管轄の汎用機能として実行する。
+        runCatching { plugin.offlineMemberInviteNotifier.notifyOnJoin(player) }.onFailure { error ->
+            plugin.logger.warning("[PlayerDataListener] オフラインメンバー招待通知に失敗しました: ${player.uniqueId} ${error.message}")
+        }
     }
 
     @EventHandler

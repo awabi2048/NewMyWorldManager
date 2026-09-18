@@ -286,6 +286,7 @@ class PlayerStatsRepository(private val plugin: MyWorldManager) {
             lastArchiveActionAt = readOptionalString(config, "last_archive_action_at"),
             tourSlotsByWorld = tourSlotsByWorld.toMutableMap(),
             tourNavigationMode = tourNavigationMode,
+            notifiedOfflineMemberInviteIds = readUuidList(config, "notified_offline_member_invite_ids").toMutableSet(),
         )
         val requiresMigration = schemaVersion < CURRENT_SCHEMA_VERSION ||
             config.contains("meet_enabled") ||
@@ -476,6 +477,7 @@ class PlayerStatsRepository(private val plugin: MyWorldManager) {
         config.set("tour_navigation_mode", stats.tourNavigationMode.name)
         val tourSlotsSection = config.createSection("tour_slots_by_world")
         stats.tourSlotsByWorld.forEach { (uuid, count) -> tourSlotsSection.set(uuid.toString(), count) }
+        config.set("notified_offline_member_invite_ids", stats.notifiedOfflineMemberInviteIds.map { it.toString() })
 
         try {
             target.parentFile?.mkdirs()

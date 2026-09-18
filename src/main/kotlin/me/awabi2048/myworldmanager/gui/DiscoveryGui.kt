@@ -59,6 +59,10 @@ import java.time.LocalDate
 
 class DiscoveryGui(private val plugin: MyWorldManager) {
         private val runtime = CCSystem.getAPI().getMenuRuntimeService()
+        // MWM正仕様：上位10枠のみ表示し、ページングは行わない。
+        // Chanpon側の完成順ページングとは分離する。
+        private val itemsPerPage = 10
+        private val worldItemSlots = listOf(21, 22, 23, 28, 29, 30, 31, 32, 33, 34)
 
         init {
                 runtime.register(
@@ -72,19 +76,18 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                         ACTION_SORT to MenuActionHandler(::sort),
                                         ACTION_SPECIAL_FILTER to MenuActionHandler(::specialFilter),
                                         ACTION_SPOTLIGHT_EMPTY to MenuActionHandler(::spotlightEmpty),
-                                        ACTION_PAGE to MenuActionHandler(::page),
                                         ACTION_BACK to MenuActionHandler(::back),
                                 ),
                         ),
                 )
         }
 
-        fun open(player: Player, page: Int = 0, showBackButton: Boolean? = null) {
+        fun open(player: Player, showBackButton: Boolean? = null) {
                 val session = plugin.discoverySessionManager.getSession(player.uniqueId)
                 if (showBackButton != null) {
                         session.showBackButton = showBackButton
                 }
-                runtime.navigate(player, route(page))
+                runtime.navigate(player, route())
         }
 
         private fun render(player: Player, route: MenuRoute): InventoryMenuView {
@@ -131,24 +134,23 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                 }
                         }
 
-                val page = CCSystem.getAPI().getGuiLayoutService().sevenColumnPage(
-                        sortedWorlds.size,
-                        route.payload[PAGE]?.toIntOrNull() ?: 0,
-                )
-                val layout = page.layout
-                val footerStart = layout.size - 9
-                val pageWorlds = sortedWorlds.drop(page.startIndex).take(page.itemCount)
+                val layout = GuiHelper.settingsLayout()
+                // 1ページのみ・上位10件の固定表示とする。
+                // 本文10枠は白枠背景とし、内容未配置分だけ背景要素で敷設する。
+                val pageWorlds = sortedWorlds.take(itemsPerPage)
                 val elements = mutableListOf<MenuElement>()
+                val occupiedContentSlots = mutableSetOf<Int>()
 
                 if (sortedWorlds.isEmpty()) {
                         if (session.sort == DiscoverySort.SPOTLIGHT) {
-                                layout.itemSlots.forEach { slot ->
+                                worldItemSlots.forEach { slot ->
                                         elements += createSpotlightEmptyEntry(player, slot)
+                                        occupiedContentSlots += slot
                                 }
                         } else {
                                 elements += CCSystem.getAPI().getGuiElementService().menuDisplay(
                                         GuiMenuDisplaySpec(
-                                                layout.itemSlots[layout.itemSlots.size / 2],
+                                                31,
                                                 GuiItemSpec(
                                                         Material.GRAY_DYE,
                                                         GuiNameSpec.FixedLabel(
@@ -161,40 +163,41 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                                 ),
                                         ),
                                 )
+                                occupiedContentSlots += 31
                         }
                 } else {
                         pageWorlds.forEachIndexed { index, worldData ->
-                                elements += createWorldEntry(player, worldData, layout.itemSlots[index])
+                                elements += createWorldEntry(player, worldData, worldItemSlots[index])
+                                occupiedContentSlots += worldItemSlots[index]
                         }
                         if (session.sort == DiscoverySort.SPOTLIGHT) {
-                                for (i in pageWorlds.size until layout.itemSlots.size) {
-                                        elements += createSpotlightEmptyEntry(player, layout.itemSlots[i])
+                                for (i in pageWorlds.size until worldItemSlots.size) {
+                                        elements += createSpotlightEmptyEntry(player, worldItemSlots[i])
+                                        occupiedContentSlots += worldItemSlots[i]
                                 }
                         }
                 }
+                // 旧実装の白枠3+7=10スロット表示を復元する。背景要素は無操作の装飾として扱う。
+                worldItemSlots
+                        .filter { it !in occupiedContentSlots }
+                        .forEach { slot ->
+                                elements += CCSystem.getAPI().getGuiElementService().backgroundEntry(
+                                        slot,
+                                        Material.WHITE_STAINED_GLASS_PANE,
+                                )
+                        }
                 if (GuiHelper.canGoBack(player)) {
-                        elements += backEntry(player, layout.backSlot)
+                        elements += backEntry(player, 45)
                 }
-                if (page.page > 0) {
-                        elements += navigationEntry(player, layout.previousPageSlot, false, page.page - 1)
-                }
-                elements += createTagFilterEntry(player, session.selectedTag, footerStart + 2)
-                elements += createSortEntry(player, session.sort, footerStart + 3)
-                elements += createStatsEntry(player, layout.actionSlot, session.sort, session.selectedTag, sortedWorlds.size)
-                elements += createSpecialFilterEntry(player, session.specialFilter, footerStart + 5)
-                if (page.page < page.totalPages - 1) {
-                        elements += navigationEntry(player, layout.nextPageSlot, true, page.page + 1)
-                }
+                elements += createTagFilterEntry(player, session.selectedTag, 47)
+                elements += createSortEntry(player, session.sort, 48)
+                elements += createStatsEntry(player, 49, session.sort, session.selectedTag, sortedWorlds.size)
+                elements += createSpecialFilterEntry(player, session.specialFilter, 50)
                 return InventoryMenuView(
                         layout.size,
                         GuiHelper.inventoryTitle(lang.getMessage(player, MyworldGuiDiscoveryKeys.GUI_DISCOVERY_TITLE)),
                         elements,
                 )
-        }
-
-        private fun page(context: MenuActionContext): MenuActionResult {
-                val target = context.payload[PAGE]?.toIntOrNull() ?: return MenuActionResult.Rejected()
-                return MenuActionResult.Success(MenuUpdate.Replace(route(target)))
         }
 
         private fun back(context: MenuActionContext): MenuActionResult {
@@ -209,7 +212,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         plugin.worldTagManager.getEnabledTagIds() + null,
                         direction,
                 )
-                return MenuActionResult.Success(MenuUpdate.Replace(route(0)))
+                return MenuActionResult.Success(MenuUpdate.Replace(route()))
         }
 
         private fun sort(context: MenuActionContext): MenuActionResult {
@@ -227,7 +230,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 }
                 val direction = cycleDirection(context) ?: return MenuActionResult.Ignored
                 session.sort = GuiCycle.select(session.sort, DiscoverySort.values(), direction)
-                return MenuActionResult.Success(MenuUpdate.Replace(route(0)))
+                return MenuActionResult.Success(MenuUpdate.Replace(route()))
         }
 
         private fun specialFilter(context: MenuActionContext): MenuActionResult {
@@ -238,7 +241,7 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         DiscoverySpecialFilter.values(),
                         direction,
                 )
-                return MenuActionResult.Success(MenuUpdate.Replace(route(0)))
+                return MenuActionResult.Success(MenuUpdate.Replace(route()))
         }
 
         private fun world(context: MenuActionContext): MenuActionResult {
@@ -407,8 +410,8 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                         GuiCycle.direction(context.click)
                 }
 
-        private fun route(page: Int): MenuRoute =
-                MenuRoute(OWNER, ROUTE_ID, mapOf(PAGE to page.toString()))
+        private fun route(): MenuRoute =
+                MenuRoute(OWNER, ROUTE_ID, emptyMap())
 
         private fun createWorldEntry(player: Player, data: WorldData, slot: Int): MenuElement {
                 val lang = plugin.languageManager
@@ -630,30 +633,6 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                 )
         }
 
-        private fun navigationEntry(player: Player, slot: Int, next: Boolean, targetPage: Int): MenuElement {
-                val key = if (next) CommonKeys.GUI_COMMON_NEXT_PAGE else CommonKeys.GUI_COMMON_PREV_PAGE
-                val iconId = if (next) "next_page" else "prev_page"
-                return CCSystem.getAPI().getGuiElementService().menuEntry(
-                        player,
-                        GuiMenuEntrySpec(
-                                slot = slot,
-                                material = plugin.menuConfigManager.getIconMaterial("discovery", iconId, Material.ARROW),
-                                name = GuiNameSpec.FixedLabel(plugin.languageManager.getComponent(player, key)),
-                                role = GuiElementRole.NAVIGATION,
-                                actions = listOf(
-                                        menuGestureAction(
-                                                ACTION_PAGE,
-                                                MenuGesture.LEFT_RIGHT,
-                                                plugin.languageManager.getMessage(player, key),
-                                                mapOf(PAGE to targetPage.toString()),
-                                                safety = MenuActionSafety.NAVIGATION_ONLY,
-                                        ),
-                                ),
-                                interactionGuidance = GuiInteractionGuidance.SINGLE_ACTION_CLICK,
-                        ),
-                )
-        }
-
         private fun backEntry(player: Player, slot: Int): MenuElement =
                 CCSystem.getAPI().getGuiElementService().backEntry(
                         player,
@@ -685,14 +664,12 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
         companion object {
                 private const val OWNER = "myworldmanager"
                 private const val ROUTE_ID = "discovery"
-                private const val PAGE = "page"
                 private const val WORLD_UUID = "worldUuid"
                 private const val ACTION_WORLD = "world"
                 private const val ACTION_TAG = "tag"
                 private const val ACTION_SORT = "sort"
                 private const val ACTION_SPECIAL_FILTER = "specialFilter"
                 private const val ACTION_SPOTLIGHT_EMPTY = "spotlightEmpty"
-                private const val ACTION_PAGE = "page"
                 private const val ACTION_BACK = "back"
         }
 }
