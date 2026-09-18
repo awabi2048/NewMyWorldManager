@@ -390,12 +390,6 @@ class WorldGui(private val plugin: MyWorldManager) {
         }
 
         private fun warp(player: Player, worldData: WorldData): MenuActionResult {
-                val folderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
-                if (Bukkit.getWorld(folderName) == null) {
-                        player.sendMessage(
-                                plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_LOADING),
-                        )
-                }
                 plugin.worldService.teleportToWorld(player, worldData.uuid, runMacro = false) {
                         player.sendMessage(
                                 plugin.languageManager.getMessage(
