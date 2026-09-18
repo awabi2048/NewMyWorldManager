@@ -861,22 +861,20 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         WorldSettingsDisplayMode.DEFAULT -> if (isMemberLayout) 45 else 54
                 }
                 val bottomRowStartSlot = inventorySize - 9
-                // ワールド情報はヘッダー中央、戻るボタンはフッター中央へ固定して、ツアー/Chanpon側と視線を揃える。
+                // ワールド情報はヘッダー中央、戻るボタンはフッター中央へ固定します。
                 val backButtonSlot = bottomRowStartSlot + 4
                 val worldInfoSlot = 4
-                // チャンポン導入環境ではツアーを slot 30 へ配置し、純粋MWMではフッター右側（8マス目）へ配置します。
-                // フッター3マス目は訪問中プレイヤー管理に空けるためです。
-                val chanponActive = plugin.server.pluginManager.isPluginEnabled("MWMChanpon")
-                val tourSettingSlot = if (chanponActive) 30 else bottomRowStartSlot + 8
+                // ツアーはフッター2マス目、重大な設定はフッター7マス目へ配置します。
+                // Chanpon画面とは配置ID・スロット予約を共有しないため、MWM独自の予約に従います。
+                val tourSettingSlot = bottomRowStartSlot + 1
+                val criticalSettingSlot = bottomRowStartSlot + 6
 
                 val infoSettingSlot = if (useModeratorCenteredLayout) 21 else 19
                 val iconSettingSlot = if (useModeratorCenteredLayout) 22 else 20
                 val spawnSettingSlot = if (useModeratorCenteredLayout) 23 else 21
-                // チャンポン導入環境のモデレーター中央レイアウトではツアーが slot 30 を使用するため、タグ設定を左へ移動します。
-                val tagsSettingSlot = if (useModeratorCenteredLayout) (if (chanponActive) 28 else 30) else 28
+                val tagsSettingSlot = if (useModeratorCenteredLayout) 30 else 28
                 val announcementSettingSlot = if (useModeratorCenteredLayout) 31 else 29
-                // チャンポン導入環境ではツアーが slot 30 を使用するため、通知設定を1つ右へ移動します。
-                val notificationSettingSlot = if (useModeratorCenteredLayout) 32 else (if (chanponActive) 31 else 30)
+                val notificationSettingSlot = if (useModeratorCenteredLayout) 32 else 30
 
                 val inventory = RuntimeItemBuffer(inventorySize, player)
 
@@ -1430,14 +1428,13 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 }
 
-                // スロット33: 重大な設定 (オーナーのみ)
-                // スロット33: 重大な設定 (オーナーのみ)
+                // フッター7マス目: 重大な設定 (オーナーのみ)
                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
                 if (ownerActionsAllowed && stats.criticalSettingsEnabled) {
                         inventory.setMenuEntry(
                                 player,
                                 GuiMenuEntrySpec(
-                                        slot = 33,
+                                        slot = criticalSettingSlot,
                                         material = plugin.menuConfigManager.getIconMaterial(
                                                 "world_settings",
                                                 "critical",
@@ -1707,7 +1704,7 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         inventory,
                         player,
                         WorldSettingsCapabilityPlacements.CRITICAL_ACTION,
-                        listOf(33),
+                        listOf(criticalSettingSlot),
                         mapOf(WORLD_UUID_ARGUMENT to worldData.uuid.toString()),
                 )
                 applyCapabilities(

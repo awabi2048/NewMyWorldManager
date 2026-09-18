@@ -136,13 +136,16 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
 
                 val layout = GuiHelper.settingsLayout()
                 // 1ページのみ・上位10件の固定表示とする。
+                // 本文10枠は白枠背景とし、内容未配置分だけ背景要素で敷設する。
                 val pageWorlds = sortedWorlds.take(itemsPerPage)
                 val elements = mutableListOf<MenuElement>()
+                val occupiedContentSlots = mutableSetOf<Int>()
 
                 if (sortedWorlds.isEmpty()) {
                         if (session.sort == DiscoverySort.SPOTLIGHT) {
                                 worldItemSlots.forEach { slot ->
                                         elements += createSpotlightEmptyEntry(player, slot)
+                                        occupiedContentSlots += slot
                                 }
                         } else {
                                 elements += CCSystem.getAPI().getGuiElementService().menuDisplay(
@@ -160,17 +163,29 @@ class DiscoveryGui(private val plugin: MyWorldManager) {
                                                 ),
                                         ),
                                 )
+                                occupiedContentSlots += 31
                         }
                 } else {
                         pageWorlds.forEachIndexed { index, worldData ->
                                 elements += createWorldEntry(player, worldData, worldItemSlots[index])
+                                occupiedContentSlots += worldItemSlots[index]
                         }
                         if (session.sort == DiscoverySort.SPOTLIGHT) {
                                 for (i in pageWorlds.size until worldItemSlots.size) {
                                         elements += createSpotlightEmptyEntry(player, worldItemSlots[i])
+                                        occupiedContentSlots += worldItemSlots[i]
                                 }
                         }
                 }
+                // 旧実装の白枠3+7=10スロット表示を復元する。背景要素は無操作の装飾として扱う。
+                worldItemSlots
+                        .filter { it !in occupiedContentSlots }
+                        .forEach { slot ->
+                                elements += CCSystem.getAPI().getGuiElementService().backgroundEntry(
+                                        slot,
+                                        Material.WHITE_STAINED_GLASS_PANE,
+                                )
+                        }
                 if (GuiHelper.canGoBack(player)) {
                         elements += backEntry(player, 45)
                 }
