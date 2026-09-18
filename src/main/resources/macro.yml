@@ -2,38 +2,38 @@
 # 特定のタイミングで実行されるコンソールコマンドを設定します。
 # 遅延が必要な場合は、MyWorldManager独自の記法ではなくCC-Systemのdelayコマンドを使用してください。
 # 例: "delay 5s say %world_name% が作成されました。"
-# 利用可能なプレースホルダー:
-#   %owner%: ワールド所有者のユーザー名
-#   %old_owner%: 移譲前のオーナーのユーザー名
-#   %new_owner%: 移譲後のオーナーのユーザー名
-#   %player%: ワールドに移ったプレイヤーのユーザー名
-#   %member%: 管理されたメンバーのユーザー名
-#   %world_uuid%: 対象ワールドのUUID
-#   %world_name%: 対象ワールドの名前
-#   %template_name%: 使用されたテンプレート名
+#
+# 各トリガーで利用可能なプレースホルダーは /mwm macro でも確認できます。
 
 macros:
   # ワールドが新規作成されたとき
+  # 利用可能: %owner%, %world_uuid%, %world_name%, %template_name%
   on_world_create:
     # - "say %owner% がテンプレート %template_name% で %world_name% (%world_uuid%) を作成しました"
-  
+
   # オーナー権限が譲渡されたとき
+  # 利用可能: %old_owner%, %new_owner%, %world_uuid%
   on_owner_transfer:
     # - "say %old_owner% が %new_owner% にワールド %world_uuid% を譲渡しました"
-  
-  # プレイヤーがワールドにワープしたとき
+
+  # プレイヤーがワールドへのワープを完了したとき
+  # 利用可能: %player%, %world_uuid%
   on_world_warp:
     # - "say %player% がワールド %world_uuid% にワープしました"
-  
+
   # プレイヤーがワールドメンバーに追加されたとき
+  # 利用可能: %member%, %world_uuid%
   on_member_add:
     # - "say %member% がワールド %world_uuid% のメンバーに追加されました"
-  
+
   # プレイヤーがワールドメンバーから削除されたとき
+  # 利用可能: %member%, %world_uuid%
   on_member_remove:
     # - "say %member% がワールド %world_uuid% のメンバーから削除されました"
-  
+
   # ワールドが削除されたとき
+  # 利用可能: %world_uuid%
+  # 現行実装では削除前オーナーはマクロ引数として渡されません。
   on_world_delete:
     # - "say ワールド %world_uuid% が削除されました"
 config_version: 1
