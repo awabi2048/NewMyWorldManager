@@ -208,8 +208,8 @@ class BedrockMenuService(
         runtime.navigate(player, settingsRoute(showBackButton, returnPage))
     }
 
-    fun openDiscovery(player: Player, page: Int = 0, showBackButton: Boolean = false) {
-        plugin.discoveryGui.open(player, page, showBackButton)
+    fun openDiscovery(player: Player, showBackButton: Boolean = false) {
+        plugin.discoveryGui.open(player, showBackButton)
     }
 
     fun openFavoriteList(
