@@ -953,10 +953,15 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                 val targetWorldName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
                 val isInWorld =
                         MyWorldManagerApi.getWorldService()?.isPlayerInWorld(player, worldData) == true
+                // 閲覧役割別の理由表示はワールド外を最優先する。権限判定は置換しない。
+                val viewerRestriction = WorldSettingsRestrictionMessages.viewerRestriction(
+                        isInWorld,
+                        isOwner,
+                        isModerator,
+                        isMember,
+                )
                 val warningLore =
-                        if (!isInWorld)
-                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_COMMON_MUST_BE_IN_WORLD)
-                        else null
+                        viewerRestriction?.let { plugin.languageManager.getMessage(player, WorldSettingsRestrictionMessages.warningKey(it)) }
 
                 // アイコン変更
                 if (hasManagePermission) {

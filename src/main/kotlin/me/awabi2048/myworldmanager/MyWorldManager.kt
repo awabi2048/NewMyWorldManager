@@ -76,6 +76,7 @@ class MyWorldManager : JavaPlugin() {
     lateinit var memberRequestManager: MemberRequestManager
     lateinit var pendingDecisionManager: PendingDecisionManager
     lateinit var pendingNotificationService: PendingNotificationService
+    lateinit var offlineMemberInviteNotifier: OfflineMemberInviteNotifier
     lateinit var favoriteGroupInviteService: FavoriteGroupInviteService
     lateinit var discoverySessionManager: DiscoverySessionManager
     lateinit var meetSessionManager: MeetSessionManager
@@ -278,6 +279,7 @@ class MyWorldManager : JavaPlugin() {
         memberRequestManager = MemberRequestManager(this)
         pendingDecisionManager = PendingDecisionManager(this)
         pendingNotificationService = PendingNotificationService(this)
+        offlineMemberInviteNotifier = OfflineMemberInviteNotifier(this)
         favoriteGroupInviteService = FavoriteGroupInviteService(this)
 
         // 設定機能の初期化
