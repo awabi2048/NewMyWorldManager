@@ -102,7 +102,6 @@ class MyWorldManager : JavaPlugin() {
     lateinit var adminCommandGui: AdminCommandGui
     lateinit var spotlightConfirmGui: SpotlightConfirmGui
     lateinit var spotlightRemoveConfirmGui: SpotlightRemoveConfirmGui
-    lateinit var environmentGui: EnvironmentGui
     lateinit var memberRequestConfirmGui: MemberRequestConfirmGui
     lateinit var memberRequestOwnerConfirmGui: MemberRequestOwnerConfirmGui
     lateinit var worldSeedConfirmGui: WorldSeedConfirmGui
@@ -251,7 +250,6 @@ class MyWorldManager : JavaPlugin() {
         templateWizardGui = TemplateWizardGui(this)
         spotlightConfirmGui = SpotlightConfirmGui(this)
         spotlightRemoveConfirmGui = SpotlightRemoveConfirmGui(this)
-        environmentGui = EnvironmentGui(this)
         memberRequestConfirmGui = MemberRequestConfirmGui(this)
         memberRequestOwnerConfirmGui = MemberRequestOwnerConfirmGui(this)
         worldSeedConfirmGui = WorldSeedConfirmGui(this)

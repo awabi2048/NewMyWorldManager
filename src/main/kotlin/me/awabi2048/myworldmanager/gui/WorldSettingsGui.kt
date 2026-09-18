@@ -633,7 +633,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         WorldSettingsRuntimeOperation.BACK,
                         WorldSettingsRuntimeOperation.TOUR,
                         WorldSettingsRuntimeOperation.MANAGE_MEMBERS,
-                        WorldSettingsRuntimeOperation.OPEN_ENVIRONMENT,
                         WorldSettingsRuntimeOperation.OPEN_CRITICAL,
                         WorldSettingsRuntimeOperation.MANAGE_VISITORS,
                         WorldSettingsRuntimeOperation.MANAGE_PORTALS,
@@ -685,7 +684,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                 WorldSettingsRuntimeOperation.EDIT_TAGS -> plugin.languageManager.getMessage(viewer, MyworldGuiSettingsKeys.GUI_SETTINGS_TAGS_ACTION_EDIT)
                                 WorldSettingsRuntimeOperation.EDIT_ANNOUNCEMENT -> plugin.languageManager.getMessage(viewer, MyworldGuiSettingsKeys.GUI_SETTINGS_ANNOUNCEMENT_ACTION_SET_MESSAGE)
                                 WorldSettingsRuntimeOperation.TOGGLE_NOTIFICATION -> plugin.languageManager.getMessage(viewer, MyworldGuiSettingsKeys.GUI_SETTINGS_NOTIFICATION_ACTION_TOGGLE)
-                                WorldSettingsRuntimeOperation.OPEN_ENVIRONMENT -> plugin.languageManager.getMessage(viewer, MyworldGuiSettingsKeys.GUI_SETTINGS_ENVIRONMENT_ACTION_OPEN)
                                 WorldSettingsRuntimeOperation.OPEN_CRITICAL -> plugin.languageManager.getMessage(viewer, MyworldGuiSettingsKeys.GUI_SETTINGS_CRITICAL_ACTION_OPEN)
                                 WorldSettingsRuntimeOperation.MANAGE_VISITORS -> plugin.languageManager.getMessage(viewer, MyworldGuiSettingsKeys.GUI_SETTINGS_VISITORS_ACTION_OPEN)
                                 WorldSettingsRuntimeOperation.MANAGE_PORTALS -> plugin.languageManager.getMessage(viewer, MyworldGuiSettingsKeys.GUI_SETTINGS_PORTALS_ACTION_OPEN)
@@ -1427,38 +1425,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 }
 
-                // スロット32: 環境設定 (オーナーのみ)
-                if (ownerActionsAllowed && !isBedrock) {
-                        inventory.setMenuEntry(
-                                player,
-                                GuiMenuEntrySpec(
-                                        slot = 32,
-                                        material = plugin.menuConfigManager.getIconMaterial(
-                                                "world_settings",
-                                                "environment",
-                                                Material.GRASS_BLOCK,
-                                        ),
-                                        name = me.awabi2048.myworldmanager.util.fixedLabelName(
-                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_ENVIRONMENT_DISPLAY),
-                                                GuiNameStyle.DEFAULT,
-                                        ),
-                                        role = if (isInWorld) GuiElementRole.ACTION else GuiElementRole.CONTENT,
-                                        description = lang.getMessageList(
-                                                player,
-                                                MyworldGuiSettingsKeys.GUI_SETTINGS_ENVIRONMENT_BLOCKS_SUMMARY,
-                                        ),
-                                        warnings = if (!isInWorld && warningLore != null) listOf(warningLore) else emptyList(),
-                                        actions = if (isInWorld) listOf(menuGestureAction(
-                                                ACTION_RUNTIME_DISPATCH,
-                                                MenuGesture.ANY,
-                                                lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_ENVIRONMENT_ACTION_OPEN),
-                                                mapOf(ROUTE_OPERATION to WorldSettingsRuntimeOperation.OPEN_ENVIRONMENT.name),
-                                                safety = MenuActionSafety.NAVIGATION_ONLY,
-                                        )) else emptyList(),
-                                ),
-                        )
-                }
-
                 // スロット33: 重大な設定 (オーナーのみ)
                 // スロット33: 重大な設定 (オーナーのみ)
                 val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
@@ -1730,13 +1696,6 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                                         notificationSettingSlot
                                 },
                         ),
-                        mapOf(WORLD_UUID_ARGUMENT to worldData.uuid.toString()),
-                )
-                applyCapabilities(
-                        inventory,
-                        player,
-                        WorldSettingsCapabilityPlacements.ENVIRONMENT_ACTION,
-                        listOf(32),
                         mapOf(WORLD_UUID_ARGUMENT to worldData.uuid.toString()),
                 )
                 applyCapabilities(

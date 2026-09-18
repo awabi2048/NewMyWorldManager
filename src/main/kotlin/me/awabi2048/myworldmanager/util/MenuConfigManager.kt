@@ -88,25 +88,6 @@ class MenuConfigManager(private val plugin: MyWorldManager) {
                                                     "access_denied" to icon()
                                             )
                             ),
-                    "environment" to
-                            menuConfig(
-                                    icons =
-                                            mapOf(
-                                                    "back" to icon(Material.ARROW),
-                                                    "insufficient_points" to icon(),
-                                                    "gravity_change" to icon(),
-                                                    "biome_change" to icon(),
-                                                    "weather_change" to icon()
-                                            )
-                            ),
-                    "environment_confirm" to
-                            menuConfig(
-                                    icons =
-                                            mapOf(
-                                                    "confirm" to icon(Material.LIME_CONCRETE),
-                                                    "cancel" to icon(Material.RED_CONCRETE)
-                                            )
-                            ),
                     "favorite" to
                             menuConfig(
                                     icons =

@@ -141,7 +141,6 @@ class MenuNavigationContractTest {
             "openVisitorManagement(",
             "openCriticalSettings(",
             "openPortalManagement(",
-            "environmentGui.open(",
         ).forEach { childOpen ->
             listener.indices
                 .filter { listener.startsWith(childOpen, it) }
@@ -295,7 +294,6 @@ class MenuNavigationContractTest {
     private companion object {
         val BACK_SCREENS = listOf(
             "AdminPortalGui.kt",
-            "EnvironmentGui.kt",
             "FavoriteGui.kt",
             "InviteGui.kt",
             "MeetGui.kt",
