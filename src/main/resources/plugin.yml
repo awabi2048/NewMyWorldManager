@@ -147,6 +147,7 @@ permissions:
       myworldmanager.command.mwm.stats: true
       myworldmanager.command.mwm.list: true
       myworldmanager.command.mwm.migration: true
+      myworldmanager.command.mwm.macro: true
   myworldmanager.command.mwm.create:
     description: Allows use of /mwm create
     default: false
@@ -161,6 +162,9 @@ permissions:
     default: false
   myworldmanager.command.mwm.migration:
     description: Allows use of /mwm migration
+    default: false
+  myworldmanager.command.mwm.macro:
+    description: Allows use of /mwm macro
     default: false
   myworldmanager.command.mwm_internal:
     description: Allows MyWorldManager internal command visibility

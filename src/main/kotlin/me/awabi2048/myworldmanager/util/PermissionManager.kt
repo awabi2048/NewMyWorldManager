@@ -32,6 +32,7 @@ object PermissionManager {
     const val COMMAND_MWM_STATS = "myworldmanager.command.mwm.stats"
     const val COMMAND_MWM_LIST = "myworldmanager.command.mwm.list"
     const val COMMAND_MWM_MIGRATION = "myworldmanager.command.mwm.migration"
+    const val COMMAND_MWM_MACRO = "myworldmanager.command.mwm.macro"
     const val COMMAND_MWM_INTERNAL = "myworldmanager.command.mwm_internal"
 
     /**

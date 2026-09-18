@@ -1012,7 +1012,6 @@ class BedrockMenuService(
         val folderName = worldData.customWorldName ?: "my_world.${worldData.uuid}"
         if (Bukkit.getWorld(folderName) == null) {
             runtime.close(player)
-            player.sendMessage(tr(player, MyworldMessagesKeys.MESSAGES_WORLD_LOADING))
             plugin.worldService.teleportToWorld(player, worldData.uuid) {
                 completeWarpToWorld(player, worldData)
             }

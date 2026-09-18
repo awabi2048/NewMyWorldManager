@@ -23,6 +23,8 @@ import org.bukkit.command.CommandSender
 import org.bukkit.command.TabCompleter
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
 
 /** MyWorldManagerの主要なコマンドを受け付けるクラス */
 class WorldCommand(
@@ -77,6 +79,32 @@ class WorldCommand(
         }
 
         when (args[0].lowercase()) {
+            "macro" -> {
+                plugin.macroManager.loadConfig()
+                sender.sendMessage(Component.text("MyWorldManager macro registrations", NamedTextColor.GOLD))
+                plugin.macroManager.registrations().forEach { registration ->
+                    val placeholders = if (registration.placeholders.isEmpty()) {
+                        "なし"
+                    } else {
+                        registration.placeholders.joinToString(", ") { "%$it%" }
+                    }
+                    val registeredCommands = if (registration.commands.isEmpty()) {
+                        "（未登録）"
+                    } else {
+                        registration.commands.mapIndexed { index, value -> (index + 1).toString() + ". " + value }.joinToString("\n")
+                    }
+                    val hover = Component.text(
+                        "利用可能引数: " + placeholders + "\n登録コマンド:\n" + registeredCommands,
+                        NamedTextColor.GRAY,
+                    )
+                    sender.sendMessage(
+                        Component.text("• " + registration.trigger, NamedTextColor.AQUA)
+                            .append(Component.text(" [" + registration.commands.size + "]", NamedTextColor.DARK_GRAY))
+                            .hoverEvent(hover),
+                    )
+                }
+                return true
+            }
             "migration" -> {
                 val action = args.getOrNull(1)?.lowercase()
                 when (action) {
@@ -374,9 +402,10 @@ class WorldCommand(
         val hasReloadPermission = hasGlobalPermission || PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_RELOAD)
         val hasStatsPermission = hasGlobalPermission || PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_STATS)
         val hasMigrationPermission = hasGlobalPermission || PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_MIGRATION)
+        val hasMacroPermission = hasGlobalPermission || PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_MACRO)
         val hasWorldListPermission =
                 hasGlobalPermission || PermissionManager.checkAnyPermission(sender, PermissionManager.COMMAND_MWM_LIST, PermissionManager.ADMIN_WORLD_LIST)
-        if (!hasGlobalPermission && !hasCreatePermission && !hasReloadPermission && !hasStatsPermission && !hasMigrationPermission && !hasWorldListPermission) return emptyList()
+        if (!hasGlobalPermission && !hasCreatePermission && !hasReloadPermission && !hasStatsPermission && !hasMigrationPermission && !hasMacroPermission && !hasWorldListPermission) return emptyList()
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
 
         when (args.size) {
@@ -398,6 +427,9 @@ class WorldCommand(
                 }
                 if (hasMigrationPermission && canSuggestSubCommand(sender, "migration", args.toList())) {
                     list.add("migration")
+                }
+                if (hasMacroPermission && canSuggestSubCommand(sender, "macro", args.toList())) {
+                    list.add("macro")
                 }
             }
             2 -> {
@@ -455,6 +487,7 @@ class WorldCommand(
     private fun hasSubcommandPermission(sender: CommandSender, subCommand: String?): Boolean {
         return when (subCommand) {
             "migration" -> PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_MIGRATION)
+            "macro" -> PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_MACRO)
             "create" -> PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_CREATE)
             "reload" -> PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_RELOAD)
             "stats" -> PermissionManager.checkPermission(sender, PermissionManager.COMMAND_MWM_STATS)
@@ -469,6 +502,6 @@ class WorldCommand(
     }
 
     companion object {
-        private val enabledSubCommands = setOf("create", "reload", "stats", "update-day", "list", "migration")
+        private val enabledSubCommands = setOf("create", "reload", "stats", "update-day", "list", "migration", "macro")
     }
 }

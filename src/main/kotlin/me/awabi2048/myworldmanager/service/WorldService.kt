@@ -1170,7 +1170,7 @@ class WorldService(
                         // マクロ実行
                         if (runMacro) {
                             plugin.macroManager.execute(
-                                    "on_join",
+                                    "on_world_warp",
                                     mapOf("player" to player.name, "world_uuid" to worldUuid.toString())
                             )
                         }
