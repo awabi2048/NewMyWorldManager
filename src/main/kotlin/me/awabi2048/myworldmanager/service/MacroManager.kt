@@ -52,6 +52,30 @@ class MacroManager(
         }
     }
 
+    /**
+     * 管理コマンド向けに、MWMが保証するトリガー契約と現在の登録内容を返します。
+     * プレースホルダー一覧は実際の呼出側が常に渡す値だけを定義します。
+     */
+    fun registrations(): List<Registration> =
+        TRIGGER_PLACEHOLDERS.map { (trigger, placeholders) ->
+            Registration(
+                trigger = trigger,
+                placeholders = placeholders,
+                commands = config.getStringList("macros.$trigger"),
+            )
+            companion object {
+        private val TRIGGER_PLACEHOLDERS = linkedMapOf(
+            "on_world_create" to listOf("owner", "world_uuid", "world_name", "template_name"),
+            "on_owner_transfer" to listOf("old_owner", "new_owner", "world_uuid"),
+            "on_world_warp" to listOf("player", "world_uuid"),
+            "on_member_add" to listOf("member", "world_uuid"),
+            "on_member_remove" to listOf("member", "world_uuid"),
+            // 現行の削除経路は owner をマクロへ渡していません。
+            "on_world_delete" to listOf("world_uuid"),
+        )
+    }
+}
+
     private fun dispatch(command: String) {
         if (Bukkit.isPrimaryThread()) {
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command)
