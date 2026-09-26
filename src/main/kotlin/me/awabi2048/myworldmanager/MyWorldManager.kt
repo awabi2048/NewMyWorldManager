@@ -476,6 +476,7 @@ class MyWorldManager : JavaPlugin() {
     override fun onDisable() {
         if (::worldService.isInitialized) {
             worldService.clearPendingWarpRequests()
+            worldService.clearPendingCreations()
         }
         reversiblePlanCleanupTask?.cancel()
         reversiblePlanCleanupTask = null
