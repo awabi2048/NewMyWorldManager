@@ -3,6 +3,9 @@
 docs/
 src/test/resources/architecture/runtime-ui-legacy-allowlist.txt
 target/
+.gradle/
+build/
+.kotlin/
 .idea/
 .vscode/
 .devcontainer/
