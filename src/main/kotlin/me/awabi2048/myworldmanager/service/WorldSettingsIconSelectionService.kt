@@ -36,7 +36,11 @@ internal class WorldSettingsIconSelectionService(private val plugin: MyWorldMana
         plugin.worldConfigRepository.save(worldData)
         val marker = "\uE000mwm_icon\uE001"
         val name = clickedItem.effectiveName().decoration(TextDecoration.ITALIC, false)
-        player.sendMessage(plugin.languageManager.getComponent(player, MyworldMessagesKeys.MESSAGES_ICON_CHANGED, mapOf("icon" to marker)).replaceText { it.matchLiteral(marker).replacement(name) })
+        val replacement = net.kyori.adventure.text.TextReplacementConfig.builder()
+            .matchLiteral(marker)
+            .replacement(name)
+            .build()
+        player.sendMessage(plugin.languageManager.getComponent(player, MyworldMessagesKeys.MESSAGES_ICON_CHANGED, mapOf("icon" to marker)).replaceText(replacement))
         plugin.settingsSessionManager.updateSessionAction(player, worldData.uuid, SettingsAction.VIEW_SETTINGS, isGui = true)
         val restored = plugin.settingsSessionManager.getSession(player)
         val route = MyWorldManagerApi.prepareWorldSettingsRoute(player, worldData.uuid, me.awabi2048.myworldmanager.api.extension.WorldSettingsNavigationRequest(showBackButton = restored?.showBackButton ?: true, isAdminFlow = restored?.isAdminFlow ?: false, isPlayerWorldFlow = restored?.isPlayerWorldFlow, parentShowBackButton = restored?.parentShowBackButton)) ?: return MenuActionResult.Rejected()
