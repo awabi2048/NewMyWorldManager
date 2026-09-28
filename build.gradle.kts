@@ -29,6 +29,8 @@ kotlin {
 // pom.xml の provided スコープ相当（compileOnly へ配置し、テストのコンパイル・実行双方で見えるよう testImplementation にも追加）
 val providedDeps = listOf(
     "io.papermc.paper:paper-api:26.1.2.build.72-stable",
+    // bungeecord-chat等が同梱する旧gsonを上書き解決するため明示宣言（Mavenでは宣言順で先行解決されていた）
+    "com.google.code.gson:gson:2.13.2",
     "com.awabi2048:CC-System:26.905.2",
     "com.github.LeonMangler:PremiumVanishAPI:2.9.18-2",
     "net.luckperms:api:5.4",
