@@ -28,7 +28,6 @@ class WorldPermissionPolicyService(
 ) {
     private val stateFile = File(dataFolder, "data/world_permission_policy.yml")
     private val missingWorkGroupWarned = AtomicBoolean(false)
-    private val managedWorkGroups: Set<String> = loadManagedWorkGroups()
 
     fun initializeWorld(worldData: WorldData) {
         initializeDefaultsOnce(worldData)
@@ -71,7 +70,7 @@ class WorldPermissionPolicyService(
 
     /**
      * ワールドが未ロードでもLuckPermsのワールドコンテキストを移行できるよう、
-     * 永続権限だけを同期します。設定変更時の旧グループ除去はロード待ちにしません。
+     * 永続権限だけを同期します。
      */
     fun syncPersistentParticipantPermissions(worldData: WorldData) {
         syncParticipantPermissions(worldData, worldData.owner, OWNER_PERMISSIONS)
@@ -150,11 +149,11 @@ class WorldPermissionPolicyService(
                 rolePermissions.forEach { permission ->
                     user.data().add(permissionNode(permission, worldName))
                 }
-                managedWorkGroups.forEach { group ->
-                    user.data().remove(workGroupNode(group, worldName))
-                }
-                if (workGroupAllowed) {
-                    user.data().add(workGroupNode(workGroupName, worldName))
+                if (workGroupName.isNotEmpty()) {
+                    user.data().remove(workGroupNode(workGroupName, worldName))
+                    if (workGroupAllowed) {
+                        user.data().add(workGroupNode(workGroupName, worldName))
+                    }
                 }
                 api.userManager.saveUser(user)
             }
@@ -171,8 +170,8 @@ class WorldPermissionPolicyService(
                 ALL_ROLE_PERMISSIONS.forEach { permission ->
                     user.data().remove(permissionNode(permission, worldName))
                 }
-                managedWorkGroups.forEach { group ->
-                    user.data().remove(workGroupNode(group, worldName))
+                if (workGroupName.isNotEmpty()) {
+                    user.data().remove(workGroupNode(workGroupName, worldName))
                 }
                 api.userManager.saveUser(user)
             }
@@ -190,20 +189,6 @@ class WorldPermissionPolicyService(
         return false
     }
 
-    private fun loadManagedWorkGroups(): Set<String> {
-        val state = YamlConfiguration.loadConfiguration(stateFile)
-        val groups = state.getStringList(MANAGED_GROUPS_KEY)
-            .map(String::trim)
-            .filter(String::isNotEmpty)
-            .toMutableSet()
-        if (workGroupName.isNotEmpty() && groups.add(workGroupName)) {
-            stateFile.parentFile.mkdirs()
-            state.set(MANAGED_GROUPS_KEY, groups.sorted())
-            state.save(stateFile)
-        }
-        return groups
-    }
-
     private fun permissionNode(permission: String, worldName: String): PermissionNode =
         PermissionNode.builder(permission).withContext("world", worldName).value(true).build()
 
@@ -212,7 +197,6 @@ class WorldPermissionPolicyService(
 
     companion object {
         private const val GLOBAL_REGION_ID = "__global__"
-        private const val MANAGED_GROUPS_KEY = "managed_work_groups"
         private val OWNER_PERMISSIONS = setOf("worldguard.region.claim", "worldguard.region.unlimited")
         private val MEMBER_PERMISSIONS = setOf("worldguard.region.claim")
         private val ALL_ROLE_PERMISSIONS = OWNER_PERMISSIONS + MEMBER_PERMISSIONS

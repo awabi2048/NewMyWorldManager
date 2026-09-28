@@ -42,7 +42,8 @@ creation_cost:
 deletion:
   reduce_owner_slot: false
 
-# LuckPerms group granted to MyWorld participants only in their world context. Empty disables it.
+# 参加者のワールドコンテキストに付与する LuckPerms グループ。空にすると無効。
+# このグループ名以外のノードには触れません。設定名を変更した場合、旧グループのノードは自動では除去されません。
 permissions:
   world_work_group: "basic_tool"
 
