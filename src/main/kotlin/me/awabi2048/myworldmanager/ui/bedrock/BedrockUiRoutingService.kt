@@ -50,6 +50,10 @@ class BedrockUiRoutingService(
     }
 
     fun clearFormFailure(player: Player) {
-        formFallbackUntil.remove(player.uniqueId)
+        clearFormFailure(player.uniqueId)
+    }
+
+    fun clearFormFailure(playerUuid: UUID) {
+        formFallbackUntil.remove(playerUuid)
     }
 }

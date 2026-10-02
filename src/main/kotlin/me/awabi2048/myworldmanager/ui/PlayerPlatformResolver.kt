@@ -1,38 +1,31 @@
 package me.awabi2048.myworldmanager.ui
 
+import com.awabi2048.ccsystem.CCSystem
 import me.awabi2048.myworldmanager.MyWorldManager
 import org.bukkit.entity.Player
-import java.util.UUID
-import java.util.concurrent.ConcurrentHashMap
 
+/**
+ * プレイヤーの実行プラットフォームを判定します。
+ *
+ * 主判定はCC-System経由のfloodgate APIで、プレイヤー名ではなくUUIDで判定するため
+ * 複数プロキシで接頭辞設定が異なる構成でも正しく動作します。
+ * floodgate 未導入・未連携環境への最終保険として、
+ * bedrock.player_name_prefix による接頭辞判定のみフォールバックとして残します。
+ *
+ * 判定は呼び出しごとに最新状態で行います。キャッシュしないのは、
+ * プロキシ環境で floodgate 側のプレイヤー登録完了が join 直後にずれ込む
+ * ケースで誤判定を固定化しないためです。
+ */
 class PlayerPlatformResolver(private val plugin: MyWorldManager) {
 
-    private val cache = ConcurrentHashMap<UUID, PlayerPlatform>()
-
-    @Volatile
-    private var floodgateLookupCompleted = false
-
-    @Volatile
-    private var floodgateApiClass: Class<*>? = null
-
-    fun resolve(player: Player): PlayerPlatform {
-        return cache.compute(player.uniqueId) { _, _ -> detect(player) } ?: PlayerPlatform.JAVA
-    }
+    fun resolve(player: Player): PlayerPlatform = detect(player)
 
     fun isBedrock(player: Player): Boolean {
         return resolve(player) == PlayerPlatform.BEDROCK
     }
 
-    fun invalidate(player: Player) {
-        cache.remove(player.uniqueId)
-    }
-
-    fun clearCache() {
-        cache.clear()
-    }
-
     private fun detect(player: Player): PlayerPlatform {
-        if (isFloodgateBedrockPlayer(player.uniqueId)) {
+        if (CCSystem.getAPI().isBedrockPlayer(player)) {
             return PlayerPlatform.BEDROCK
         }
 
@@ -43,46 +36,5 @@ class PlayerPlatformResolver(private val plugin: MyWorldManager) {
         }
 
         return PlayerPlatform.JAVA
-    }
-
-    private fun isFloodgateBedrockPlayer(playerUuid: UUID): Boolean {
-        val apiInstance = resolveFloodgateApiInstance() ?: return false
-        val method = apiInstance.javaClass.methods.firstOrNull {
-            it.name == "isFloodgatePlayer" &&
-                it.parameterCount == 1 &&
-                it.parameterTypes[0] == UUID::class.java
-        } ?: return false
-
-        return runCatching {
-            method.invoke(apiInstance, playerUuid) as? Boolean ?: false
-        }.getOrDefault(false)
-    }
-
-    private fun resolveFloodgateApiInstance(): Any? {
-        val apiClass = resolveFloodgateApiClass() ?: return null
-        val getInstanceMethod = apiClass.methods.firstOrNull {
-            it.name == "getInstance" && it.parameterCount == 0
-        } ?: return null
-
-        return runCatching {
-            getInstanceMethod.invoke(null)
-        }.getOrNull()
-    }
-
-    private fun resolveFloodgateApiClass(): Class<*>? {
-        if (floodgateLookupCompleted) {
-            return floodgateApiClass
-        }
-
-        synchronized(this) {
-            if (!floodgateLookupCompleted) {
-                floodgateApiClass = runCatching {
-                    Class.forName("org.geysermc.floodgate.api.FloodgateApi")
-                }.getOrNull()
-                floodgateLookupCompleted = true
-            }
-        }
-
-        return floodgateApiClass
     }
 }
