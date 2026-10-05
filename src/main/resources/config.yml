@@ -179,6 +179,9 @@ mspt_monitor:
 bedrock:
   # 統合版プレイヤーのプレイヤー名接頭辞（GeyserMC等で使用される接頭辞）
   # 例: "." を設定すると、統合版プレイヤーは ".PlayerName" の形式で検出されます
+  # 通常の判定は floodgate API（UUID判定）で行われるため、この設定は
+  # floodgate 未導入環境・プロキシ連携不備時の最終フォールバックです。
+  # 空文字にすると接頭辞フォールバックを無効化します。
   player_name_prefix: "."
   ui:
     # auto: FormUI利用可能時はForm、失敗時はInventoryへ自動フォールバック

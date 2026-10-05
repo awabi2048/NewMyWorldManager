@@ -5,7 +5,7 @@ api-version: '26.1.2'
 authors: [awabi2048]
 description: ""
 depend: [CC-System]
-softdepend: [PremiumVanish, LuckPerms, WorldGuard, WorldEdit, FastAsyncWorldEdit, Multiverse-Core]
+softdepend: [PremiumVanish, LuckPerms, WorldGuard, WorldEdit, FastAsyncWorldEdit, Multiverse-Core, floodgate]
 commands:
   mwm:
     description: MyWorldManager main command

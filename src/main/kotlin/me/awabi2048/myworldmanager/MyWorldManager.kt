@@ -553,6 +553,8 @@ class MyWorldManager : JavaPlugin() {
         if (::tourSessionManager.isInitialized) tourSessionManager.clearPlayer(playerUuid)
         me.awabi2048.myworldmanager.gui.TourDialogManager.clear(playerUuid)
         if (::templateWizardGui.isInitialized) templateWizardGui.removeSession(playerUuid)
+        // フォーム失敗フォールバック期限は退場時に解放し、UUIDキーの滞留を防ぎます。
+        if (::bedrockUiRoutingService.isInitialized) bedrockUiRoutingService.clearFormFailure(playerUuid)
     }
 
     private fun clearAllTransientMenuState() {
@@ -661,10 +663,6 @@ class MyWorldManager : JavaPlugin() {
 
         // SoundManagerの設定再読み込み（config依存のためインスタンス再生成）
         soundManager = SoundManager(this)
-
-        if (::playerPlatformResolver.isInitialized) {
-            playerPlatformResolver.clearCache()
-        }
 
         // WorldUnloadServiceの再起動
         worldUnloadService.start()

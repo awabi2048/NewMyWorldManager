@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "awabi2048"
-version = "26.928.1"
+version = "26.1002.1"
 
 repositories {
     mavenLocal()
@@ -31,7 +31,7 @@ val providedDeps = listOf(
     "io.papermc.paper:paper-api:26.2.build.129-stable",
     // bungeecord-chat等が同梱する旧gsonを上書き解決するため明示宣言（Mavenでは宣言順で先行解決されていた）
     "com.google.code.gson:gson:2.13.2",
-    "com.awabi2048:CC-System:26.905.2",
+    "com.awabi2048:CC-System:26.1002.1",
     "com.github.LeonMangler:PremiumVanishAPI:2.9.18-2",
     "net.luckperms:api:5.4",
     "com.sk89q.worldedit:worldedit-bukkit:7.3.16",
