@@ -1212,8 +1212,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
                         )
                 }
 
-                // スロット25: メンバー管理 (オーナーのみ)
-                if (ownerActionsAllowed) {
+                // スロット25: メンバー管理 (オーナー・モデレータ・管理者)
+                if (hasManagePermission) {
 
                         val totalCount = worldData.members.size + worldData.moderators.size + 1
 

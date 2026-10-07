@@ -16,6 +16,16 @@ enum class MwmMemberRemoveSource {
     MANUAL
 }
 
+enum class MwmMemberRole {
+    MEMBER,
+    MODERATOR
+}
+
+enum class MwmMemberRoleChangeSource {
+    MANUAL,
+    RESTORE
+}
+
 enum class MwmOwnerTransferSource {
     MANUAL,
     ADMIN_RESET

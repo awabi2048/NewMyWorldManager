@@ -24,6 +24,7 @@ import me.awabi2048.myworldmanager.api.extension.WorldPortalPolicy
 import me.awabi2048.myworldmanager.api.extension.WorldRuntimePolicy
 import me.awabi2048.myworldmanager.api.extension.WorldPlayerStatePolicy
 import me.awabi2048.myworldmanager.api.extension.WorldWorkPermissionPolicy
+import me.awabi2048.myworldmanager.api.event.MwmMemberRoleChangedEvent
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.api.service.ApiMemberManager
 import me.awabi2048.myworldmanager.api.service.ApiBedrockFormService
@@ -515,7 +516,9 @@ object MyWorldManagerApi {
     ): com.awabi2048.ccsystem.api.gui.MenuRoute {
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
         val session = plugin.creationSessionManager.startSession(player.uniqueId)
-        session.isDialogMode = true
+        // 統合版はDialogを開けないためインベントリGUI、Java版はDialogへ進みます。
+        // 判定は他の作成入口（PlayerWorldGui・WorldCommand）と同じリゾルバを使います。
+        session.isDialogMode = !plugin.playerPlatformResolver.isBedrock(player)
         session.billingMode = billingMode
         // 作成開始の状態は直後に表示するGUIで確認できるため、チャット通知を重ねない。
         return plugin.creationGui.typeSelectionRoute()
@@ -537,6 +540,17 @@ object MyWorldManagerApi {
                 .settingsSessionManager
                 .getSession(player)
                 ?.isAdminFlow == true
+
+    /**
+     * メンバーの役割をメンバー⇔モデレータで切り替えます。
+     * 変更は [MwmMemberRoleChangedEvent] として通知され、WorldGuard・LuckPerms・
+     * 作業グループの参加者同期はイベント購読側が再適用します。
+     */
+    @JvmStatic
+    fun toggleMemberRole(worldUuid: UUID, memberUuid: UUID, actorUuid: UUID? = null): Boolean =
+        JavaPlugin.getPlugin(MyWorldManager::class.java)
+            .worldSettingsStateService
+            .toggleMemberRole(worldUuid, memberUuid, actorUuid)
 
     @JvmStatic
     fun registerBedrockFormService(service: ApiBedrockFormService) {

@@ -103,8 +103,9 @@ class WorldSettingsActionService(private val plugin: MyWorldManager) {
         val owner = player.uniqueId == worldData.owner
         val moderator = player.uniqueId in worldData.moderators
         val member = owner || moderator || player.uniqueId in worldData.members
+        // メンバー管理を含む通常の管理操作はオーナー・モデレータ・管理者が扱い、
+        // ワールド全域に影響するポータル管理だけをオーナーと管理者へ限定します。
         val permitted = when (action) {
-            WorldSettingsAction.MANAGE_MEMBERS,
             WorldSettingsAction.MANAGE_PORTALS -> owner || admin
             WorldSettingsAction.MANAGE_TOUR -> member || admin
             else -> owner || moderator || admin

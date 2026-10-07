@@ -667,6 +667,10 @@ class WorldSettingsListener : Listener {
                         WorldSettingsRuntimeOperation.CANCEL ->
                                 MenuActionResult.Success(MenuUpdate.Back)
                         WorldSettingsRuntimeOperation.CONFIRM -> {
+                                if (!canManageMemberRoles(player, worldData)) {
+                                        PermissionManager.sendNoPermissionMessage(player)
+                                        return MenuActionResult.Rejected()
+                                }
                                 if (memberId != null) {
                                         val memberName = PlayerNameUtil.getNameOrDefault(memberId, "Unknown")
                                         worldData.members.remove(memberId)
@@ -693,6 +697,10 @@ class WorldSettingsListener : Listener {
                                 MenuActionResult.Success(MenuUpdate.Back)
                         WorldSettingsRuntimeOperation.CONFIRM -> {
                                 newOwnerId ?: return MenuActionResult.Ignored
+                                if (!canManageMemberRoles(player, worldData)) {
+                                        PermissionManager.sendNoPermissionMessage(player)
+                                        return MenuActionResult.Rejected()
+                                }
                                 if (!WorldCreationChecks.checkLimits(plugin, player, newOwnerId)) return MenuActionResult.Rejected()
                                 val oldOwnerId = worldData.owner
                                 val oldOwnerName = PlayerNameUtil.getNameOrDefault(oldOwnerId, "Unknown")
@@ -1262,6 +1270,14 @@ class WorldSettingsListener : Listener {
                 return MenuActionResult.Success(MenuUpdate.Navigate(route))
         }
 
+        /**
+         * メンバー役割の変更・オーナー譲渡・除名はオーナー（または管理フロー）だけが扱います。
+         * 画面側の操作バインドと同じ境界を実行時にも適用し、表示と実行の判定が離れないようにします。
+         */
+        private fun canManageMemberRoles(player: Player, worldData: WorldData): Boolean =
+                worldData.owner == player.uniqueId ||
+                        plugin.settingsSessionManager.getSession(player)?.isAdminFlow == true
+
         private fun handleMemberManagementMemberItemClick(
                 player: Player,
                 memberId: UUID?,
@@ -1272,6 +1288,10 @@ class WorldSettingsListener : Listener {
         ): MenuActionResult {
                 if (memberId == null || memberId == player.uniqueId) {
                         return MenuActionResult.Ignored
+                }
+                if (!canManageMemberRoles(player, worldData)) {
+                        PermissionManager.sendNoPermissionMessage(player)
+                        return MenuActionResult.Rejected()
                 }
                 val lang = plugin.languageManager
                 if (!isShiftClick) {
@@ -1696,7 +1716,7 @@ class WorldSettingsListener : Listener {
         }
 
         private fun toggleMemberRole(player: Player, worldData: WorldData, memberId: UUID) {
-                if (!plugin.worldSettingsStateService.toggleMemberRole(worldData.uuid, memberId)) return
+                if (!plugin.worldSettingsStateService.toggleMemberRole(worldData.uuid, memberId, player.uniqueId)) return
                 reopenMemberManagementLatest(player, worldData.uuid, playSound = false)
         }
 

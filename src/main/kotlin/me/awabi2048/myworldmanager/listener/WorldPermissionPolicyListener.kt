@@ -3,6 +3,7 @@ package me.awabi2048.myworldmanager.listener
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.event.MwmMemberAddedEvent
 import me.awabi2048.myworldmanager.api.event.MwmMemberRemovedEvent
+import me.awabi2048.myworldmanager.api.event.MwmMemberRoleChangedEvent
 import me.awabi2048.myworldmanager.api.event.MwmOwnerTransferredEvent
 import me.awabi2048.myworldmanager.api.event.MwmWorldCreatedEvent
 import me.awabi2048.myworldmanager.api.event.MwmWorldDeletedEvent
@@ -38,6 +39,11 @@ class WorldPermissionPolicyListener(
     @EventHandler
     fun onMemberRemoved(event: MwmMemberRemovedEvent) {
         repository.findByUuid(event.worldUuid)?.let { policy.removeMember(it, event.memberUuid) }
+    }
+
+    @EventHandler
+    fun onMemberRoleChanged(event: MwmMemberRoleChangedEvent) {
+        repository.findByUuid(event.worldUuid)?.let(policy::syncParticipants)
     }
 
     @EventHandler
