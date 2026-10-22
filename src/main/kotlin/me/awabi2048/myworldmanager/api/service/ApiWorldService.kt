@@ -99,6 +99,17 @@ interface ApiWorldService {
         lease: WorldOperationLease? = null
     ): CompletableFuture<Boolean>
 
+    /**
+     * ディスク複製（バックアップ・アーカイブ等）のために、ワールドの書き込みを
+     * 一時停止したスナップショットを取得します。
+     *
+     * メインスレッドで呼び出してください。複製が終わるまで [ApiWorldSnapshot] を
+     * 保持し、終了後に close で元の状態へ戻します。ロード中ワールドには呼び出し側の
+     * 作業ロックが必須です。戻り値の [ApiWorldSnapshot.quiescent] が false の場合は
+     * 複製を開始せず中止してください。
+     */
+    fun beginWorldSnapshot(worldUuid: UUID, lease: WorldOperationLease? = null): ApiWorldSnapshot
+
     fun startWorldBorderExpansionSequence(
         player: Player,
         worldUuid: UUID,

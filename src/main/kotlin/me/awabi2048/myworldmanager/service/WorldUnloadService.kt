@@ -88,18 +88,24 @@ class WorldUnloadService(private val plugin: MyWorldManager) {
                             continue
                         }
 
-                        if (unloadWorld(world)) {
-                            emptySince.remove(worldName)
-                            nextRetryAt.remove(worldName)
-                            failureCount.remove(worldName)
-                            unloadedCount++
-                        } else {
-                            registerUnloadFailure(
-                                    worldName,
-                                    currentMillis,
-                                    retryBaseMinutes,
-                                    retryMaxMinutes
-                            )
+                        when (unloadWorld(world, worldData.uuid)) {
+                            true -> {
+                                emptySince.remove(worldName)
+                                nextRetryAt.remove(worldName)
+                                failureCount.remove(worldName)
+                                unloadedCount++
+                            }
+                            false -> {
+                                registerUnloadFailure(
+                                        worldName,
+                                        currentMillis,
+                                        retryBaseMinutes,
+                                        retryMaxMinutes
+                                )
+                            }
+                            null -> {
+                                // 作業ロック中は次のサイクルで再試行する
+                            }
                         }
                     }
                 }
@@ -116,15 +122,30 @@ class WorldUnloadService(private val plugin: MyWorldManager) {
         failureCount.keys.removeIf { worldName -> Bukkit.getWorld(worldName) == null }
     }
 
-    private fun unloadWorld(world: World): Boolean {
-        plugin.logger.info("[MyWorldManager] Unloading world ${world.name} due to inactivity...")
-        val success = Bukkit.unloadWorld(world, true)
-        if (success) {
-            emptySince.remove(world.name)
-        } else {
-            plugin.logger.warning("[MyWorldManager] Failed to unload world ${world.name}.")
+    /**
+     * アンロードを試行します。他作業のロック占有中は null を返し、
+     * 失敗扱い（リトライ間隔の延長）にはしません。
+     */
+    private fun unloadWorld(world: World, worldUuid: java.util.UUID): Boolean? {
+        // バックアップ等の作業ロック中のアンロードは、ディスク書き込みと並行して
+        // 走るためスキップします。ロックは1ワールド1作業の排他なので、取得できた
+        // 場合のみ実行して即解放します。
+        val lease = me.awabi2048.myworldmanager.api.MyWorldManagerApi.tryAcquireWorldOperation(
+            worldUuid,
+            me.awabi2048.myworldmanager.api.service.WorldOperation.UNLOAD,
+        ) ?: return null
+        return try {
+            plugin.logger.info("[MyWorldManager] Unloading world ${world.name} due to inactivity...")
+            val success = Bukkit.unloadWorld(world, true)
+            if (success) {
+                emptySince.remove(world.name)
+            } else {
+                plugin.logger.warning("[MyWorldManager] Failed to unload world ${world.name}.")
+            }
+            success
+        } finally {
+            lease.close()
         }
-        return success
     }
 
     private fun registerUnloadFailure(

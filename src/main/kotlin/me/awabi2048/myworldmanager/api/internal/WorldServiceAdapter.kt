@@ -3,6 +3,7 @@ package me.awabi2048.myworldmanager.api.internal
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.service.ApiPortalSnapshot
 import me.awabi2048.myworldmanager.api.service.ApiWorldService
+import me.awabi2048.myworldmanager.api.service.ApiWorldSnapshot
 import me.awabi2048.myworldmanager.api.service.ExpansionSequenceOptions
 import me.awabi2048.myworldmanager.api.service.ManagedWorldCreationRequest
 import me.awabi2048.myworldmanager.api.service.WorldOperationLease
@@ -129,6 +130,13 @@ internal class WorldServiceAdapter(private val plugin: MyWorldManager) : ApiWorl
         lease: WorldOperationLease?
     ): CompletableFuture<Boolean> {
         return plugin.worldService.unloadWorldForMaintenance(worldUuid, save, lease)
+    }
+
+    override fun beginWorldSnapshot(
+        worldUuid: UUID,
+        lease: WorldOperationLease?
+    ): ApiWorldSnapshot {
+        return plugin.worldService.beginWorldSnapshot(worldUuid, lease)
     }
 
     override fun startWorldBorderExpansionSequence(
