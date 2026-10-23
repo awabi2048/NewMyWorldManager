@@ -46,6 +46,7 @@ import me.awabi2048.myworldmanager.api.extension.PendingOfflineMemberInvite
 import me.awabi2048.myworldmanager.api.service.WorldOperation
 import me.awabi2048.myworldmanager.api.service.WorldOperationLease
 import me.awabi2048.myworldmanager.api.service.WorldOperationLocks
+import me.awabi2048.myworldmanager.api.service.WorldLoadBlocks
 import me.awabi2048.myworldmanager.api.service.WorldPointBillingMode
 import java.util.UUID
 import java.io.File
@@ -91,6 +92,23 @@ object MyWorldManagerApi {
 
     @JvmStatic
     fun clearWorldOperationLocks() = WorldOperationLocks.clear()
+
+    /**
+     * 復元失敗などで安全な世代が保証できないワールドのロードを拒否します。
+     * アドオンは永続化された未完了記録から登録し、復旧完了時に [unblockWorldLoad] で
+     * 解除します。登録はプロセス内だけの状態のため、再起動のたびに再登録が前提です。
+     */
+    @JvmStatic
+    fun blockWorldLoad(worldUuid: UUID, reason: String) =
+        WorldLoadBlocks.block(worldUuid, reason)
+
+    @JvmStatic
+    fun unblockWorldLoad(worldUuid: UUID) =
+        WorldLoadBlocks.unblock(worldUuid)
+
+    @JvmStatic
+    fun worldLoadBlockReason(worldUuid: UUID): String? =
+        WorldLoadBlocks.reason(worldUuid)
 
     private var worldPointService: WorldPointService? = null
     private var worldService: ApiWorldService? = null

@@ -19,8 +19,10 @@ import me.awabi2048.myworldmanager.api.event.MwmWorldWarpedEvent
 import me.awabi2048.myworldmanager.api.event.MwmWarpReason
 import me.awabi2048.myworldmanager.api.service.ManagedWorldCreationRequest
 import me.awabi2048.myworldmanager.api.service.WorldPointBillingMode
+import me.awabi2048.myworldmanager.api.service.ApiWorldSnapshot
 import me.awabi2048.myworldmanager.api.service.WorldOperation
 import me.awabi2048.myworldmanager.api.service.WorldOperationLease
+import me.awabi2048.myworldmanager.api.service.WorldLoadBlocks
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.model.ManagedDimension
 import me.awabi2048.myworldmanager.migration.WorldDirectoryResolver
@@ -930,6 +932,11 @@ class WorldService(
         if (plugin.worldMigrationService.isPending(worldUuid)) {
             return WorldLoadResult.failure(WorldLoadFailure.MIGRATION_REQUIRED)
         }
+        // 復元失敗などで安全な世代が保証できないワールドは、半分置換された
+        // ディレクトリをロード・編集できないよう入口で拒否します。
+        if (WorldLoadBlocks.reason(worldUuid) != null) {
+            return WorldLoadResult.failure(WorldLoadFailure.OPERATION_LOCKED)
+        }
         val lease = MyWorldManagerApi.tryAcquireWorldOperation(worldUuid, WorldOperation.LOAD)
             ?: return WorldLoadResult.failure(WorldLoadFailure.OPERATION_LOCKED)
         return try {
@@ -1084,6 +1091,115 @@ class WorldService(
         val ownLease = MyWorldManagerApi.tryAcquireWorldOperation(worldUuid, WorldOperation.UNLOAD)
             ?: return CompletableFuture.completedFuture(false)
         return unloadWorldAfterEvacuation(worldUuid, save).whenComplete { _, _ -> ownLease.close() }
+    }
+
+    /**
+     * ディスク複製のためにワールドの書き込みを一時停止するスナップショットを取得します。
+     *
+     * メインスレッドで呼び出してください。空のロード済みワールドはアンロードして
+     * 書き込み主体を消し、在室ワールドは自動保存を停止した上で `save(true)` の
+     * 同期 flush で書き込みを出し切ります。close 時に元の状態（ロード済み・
+     * 自動保存有効）へ戻します。
+     *
+     * [lease] を渡す場合は呼び出し側が対象ワールドの作業ロックを保持済みである
+     * ことを確認します。null の場合はロック取得を要求しません（未ロード等の
+     * 副作用が小さい経路向け）。ロード中ワールドの静止には呼び出し側のロックを
+     * 必須とし、他操作との同時実行を防ぎます。
+     */
+    fun beginWorldSnapshot(worldUuid: UUID, lease: WorldOperationLease?): ApiWorldSnapshot {
+        val worldData = repository.findByUuid(worldUuid)
+            ?: return FailedWorldSnapshot(worldUuid, "world data missing: $worldUuid")
+        if (lease != null &&
+            (lease.worldUuid != worldUuid || !MyWorldManagerApi.isWorldOperationLeaseActive(lease))
+        ) {
+            return FailedWorldSnapshot(worldUuid, "operation lease is not active: $worldUuid")
+        }
+        val dir = runCatching { getWorldDirectory(worldData) }
+            .getOrElse { return FailedWorldSnapshot(worldUuid, it.message ?: "world directory unavailable") }
+        val folderName = getWorldFolderName(worldData)
+        val world = Bukkit.getWorld(folderName)
+            ?: return ManagedWorldSnapshot(
+                worldUuid = worldUuid,
+                worldDirectory = dir,
+                baselineModifiedMillis = ManagedWorldSnapshot.newestModifiedMillis(dir),
+                quiescentCheck = { Bukkit.getWorld(folderName) == null },
+                restoreAction = {},
+            )
+        if (lease == null) {
+            // ロード中ワールドの静止はアンロードまたは自動保存停止を伴うため、
+            // 呼び出し側の作業ロックで他操作との同時実行を防ぎます。
+            return FailedWorldSnapshot(worldUuid, "operation lease is required for a loaded world: $worldUuid")
+        }
+        return if (world.players.isEmpty()) {
+            beginUnloadedSnapshot(worldUuid, dir, folderName, world)
+        } else {
+            beginOnlineSnapshot(worldUuid, dir, world)
+        }
+    }
+
+    /** 無人ワールドはアンロードして書き込み主体を消し、close で再ロードして元の状態へ戻します。 */
+    private fun beginUnloadedSnapshot(
+        worldUuid: UUID,
+        dir: File,
+        folderName: String,
+        world: org.bukkit.World,
+    ): ApiWorldSnapshot {
+        val unloaded = plugin.server.unloadWorld(world, true)
+        if (!unloaded || Bukkit.getWorld(folderName) != null) {
+            return FailedWorldSnapshot(worldUuid, "world could not be unloaded: $folderName")
+        }
+        return ManagedWorldSnapshot(
+            worldUuid = worldUuid,
+            worldDirectory = dir,
+            baselineModifiedMillis = ManagedWorldSnapshot.newestModifiedMillis(dir),
+            quiescentCheck = { Bukkit.getWorld(folderName) == null },
+            restoreAction = {
+                runOnMain {
+                    // スナップショット保持中にワールドが削除された場合は再ロードしません。
+                    if (repository.findByUuid(worldUuid) != null) {
+                        runCatching { loadWorldUnlocked(worldUuid) }
+                            .onFailure {
+                                plugin.logger.warning(
+                                    "Failed to reload world after snapshot: $worldUuid (${it.message})"
+                                )
+                            }
+                    }
+                }
+            },
+        )
+    }
+
+    /**
+     * 在室ワールドはアンロードできないため、自動保存を止めて同期 flush で書き込みを
+     * 出し切ります。チャンクのアンロード保存は残るため、複製中の新規書き込みは
+     * mtime で検出します。
+     */
+    private fun beginOnlineSnapshot(
+        worldUuid: UUID,
+        dir: File,
+        world: org.bukkit.World,
+    ): ApiWorldSnapshot {
+        world.isAutoSave = false
+        runCatching { world.save(true) }.getOrElse { error ->
+            world.isAutoSave = true
+            return FailedWorldSnapshot(worldUuid, "world save failed: ${error.message}")
+        }
+        return ManagedWorldSnapshot(
+            worldUuid = worldUuid,
+            worldDirectory = dir,
+            baselineModifiedMillis = ManagedWorldSnapshot.newestModifiedMillis(dir),
+            quiescentCheck = { !world.isAutoSave },
+            restoreAction = { runOnMain { world.isAutoSave = true } },
+        )
+    }
+
+    /** close は非同期スレッドからも呼ばれるため、ワールド状態の復元は必ずメインスレッドで行います。 */
+    private fun runOnMain(action: () -> Unit) {
+        if (Bukkit.isPrimaryThread()) {
+            action()
+        } else {
+            Bukkit.getScheduler().runTask(plugin, Runnable(action))
+        }
     }
 
     private fun unloadWorldAfterEvacuation(worldUuid: UUID, save: Boolean): CompletableFuture<Boolean> {
