@@ -23,12 +23,48 @@ import org.bukkit.World
 import org.bukkit.entity.Display
 import org.bukkit.entity.Player
 import org.bukkit.entity.TextDisplay
+import org.bukkit.util.BoundingBox
 import java.io.File
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 class PortalManager(private val plugin: MyWorldManager) {
     data class GateRefundResult(val points: Int, val percent: Int, val ownerUuid: UUID)
+
+    companion object {
+        // ブロック型ポータルの検知角柱: 中心断面0.3×0.3、鉛直範囲[portalY, portalY+2]
+        const val PORTAL_COLUMN_HALF_EXTENT = 0.15
+        const val PORTAL_COLUMN_HEIGHT = 2.0
+
+        /**
+         * ポータル検知範囲とAABBの交差判定。
+         * ブロック型ポータルは中心断面0.3×0.3・鉛直範囲[portalY, portalY+2]の角柱、
+         * ゲートは占有体積との重なりで判定する。
+         */
+        @JvmStatic
+        fun isPortalContact(aabb: BoundingBox, portal: PortalData): Boolean {
+            val detectionBounds = if (portal.isGate()) {
+                BoundingBox(
+                    portal.getMinX().toDouble(),
+                    portal.getMinY().toDouble(),
+                    portal.getMinZ().toDouble(),
+                    portal.getMaxX() + 1.0,
+                    portal.getMaxY() + 1.0,
+                    portal.getMaxZ() + 1.0
+                )
+            } else {
+                BoundingBox(
+                    portal.x + 0.5 - PORTAL_COLUMN_HALF_EXTENT,
+                    portal.y.toDouble(),
+                    portal.z + 0.5 - PORTAL_COLUMN_HALF_EXTENT,
+                    portal.x + 0.5 + PORTAL_COLUMN_HALF_EXTENT,
+                    portal.y + PORTAL_COLUMN_HEIGHT,
+                    portal.z + 0.5 + PORTAL_COLUMN_HALF_EXTENT
+                )
+            }
+            return aabb.overlaps(detectionBounds)
+        }
+    }
 
     // PortalUUID -> TextDisplay の紐付け
     private val textDisplays = ConcurrentHashMap<UUID, TextDisplay>()
@@ -403,6 +439,7 @@ class PortalManager(private val plugin: MyWorldManager) {
 
     private fun processWarpCycle() {
         warpEntitiesInGates()
+        warpPlayersOnBlockPortals()
 
         val now = System.currentTimeMillis()
 
@@ -535,24 +572,29 @@ class PortalManager(private val plugin: MyWorldManager) {
         return true
     }
 
+    /**
+     * プレイヤーAABBとポータル検知範囲の交差判定。
+     * 足元ブロック座標や位置の中心一致に依存しないため、
+     * 静止・高所落下・到達直後の位置ずれでも検出できる。
+     */
+    private fun isPlayerTouchingPortal(player: Player, portal: PortalData): Boolean {
+        return isPortalContact(player.boundingBox, portal)
+    }
+
     private fun isPlayerInAnyPortal(player: Player): Boolean {
         val worldName = player.world.key.toString()
 
         val gates = gateCache[worldName]
         if (gates != null) {
             for (gate in gates) {
-                if (gate.containsLocation(player.location)) return true
+                if (isPlayerTouchingPortal(player, gate)) return true
             }
         }
 
         val worldPortals = portalCache[worldName]
         if (worldPortals != null) {
             for (portal in worldPortals.values) {
-                val loc = portal.getCenterLocation()
-                val checkCenter = loc.clone().add(0.0, 1.5, 0.0)
-                if (player.location.distanceSquared(checkCenter) <= 0.25) {
-                    return true
-                }
+                if (isPlayerTouchingPortal(player, portal)) return true
             }
         }
 
@@ -645,17 +687,35 @@ class PortalManager(private val plugin: MyWorldManager) {
     private fun warpEntitiesInGates() {
         for ((worldName, gates) in gateCache) {
             if (gates.isEmpty()) continue
-            val world = Bukkit.getWorld(worldName) ?: continue
+            val world = worldByKey(worldName) ?: continue
 
             for (player in world.players) {
                 if (!player.isOnline || player.isDead) continue
                 if (player.isSneaking) continue
 
                 for (gate in gates) {
-                    if (!gate.containsLocation(player.location)) continue
+                    if (!isPlayerTouchingPortal(player, gate)) continue
                     executeWarp(player, gate)
                     break
                 }
+            }
+        }
+    }
+
+    // 移動イベントに依存せず周期評価することで、ポータル上での静止・
+    // ワープ拒否後の滞留・ログイン/到達直後の立ち位置も確実に拾う。
+    // 反復発火は executeWarp 内のクールタイム/猶予/無視リストで抑制される。
+    private fun warpPlayersOnBlockPortals() {
+        for ((worldName, portals) in portalCache) {
+            if (portals.isEmpty()) continue
+            val world = worldByKey(worldName) ?: continue
+
+            for (player in world.players) {
+                if (!player.isOnline || player.isDead) continue
+                if (player.isSneaking) continue
+
+                val portal = portals.values.firstOrNull { isPlayerTouchingPortal(player, it) } ?: continue
+                executeWarp(player, portal)
             }
         }
     }
@@ -666,14 +726,7 @@ class PortalManager(private val plugin: MyWorldManager) {
         val worldName = player.world.key.toString()
         val worldPortals = portalCache[worldName] ?: return
 
-        val x = player.location.blockX
-        val y = player.location.blockY
-        val z = player.location.blockZ
-
-        // ポータルのフレームは足元のブロック (y-1)
-        val key = getBlockKey(x, y - 1, z)
-        val portal = worldPortals[key] ?: return
-
+        val portal = worldPortals.values.firstOrNull { isPlayerTouchingPortal(player, it) } ?: return
         executeWarp(player, portal)
     }
 
