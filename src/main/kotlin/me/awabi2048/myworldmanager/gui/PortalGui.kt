@@ -26,6 +26,7 @@ import com.awabi2048.ccsystem.api.gui.MenuElement
 import com.awabi2048.ccsystem.api.gui.MenuRoute
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.event.MwmPortalSettingsAccessEvent
 import me.awabi2048.myworldmanager.model.PortalData
 import me.awabi2048.myworldmanager.util.PortalItemUtil
 import me.awabi2048.myworldmanager.util.WorldGateItemUtil
@@ -62,6 +63,7 @@ class PortalGui(private val plugin: MyWorldManager) {
     }
 
     fun open(player: Player, portal: PortalData): Boolean {
+        if (!canAccess(player, portal)) return false
         return runtime.openEphemeral(player, route(portal.id))
     }
 
@@ -129,6 +131,7 @@ class PortalGui(private val plugin: MyWorldManager) {
 
     private fun toggleText(context: MenuActionContext): MenuActionResult {
         val portal = portalOrNull(context.route) ?: return MenuActionResult.Rejected()
+        if (!canAccess(context.player, portal)) return MenuActionResult.Rejected()
         if (plugin.portalManager.updateAppearance(portal.id, !portal.showText, portal.particleColor) !=
             me.awabi2048.myworldmanager.service.PortalManager.AppearanceUpdateResult.UPDATED
         ) return MenuActionResult.Rejected()
@@ -138,6 +141,7 @@ class PortalGui(private val plugin: MyWorldManager) {
     private fun cycleColor(context: MenuActionContext): MenuActionResult {
         val direction = GuiCycle.direction(context.click) ?: return MenuActionResult.Ignored
         val portal = portalOrNull(context.route) ?: return MenuActionResult.Rejected()
+        if (!canAccess(context.player, portal)) return MenuActionResult.Rejected()
         val color = GuiCycle.select(portal.particleColor, colors, direction)
         if (plugin.portalManager.updateAppearance(portal.id, portal.showText, color) !=
             me.awabi2048.myworldmanager.service.PortalManager.AppearanceUpdateResult.UPDATED
@@ -148,6 +152,7 @@ class PortalGui(private val plugin: MyWorldManager) {
     private fun remove(context: MenuActionContext): MenuActionResult {
         val portal = portalOrNull(context.route) ?: return MenuActionResult.Rejected()
         val player = context.player
+        if (!canAccess(player, portal)) return MenuActionResult.Rejected()
         val lang = plugin.languageManager
         val refundResult = runCatching {
             plugin.portalManager.removePortalAndRefund(portal)
@@ -252,6 +257,10 @@ class PortalGui(private val plugin: MyWorldManager) {
             ),
         )
     }
+
+    /** 画面表示後にポリシーが変わっても、保存・撤去の直前にもう一度確認します。 */
+    private fun canAccess(player: Player, portal: PortalData): Boolean =
+        MwmPortalSettingsAccessEvent(player, portal.id).also(plugin.server.pluginManager::callEvent).isCancelled.not()
 
     private fun portalActionSafety(actionId: String): MenuActionSafety = when (actionId) {
         ACTION_TOGGLE_TEXT,
