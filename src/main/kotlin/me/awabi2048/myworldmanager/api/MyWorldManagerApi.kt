@@ -745,25 +745,22 @@ object MyWorldManagerApi {
      * ゲームモードはワールドポリシーの責務外です。プレビューやFreeCamなどの
      * 明示的な一時セッションが管理する状態を、通常のワールド遷移で上書きしないためです。
      */
+    /** 飛行状態の反映と飛行開始時の検証で同一の実効判定を使用します。 */
+    @JvmStatic
+    fun isFlightAllowed(player: Player, worldData: WorldData): Boolean {
+        if (player.gameMode == org.bukkit.GameMode.CREATIVE ||
+            player.gameMode == org.bukkit.GameMode.SPECTATOR) return true
+        return worldData.allowFlight && worldPlayerStatePolicies
+            .all { it.evaluate(player, worldData).flightAllowed != false }
+    }
+
     @JvmStatic
     fun syncWorldPlayerState(player: Player, worldData: WorldData) {
+        // スペクテイター中の飛行は一時セッションが管理します。
         if (player.gameMode == org.bukkit.GameMode.SPECTATOR) return
-        val decisions = worldPlayerStatePolicies
-            .sortedByDescending { it.getPriority() }
-            .map { it.evaluate(player, worldData) }
-        val currentGameModeAllowsFlight =
-            player.gameMode == org.bukkit.GameMode.CREATIVE ||
-                player.gameMode == org.bukkit.GameMode.SPECTATOR
-        val flightAllowed =
-            currentGameModeAllowsFlight ||
-                (worldData.allowFlight && decisions.all { it.flightAllowed != false })
-
-        if (!flightAllowed) {
-            player.allowFlight = false
-            if (player.isFlying) player.isFlying = false
-        } else if (currentGameModeAllowsFlight || decisions.any { it.flightAllowed == true }) {
-            player.allowFlight = true
-        }
+        val allowed = isFlightAllowed(player, worldData)
+        if (!allowed && player.isFlying) player.isFlying = false
+        player.allowFlight = allowed
     }
 
     @JvmStatic

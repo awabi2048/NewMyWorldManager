@@ -68,8 +68,7 @@ class EnvironmentLogicListener(private val plugin: MyWorldManager) : Listener {
     fun onPlayerToggleFlight(event: PlayerToggleFlightEvent) {
         val player = event.player
         val worldData = plugin.worldConfigRepository.findByWorldName(player.world.name) ?: return
-        if (worldData.allowFlight) return
-        if (player.gameMode == GameMode.CREATIVE || player.gameMode == GameMode.SPECTATOR) return
+        if (MyWorldManagerApi.isFlightAllowed(player, worldData)) return
 
         // allowFlight が他経路で戻された場合も、MyWorld の飛行禁止設定を最後に優先する。
         event.isCancelled = true
