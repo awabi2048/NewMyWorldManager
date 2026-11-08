@@ -177,7 +177,14 @@ class WorldCommand(
                     return true
                 }
                 plugin.reloadSystem()
-                sender.sendMessage(lang.getMessage(sender as? Player, MyworldMessagesKeys.MESSAGES_RELOAD_SUCCESS))
+                val event = me.awabi2048.myworldmanager.api.event.MwmSystemReloadEvent()
+                Bukkit.getPluginManager().callEvent(event)
+                if (event.failedParticipants.isEmpty()) {
+                    sender.sendMessage(lang.getMessage(sender as? Player, MyworldMessagesKeys.MESSAGES_RELOAD_SUCCESS))
+                } else {
+                    plugin.logger.warning("設定再読込に失敗した連携: ${event.failedParticipants.joinToString()}")
+                    sender.sendMessage(lang.getMessage(sender as? Player, CommonKeys.ERROR_LOAD_FAILED))
+                }
                 return true
             }
             "update-day" -> {
