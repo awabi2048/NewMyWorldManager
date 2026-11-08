@@ -1365,7 +1365,6 @@ class WorldService(
                 if (closeInventoryOnLoad) {
                     CCSystem.getAPI().getMenuRuntimeService().close(player)
                 }
-                player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_LOADING))
                 val loadResult = loadWorldDetailed(worldUuid)
                 if (!loadResult.isSuccess) {
                     val failure = loadResult.failure ?: WorldLoadFailure.BUKKIT_LOAD_FAILED
@@ -1373,6 +1372,8 @@ class WorldService(
                     warpRequestGate.release(lease)
                     return false
                 }
+                // ロードに失敗した試行では開始案内を出さず、ポータル上の連続試行でも通知を増やしません。
+                player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_LOADING))
                 world = loadResult.world
             } catch (failure: Throwable) {
                 warpRequestGate.release(lease)
