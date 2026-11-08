@@ -773,11 +773,12 @@ object MyWorldManagerApi {
     /** 飛行状態の反映と飛行開始時の検証で同一の実効判定を使用します。 */
     @JvmStatic
     fun isFlightAllowed(player: Player, worldData: WorldData): Boolean {
-        localFlightRequest(player)?.let { return it }
-        if (player.gameMode == org.bukkit.GameMode.CREATIVE ||
-            player.gameMode == org.bukkit.GameMode.SPECTATOR) return true
-        return worldData.allowFlight && worldPlayerStatePolicies
-            .all { it.evaluate(player, worldData).flightAllowed != false }
+        return resolveFlightPermission(
+            localRequest = localFlightRequest(player),
+            gameMode = player.gameMode,
+            worldAllowsFlight = worldData.allowFlight,
+            policyAllowsFlight = { worldPlayerStatePolicies.all { it.evaluate(player, worldData).flightAllowed != false } },
+        )
     }
 
     @JvmStatic
@@ -1001,4 +1002,16 @@ object MyWorldManagerApi {
     }
 
     private var memberManagementOpener: ((Player, UUID) -> Unit)? = null
+}
+
+/** 局所要求を最優先とし、未指定の場合だけワールドと拡張ポリシーを評価します。 */
+internal fun resolveFlightPermission(
+    localRequest: Boolean?,
+    gameMode: org.bukkit.GameMode,
+    worldAllowsFlight: Boolean,
+    policyAllowsFlight: () -> Boolean,
+): Boolean {
+    if (localRequest != null) return localRequest
+    if (gameMode == org.bukkit.GameMode.CREATIVE || gameMode == org.bukkit.GameMode.SPECTATOR) return true
+    return worldAllowsFlight && policyAllowsFlight()
 }
