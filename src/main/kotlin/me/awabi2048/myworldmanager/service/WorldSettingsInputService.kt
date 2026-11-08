@@ -18,6 +18,7 @@ import me.awabi2048.myworldmanager.gui.AnnouncementDialogManager
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.util.WorldNameValidation
+import me.awabi2048.myworldmanager.util.WorldTextLimits
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.entity.Player
@@ -102,8 +103,8 @@ internal class WorldSettingsInputService(private val plugin: MyWorldManager) {
     private fun openBedrockAnnouncementEditForm(player: Player, worldData: WorldData): Boolean {
         if (!plugin.playerPlatformResolver.isBedrock(player) || !plugin.floodgateFormBridge.isAvailable(player)) return false
         val lang = plugin.languageManager
-        val maxLines = plugin.config.getInt("announcement.max_lines", 5)
-        val maxLength = plugin.config.getInt("announcement.max_line_length", 100)
+        val maxLines = WorldTextLimits.ANNOUNCEMENT_LINES
+        val maxLength = WorldTextLimits.ANNOUNCEMENT_LINE
         val worldUuid = worldData.uuid
         val inputs = (0 until maxLines).map { index ->
             val current = worldData.announcementMessages.getOrNull(index).orEmpty()
@@ -125,8 +126,8 @@ internal class WorldSettingsInputService(private val plugin: MyWorldManager) {
 
     private fun applyAnnouncementUpdateFromForm(player: Player, worldData: WorldData, rawInputs: List<String>) {
         val lang = plugin.languageManager
-        val maxLines = plugin.config.getInt("announcement.max_lines", 5)
-        val maxLength = plugin.config.getInt("announcement.max_line_length", 100)
+        val maxLines = WorldTextLimits.ANNOUNCEMENT_LINES
+        val maxLength = WorldTextLimits.ANNOUNCEMENT_LINE
         val blockedStrings = plugin.config.getStringList("announcement.blocked_strings")
         val trimmed = rawInputs.map { it.trim() }.filter { it.isNotEmpty() }
         fun invalid(key: LocalizationKey<String>, placeholders: Map<String, Any>) {
@@ -152,8 +153,8 @@ internal class WorldSettingsInputService(private val plugin: MyWorldManager) {
             title = Component.text(lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_INFO_FORM_TITLE), NamedTextColor.YELLOW),
             body = listOf(Component.text(lang.getMessage(player, MyworldGuiSettingsKeys.GUI_SETTINGS_INFO_DIALOG_BODY))),
             inputs = listOf(
-                MenuDialogInput.Text("world_name", Component.text(lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_RENAME_LABEL)), worldData.name.take(16), maxLength = 16),
-                MenuDialogInput.Text("world_desc", Component.text(lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_DESCRIPTION_LABEL)), worldData.description.take(100), maxLength = 100),
+                MenuDialogInput.Text("world_name", Component.text(lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_RENAME_LABEL)), worldData.name.take(WorldTextLimits.NAME), maxLength = WorldTextLimits.NAME),
+                MenuDialogInput.Text("world_desc", Component.text(lang.getMessage(player, MyworldGuiBedrockKeys.GUI_BEDROCK_INPUT_DESCRIPTION_LABEL)), worldData.description.take(WorldTextLimits.DESCRIPTION), maxLength = WorldTextLimits.DESCRIPTION),
             ),
             confirm = MenuDialogButton(Component.text(lang.getMessage(player, CommonKeys.GUI_COMMON_CONFIRM), NamedTextColor.GREEN), MenuDialogHandler { target, response ->
                 applyInfo(target, worldData, response.textValue("world_name").trim(), response.textValue("world_desc").trim()); MenuActionResult.Success(MenuUpdate.None)
@@ -163,6 +164,11 @@ internal class WorldSettingsInputService(private val plugin: MyWorldManager) {
     }
 
     private fun applyInfo(player: Player, worldData: WorldData, name: String, description: String) {
+        if (description.length > WorldTextLimits.DESCRIPTION) {
+            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_DESC_TOO_LONG, mapOf("max" to WorldTextLimits.DESCRIPTION)))
+            plugin.worldSettingsGui.open(player, worldData)
+            return
+        }
         var updated = false
         if (name.isNotBlank()) when (val result = plugin.worldValidator.validateName(name)) {
             is WorldNameValidation.Failure -> player.sendMessage(plugin.languageManager.getComponent(player, result.messageKey, result.placeholders))

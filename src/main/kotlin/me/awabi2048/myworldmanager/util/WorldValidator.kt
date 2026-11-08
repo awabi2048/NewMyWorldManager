@@ -22,10 +22,18 @@ sealed class WorldNameValidation {
     }
 }
 
+/** 全プラットフォームと保存時検証で共有する入力上限です。 */
+object WorldTextLimits {
+    const val NAME = 50
+    const val DESCRIPTION = 50
+    const val ANNOUNCEMENT_LINES = 5
+    const val ANNOUNCEMENT_LINE = 100
+}
+
 class WorldValidator(private val plugin: JavaPlugin) {
 
     fun validateName(name: String): WorldNameValidation {
-        val maxLength = plugin.config.getInt("world_name.max_length", 32)
+        val maxLength = WorldTextLimits.NAME
         val blockedStrings = plugin.config.getStringList("validation.blocked_strings")
 
         return when {

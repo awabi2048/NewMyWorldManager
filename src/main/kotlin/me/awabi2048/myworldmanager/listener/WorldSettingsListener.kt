@@ -1973,6 +1973,10 @@ class WorldSettingsListener : Listener {
                 newDescription: String
         ) {
                 val lang = plugin.languageManager
+                if (newDescription.length > me.awabi2048.myworldmanager.util.WorldTextLimits.DESCRIPTION) {
+                        player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_DESC_TOO_LONG, mapOf("max" to me.awabi2048.myworldmanager.util.WorldTextLimits.DESCRIPTION)))
+                        return
+                }
                 worldData.description = newDescription
                 plugin.worldConfigRepository.save(worldData)
                 player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_DESC_CHANGE))
