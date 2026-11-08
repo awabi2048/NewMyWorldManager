@@ -10,4 +10,7 @@ package me.awabi2048.myworldmanager.api.service
  */
 fun interface ApiMacroService {
     fun execute(trigger: String, params: Map<String, String>)
+
+    /** 所有プラグインの設定ファイルを再検証し、実行中のサービスへ反映します。 */
+    fun reload() { throw UnsupportedOperationException("このマクロサービスは再読込に対応していません") }
 }
