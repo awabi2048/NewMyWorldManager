@@ -9,6 +9,7 @@ import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.session.MenuExternalInput
 import me.awabi2048.myworldmanager.session.SettingsAction
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
+import me.awabi2048.myworldmanager.api.extension.WorldSettingsAction
 import net.kyori.adventure.text.format.TextDecoration
 import org.bukkit.Material
 import org.bukkit.entity.Player
@@ -27,6 +28,9 @@ internal class WorldSettingsIconSelectionService(private val plugin: MyWorldMana
         val session = plugin.settingsSessionManager.getSession(player) ?: return MenuActionResult.Ignored
         if (clickedItem.type == Material.AIR) return MenuActionResult.Ignored
         val worldData = plugin.worldConfigRepository.findByUuid(session.worldUuid) ?: return MenuActionResult.Ignored
+        if (!plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.SELECT_ICON).actionable) {
+            return MenuActionResult.Rejected()
+        }
         if (clickedItem.type == Material.BLACK_STAINED_GLASS_PANE || clickedItem.type == Material.GRAY_STAINED_GLASS_PANE) {
             player.playSound(player.location, org.bukkit.Sound.BLOCK_NOTE_BLOCK_BIT, 1.0f, 0.5f)
             player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_ICON_FORBIDDEN))

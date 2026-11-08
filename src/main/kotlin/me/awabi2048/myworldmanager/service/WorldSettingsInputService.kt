@@ -14,6 +14,7 @@ import com.awabi2048.ccsystem.api.gui.MenuDialogInput
 import com.awabi2048.ccsystem.api.gui.MenuDialogRequest
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.extension.WorldSettingsAction
 import me.awabi2048.myworldmanager.gui.AnnouncementDialogManager
 import me.awabi2048.myworldmanager.model.WorldData
 import me.awabi2048.myworldmanager.session.SettingsAction
@@ -87,6 +88,10 @@ internal class WorldSettingsInputService(private val plugin: MyWorldManager) {
             onSelect = { index ->
                 val latest = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return@sendSimpleForm
                 if (index == 1) {
+                    if (!plugin.worldSettingsActionService.contract(player, latest, WorldSettingsAction.EDIT_ANNOUNCEMENT).actionable) {
+                        CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
+                        return@sendSimpleForm
+                    }
                     latest.announcementMessages.clear(); plugin.worldConfigRepository.save(latest)
                     player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_ANNOUNCEMENT_RESET))
                     CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
@@ -125,6 +130,10 @@ internal class WorldSettingsInputService(private val plugin: MyWorldManager) {
     }
 
     private fun applyAnnouncementUpdateFromForm(player: Player, worldData: WorldData, rawInputs: List<String>) {
+        if (!plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.EDIT_ANNOUNCEMENT).actionable) {
+            CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
+            return
+        }
         val lang = plugin.languageManager
         val maxLines = WorldTextLimits.ANNOUNCEMENT_LINES
         val maxLength = WorldTextLimits.ANNOUNCEMENT_LINE
@@ -163,7 +172,12 @@ internal class WorldSettingsInputService(private val plugin: MyWorldManager) {
         ))
     }
 
-    private fun applyInfo(player: Player, worldData: WorldData, name: String, description: String) {
+    private fun applyInfo(player: Player, target: WorldData, name: String, description: String) {
+        val worldData = plugin.worldConfigRepository.findByUuid(target.uuid)
+        if (worldData == null || !plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.EDIT_INFO).actionable) {
+            CCSystem.getAPI().getMenuRuntimeService().finishExternal(player)
+            return
+        }
         if (description.length > WorldTextLimits.DESCRIPTION) {
             player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_DESC_TOO_LONG, mapOf("max" to WorldTextLimits.DESCRIPTION)))
             plugin.worldSettingsGui.open(player, worldData)

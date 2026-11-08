@@ -11,6 +11,7 @@ import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
 import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsAction
+import me.awabi2048.myworldmanager.api.extension.WorldSettingsStateContext
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsActionContract
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsActionRequest
 import me.awabi2048.myworldmanager.api.extension.WorldSettingsActionOption
@@ -103,6 +104,11 @@ class WorldSettingsActionService(private val plugin: MyWorldManager) {
         val owner = player.uniqueId == worldData.owner
         val moderator = player.uniqueId in worldData.moderators
         val member = owner || moderator || player.uniqueId in worldData.members
+        // 描画後に提出状態が変わった場合も、操作の実行時に同じ制限を適用します。
+        val stateContext = WorldSettingsStateContext(player, worldData, owner || admin, moderator, member)
+        if (MyWorldManagerApi.getWorldSettingsStatePolicies().any { it.restriction(stateContext) != null }) {
+            return false to null
+        }
         // メンバー管理を含む通常の管理操作はオーナー・モデレータ・管理者が扱い、
         // ワールド全域に影響するポータル管理だけをオーナーと管理者へ限定します。
         val permitted = when (action) {
