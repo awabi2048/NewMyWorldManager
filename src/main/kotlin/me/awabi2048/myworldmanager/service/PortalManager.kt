@@ -77,7 +77,6 @@ class PortalManager(private val plugin: MyWorldManager) {
     private val pendingExternalPortalWarps = ConcurrentHashMap.newKeySet<UUID>()
     private val ignorePlayers = ConcurrentHashMap.newKeySet<UUID>()
     private val portalGracePeriods = ConcurrentHashMap<UUID, ConcurrentHashMap<UUID, Long>>() // PlayerUUID -> (PortalUUID -> Expiry)
-    private val blockedMessageCooldowns = ConcurrentHashMap<UUID, ConcurrentHashMap<UUID, Long>>() // PlayerUUID -> (PortalUUID -> NextMessageAt)
     private val portalCache = ConcurrentHashMap<String, ConcurrentHashMap<Long, PortalData>>() // WorldName -> BlockKey -> PortalData
     private val gateCache = ConcurrentHashMap<String, MutableList<PortalData>>() // WorldName -> Gate portals
 
@@ -525,7 +524,7 @@ class PortalManager(private val plugin: MyWorldManager) {
         }
         if (!loadResult.isSuccess) {
             val failure = loadResult.failure ?: WorldLoadFailure.BUKKIT_LOAD_FAILED
-            player.sendMessage(failure.message(plugin, player))
+            plugin.teleportFailureNotifier.send(player, normalizedWorldKey, "load_${failure.name}", failure.message(plugin, player))
             afterFailed?.invoke()
             return false
         }
@@ -542,8 +541,7 @@ class PortalManager(private val plugin: MyWorldManager) {
                     return@Runnable
                 }
                 if (Bukkit.getWorld(targetWorld.key) == null || !player.teleport(locationProvider(targetWorld))) {
-                    player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_TELEPORT_FAILED))
-                    plugin.logger.warning(
+                    if (plugin.teleportFailureNotifier.send(player, normalizedWorldKey, "teleport_failed", plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_TELEPORT_FAILED))) plugin.logger.warning(
                         "Portal teleport did not complete: player=${player.uniqueId} world=$targetWorldKey"
                     )
                     return@Runnable
@@ -767,9 +765,7 @@ class PortalManager(private val plugin: MyWorldManager) {
             val destData = plugin.worldConfigRepository.findByUuid(portal.worldUuid!!) ?: return
             val portalPolicy = MyWorldManagerApi.getWorldPortalPolicy()
             if (!portalPolicy.canUsePortal(player, destData)) {
-                if (consumeBlockedMessageCooldown(player.uniqueId, portal.id)) {
-                    portalPolicy.blockedMessages(player, destData).forEach(player::sendMessage)
-                }
+                plugin.teleportFailureNotifier.send(player, destData.uuid.toString(), "portal_policy", portalPolicy.blockedMessages(player, destData))
                 return
             }
 
@@ -777,7 +773,7 @@ class PortalManager(private val plugin: MyWorldManager) {
                 destData.members.contains(player.uniqueId) ||
                 destData.moderators.contains(player.uniqueId)
             if (!MyWorldManagerApi.getWorldAccessPolicy().canEnterWorld(player, destData, isMember)) {
-                player.sendMessage(me.awabi2048.myworldmanager.util.WorldAccessMessageResolver.enter(lang, player, destData, isMember))
+                plugin.teleportFailureNotifier.send(player, destData.uuid.toString(), "access_denied", me.awabi2048.myworldmanager.util.WorldAccessMessageResolver.enter(lang, player, destData, isMember))
                 return
             }
 
@@ -838,17 +834,6 @@ class PortalManager(private val plugin: MyWorldManager) {
       /**
        * ポータルの TextDisplay を削除
        */
-     private fun consumeBlockedMessageCooldown(playerUuid: UUID, portalUuid: UUID): Boolean {
-         val now = System.currentTimeMillis()
-         val playerCooldowns = blockedMessageCooldowns.computeIfAbsent(playerUuid) { ConcurrentHashMap() }
-         val nextMessageAt = playerCooldowns[portalUuid] ?: 0L
-         if (nextMessageAt > now) return false
-
-         // プレイヤーが封鎖中ポータル上に居続ける場合、毎tick同じ案内を出さない。
-         playerCooldowns[portalUuid] = now + 10_000L
-         return true
-     }
-
      private fun removeTextDisplayForPortal(portalId: UUID) {
           // メモリから削除
           val display = textDisplays.remove(portalId)

@@ -745,25 +745,49 @@ object MyWorldManagerApi {
      * ゲームモードはワールドポリシーの責務外です。プレビューやFreeCamなどの
      * 明示的な一時セッションが管理する状態を、通常のワールド遷移で上書きしないためです。
      */
+    // かんたんコマンダー等の明示要求は発行元とワールドを保持し、通常ポリシーより優先します。
+    private data class LocalFlightRequest(val owner: String, val worldId: UUID, val allowed: Boolean)
+    private val localFlightRequests = java.util.concurrent.ConcurrentHashMap<UUID, LocalFlightRequest>()
+
+    @JvmStatic
+    fun setLocalFlightRequest(player: Player, owner: String, allowed: Boolean) {
+        require(owner.isNotBlank())
+        localFlightRequests[player.uniqueId] = LocalFlightRequest(owner, player.world.uid, allowed)
+        val worldData = worldRepository?.findByWorldKey(player.world.key.toString())
+        if (worldData != null) syncWorldPlayerState(player, worldData)
+        else if (player.gameMode != org.bukkit.GameMode.SPECTATOR) {
+            if (!allowed && player.isFlying) player.isFlying = false
+            player.allowFlight = allowed
+        }
+    }
+
+    @JvmStatic
+    fun clearLocalFlightRequest(playerUuid: UUID, owner: String) {
+        localFlightRequests.computeIfPresent(playerUuid) { _, request -> if (request.owner == owner) null else request }
+    }
+
+    @JvmStatic
+    fun localFlightRequest(player: Player): Boolean? =
+        localFlightRequests[player.uniqueId]?.takeIf { it.worldId == player.world.uid }?.allowed
+
+    /** 飛行状態の反映と飛行開始時の検証で同一の実効判定を使用します。 */
+    @JvmStatic
+    fun isFlightAllowed(player: Player, worldData: WorldData): Boolean {
+        return resolveFlightPermission(
+            localRequest = localFlightRequest(player),
+            gameMode = player.gameMode,
+            worldAllowsFlight = worldData.allowFlight,
+            policyAllowsFlight = { worldPlayerStatePolicies.all { it.evaluate(player, worldData).flightAllowed != false } },
+        )
+    }
+
     @JvmStatic
     fun syncWorldPlayerState(player: Player, worldData: WorldData) {
+        // スペクテイター中の飛行は一時セッションが管理します。
         if (player.gameMode == org.bukkit.GameMode.SPECTATOR) return
-        val decisions = worldPlayerStatePolicies
-            .sortedByDescending { it.getPriority() }
-            .map { it.evaluate(player, worldData) }
-        val currentGameModeAllowsFlight =
-            player.gameMode == org.bukkit.GameMode.CREATIVE ||
-                player.gameMode == org.bukkit.GameMode.SPECTATOR
-        val flightAllowed =
-            currentGameModeAllowsFlight ||
-                (worldData.allowFlight && decisions.all { it.flightAllowed != false })
-
-        if (!flightAllowed) {
-            player.allowFlight = false
-            if (player.isFlying) player.isFlying = false
-        } else if (currentGameModeAllowsFlight || decisions.any { it.flightAllowed == true }) {
-            player.allowFlight = true
-        }
+        val allowed = isFlightAllowed(player, worldData)
+        if (!allowed && player.isFlying) player.isFlying = false
+        player.allowFlight = allowed
     }
 
     @JvmStatic
@@ -978,4 +1002,16 @@ object MyWorldManagerApi {
     }
 
     private var memberManagementOpener: ((Player, UUID) -> Unit)? = null
+}
+
+/** 局所要求を最優先とし、未指定の場合だけワールドと拡張ポリシーを評価します。 */
+internal fun resolveFlightPermission(
+    localRequest: Boolean?,
+    gameMode: org.bukkit.GameMode,
+    worldAllowsFlight: Boolean,
+    policyAllowsFlight: () -> Boolean,
+): Boolean {
+    if (localRequest != null) return localRequest
+    if (gameMode == org.bukkit.GameMode.CREATIVE || gameMode == org.bukkit.GameMode.SPECTATOR) return true
+    return worldAllowsFlight && policyAllowsFlight()
 }

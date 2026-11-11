@@ -33,8 +33,11 @@ class MacroManager(
         if (!file.exists()) {
             plugin.saveResource("macro.yml", false)
         }
-        config = YamlConfiguration.loadConfiguration(file)
+        // 破損した YAML を空設定として採用せず、既存設定を維持したまま呼び出し元へ失敗を返します。
+        config = YamlConfiguration().also { it.load(file) }
     }
+
+    override fun reload() = loadConfig()
 
     /**
      * 指定されたトリガーのマクロを実行します。

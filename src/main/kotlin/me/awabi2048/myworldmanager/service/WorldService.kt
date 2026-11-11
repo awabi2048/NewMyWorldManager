@@ -476,8 +476,9 @@ class WorldService(
             sameXzSafeY,
             surroundingSafe
         ) ?: run {
-            plugin.logger.warning("シード指定ワールド ${worldData.uuid} の安全な初回スポーン地点を見つけられませんでした")
-            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_SEED_SPAWN_SAFE_LOCATION_NOT_FOUND))
+            if (plugin.teleportFailureNotifier.send(player, worldData.uuid.toString(), "unsafe_spawn", plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_SEED_SPAWN_SAFE_LOCATION_NOT_FOUND))) {
+                plugin.logger.warning("シード指定ワールド ${worldData.uuid} の安全な初回スポーン地点を見つけられませんでした")
+            }
             return false
         }
 
@@ -1338,22 +1339,20 @@ class WorldService(
             afterTeleported: (() -> Unit)? = null
     ): Boolean {
         if (plugin.worldMigrationService.isPending(worldUuid)) {
-            plugin.logger.info("World warp rejected because migration is pending: $worldUuid")
-            player.sendMessage(
-                plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_MIGRATION_REQUIRED)
-            )
+            if (plugin.teleportFailureNotifier.send(player, worldUuid.toString(), "load_MIGRATION_REQUIRED", plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_MIGRATION_REQUIRED))) {
+                plugin.logger.info("World warp rejected because migration is pending: $worldUuid")
+            }
             return false
         }
         if (MyWorldManagerApi.getActiveWorldOperation(worldUuid) != null) {
-            plugin.logger.info(
-                "World warp rejected while operation ${MyWorldManagerApi.getActiveWorldOperation(worldUuid)} is active: $worldUuid"
-            )
-            player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_OPERATION_LOCKED))
+            if (plugin.teleportFailureNotifier.send(player, worldUuid.toString(), "load_OPERATION_LOCKED", plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_OPERATION_LOCKED))) {
+                plugin.logger.info("World warp rejected while operation ${MyWorldManagerApi.getActiveWorldOperation(worldUuid)} is active: $worldUuid")
+            }
             return false
         }
         val worldData = repository.findByUuid(worldUuid) ?: return false
         val worldKey = NamespacedKey.fromString(worldData.worldKey) ?: run {
-            player.sendMessage(WorldLoadFailure.INVALID_KEY.message(plugin, player))
+            plugin.teleportFailureNotifier.send(player, worldUuid.toString(), "load_INVALID_KEY", WorldLoadFailure.INVALID_KEY.message(plugin, player))
             return false
         }
         val needsLoad = Bukkit.getWorld(worldKey) == null
@@ -1366,14 +1365,15 @@ class WorldService(
                 if (closeInventoryOnLoad) {
                     CCSystem.getAPI().getMenuRuntimeService().close(player)
                 }
-                player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_LOADING))
                 val loadResult = loadWorldDetailed(worldUuid)
                 if (!loadResult.isSuccess) {
                     val failure = loadResult.failure ?: WorldLoadFailure.BUKKIT_LOAD_FAILED
-                    player.sendMessage(failure.message(plugin, player))
+                    plugin.teleportFailureNotifier.send(player, worldUuid.toString(), "load_${failure.name}", failure.message(plugin, player))
                     warpRequestGate.release(lease)
                     return false
                 }
+                // ロードに失敗した試行では開始案内を出さず、ポータル上の連続試行でも通知を増やしません。
+                player.sendMessage(plugin.languageManager.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_LOADING))
                 world = loadResult.world
             } catch (failure: Throwable) {
                 warpRequestGate.release(lease)
@@ -1382,7 +1382,7 @@ class WorldService(
         }
 
         val targetWorld = world ?: run {
-            player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_LOAD_FAILED))
+            plugin.teleportFailureNotifier.send(player, worldUuid.toString(), "load_BUKKIT_LOAD_FAILED", plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_LOAD_FAILED))
             warpRequestGate.release(lease)
             return false
         }
@@ -1459,8 +1459,7 @@ class WorldService(
                             )
                         }
                     } else {
-                        player.sendMessage(plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_TELEPORT_FAILED))
-                        plugin.logger.warning(
+                        if (plugin.teleportFailureNotifier.send(player, worldUuid.toString(), "teleport_failed", plugin.languageManager.getMessage(player, CommonKeys.ERROR_WORLD_TELEPORT_FAILED))) plugin.logger.warning(
                             "World teleport did not complete: player=${player.uniqueId} world=$worldUuid " +
                                 "reason=$reason cause=$cause " +
                                 "target=${targetLoc.world?.name}(${targetLoc.blockX},${targetLoc.blockY},${targetLoc.blockZ}) " +

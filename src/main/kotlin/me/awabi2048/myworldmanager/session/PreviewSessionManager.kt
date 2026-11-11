@@ -6,6 +6,7 @@ import com.awabi2048.ccsystem.api.localization.generated.MyworldMessagesKeys
 import com.awabi2048.ccsystem.CCSystem
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.service.WorldLoadFailure
 import org.bukkit.Bukkit
 import org.bukkit.GameMode
@@ -279,6 +280,9 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
         // 元の位置・ゲームモードに復元
         player.gameMode = session.originalGameMode
         player.teleport(session.originalLocation)
+        // 開始後に変更されたワールドや局所飛行要求を復元値より優先します。
+        MyWorldManagerApi.getWorldRepository()?.findByWorldKey(player.world.key.toString())
+            ?.let { MyWorldManagerApi.syncWorldPlayerState(player, it) }
 
         // メッセージ送信
         val lang = plugin.languageManager
@@ -374,6 +378,8 @@ class PreviewSessionManager(private val plugin: MyWorldManager) {
             GameMode.SURVIVAL
         }
         player.gameMode = gameMode
+        MyWorldManagerApi.getWorldRepository()?.findByWorldKey(player.world.key.toString())
+            ?.let { MyWorldManagerApi.syncWorldPlayerState(player, it) }
 
         // 復元したデータを削除
         config.set(uuidStr, null)

@@ -30,14 +30,14 @@ class AccessControlListener(private val plugin: MyWorldManager) : Listener {
         if (plugin.previewSessionManager.isInPreview(player)) return
 
         if (worldData.isArchived) {
-            player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_ARCHIVE_ACCESS_DENIED))
+            plugin.teleportFailureNotifier.send(player, worldData.uuid.toString(), "archived", lang.getMessage(player, MyworldMessagesKeys.MESSAGES_ARCHIVE_ACCESS_DENIED))
             event.isCancelled = true
             return
         }
 
         val isMember = isMember(player, worldData)
         if (!MyWorldManagerApi.getWorldAccessPolicy().canEnterWorld(player, worldData, isMember)) {
-            player.sendMessage(me.awabi2048.myworldmanager.util.WorldAccessMessageResolver.enter(lang, player, worldData, isMember))
+            plugin.teleportFailureNotifier.send(player, worldData.uuid.toString(), "access_denied", me.awabi2048.myworldmanager.util.WorldAccessMessageResolver.enter(lang, player, worldData, isMember))
             event.isCancelled = true
         }
     }
