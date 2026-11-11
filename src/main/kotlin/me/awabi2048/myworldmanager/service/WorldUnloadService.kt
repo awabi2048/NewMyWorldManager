@@ -88,6 +88,16 @@ class WorldUnloadService(private val plugin: MyWorldManager) {
                             continue
                         }
 
+                        // 拡張側は自動アンロードのみを抑止し、管理操作とは独立して制御できます。
+                        val event = me.awabi2048.myworldmanager.api.event.MwmAutomaticWorldUnloadEvent(worldData)
+                        Bukkit.getPluginManager().callEvent(event)
+                        if (event.isCancelled) {
+                            emptySince.remove(worldName)
+                            nextRetryAt.remove(worldName)
+                            failureCount.remove(worldName)
+                            continue
+                        }
+
                         when (unloadWorld(world, worldData.uuid)) {
                             true -> {
                                 emptySince.remove(worldName)
