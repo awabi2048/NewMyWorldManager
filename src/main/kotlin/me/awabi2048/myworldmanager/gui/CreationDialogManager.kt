@@ -62,7 +62,7 @@ class CreationDialogManager {
                             "world_name",
                             lang.getComponent(player, MyworldMessagesKeys.MESSAGES_WIZARD_NAME_PROMPT),
                             session.worldName ?: "",
-                            maxLength = 32,
+                            maxLength = 50,
                         ),
                     ),
                     confirm = MenuDialogButton(

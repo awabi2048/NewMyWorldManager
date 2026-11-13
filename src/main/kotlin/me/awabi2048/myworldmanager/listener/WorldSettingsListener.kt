@@ -1951,6 +1951,7 @@ class WorldSettingsListener : Listener {
 
 
         private fun applyWorldNameUpdate(player: Player, worldData: WorldData, newName: String) {
+                if (!plugin.worldSettingsActionService.contract(player, worldData, me.awabi2048.myworldmanager.api.extension.WorldSettingsAction.EDIT_INFO).actionable) return
                 val lang = plugin.languageManager
                 val result = plugin.worldValidator.validateName(newName)
                 if (result is WorldNameValidation.Failure) {
@@ -1972,7 +1973,12 @@ class WorldSettingsListener : Listener {
                 worldData: WorldData,
                 newDescription: String
         ) {
+                if (!plugin.worldSettingsActionService.contract(player, worldData, me.awabi2048.myworldmanager.api.extension.WorldSettingsAction.EDIT_INFO).actionable) return
                 val lang = plugin.languageManager
+                if (newDescription.length > me.awabi2048.myworldmanager.util.WorldTextLimits.DESCRIPTION) {
+                        player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_DESC_TOO_LONG, mapOf("max" to me.awabi2048.myworldmanager.util.WorldTextLimits.DESCRIPTION)))
+                        return
+                }
                 worldData.description = newDescription
                 plugin.worldConfigRepository.save(worldData)
                 player.sendMessage(lang.getMessage(player, MyworldMessagesKeys.MESSAGES_WORLD_DESC_CHANGE))

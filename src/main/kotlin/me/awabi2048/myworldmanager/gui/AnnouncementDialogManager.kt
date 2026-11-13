@@ -12,7 +12,9 @@ import com.awabi2048.ccsystem.api.gui.MenuDialogRequest
 import com.awabi2048.ccsystem.api.gui.MenuDialogResponse
 import com.awabi2048.ccsystem.api.gui.MenuUpdate
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.extension.WorldSettingsAction
 import me.awabi2048.myworldmanager.model.WorldData
+import me.awabi2048.myworldmanager.util.WorldTextLimits
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.entity.Player
@@ -26,8 +28,8 @@ object AnnouncementDialogManager {
     fun showAnnouncementEditDialog(player: Player, worldData: WorldData) {
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
         val lang = plugin.languageManager
-        val maxLines = plugin.config.getInt("announcement.max_lines", 5)
-        val maxLength = plugin.config.getInt("announcement.max_line_length", 100)
+        val maxLines = WorldTextLimits.ANNOUNCEMENT_LINES
+        val maxLength = WorldTextLimits.ANNOUNCEMENT_LINE
         val currentMessages = worldData.announcementMessages.map {
             it.removePrefix("§f").replace("§", "&")
         }
@@ -116,6 +118,9 @@ object AnnouncementDialogManager {
         val lang = plugin.languageManager
         val worldData = plugin.worldConfigRepository.findByUuid(worldUuid)
             ?: return MenuActionResult.Rejected()
+        if (!plugin.worldSettingsActionService.contract(player, worldData, WorldSettingsAction.EDIT_ANNOUNCEMENT).actionable) {
+            return MenuActionResult.Rejected()
+        }
         val blockedStrings = plugin.config.getStringList("announcement.blocked_strings")
         val newMessages = mutableListOf<String>()
 

@@ -45,6 +45,8 @@ import java.util.jar.JarFile
 
 class MyWorldManager : JavaPlugin() {
 
+    val teleportFailureNotifier = TeleportFailureNotifier()
+
     lateinit var worldConfigRepository: WorldConfigRepository
     lateinit var worldService: WorldService
     lateinit var managedWorldCreatorFactory: me.awabi2048.myworldmanager.service.ManagedWorldCreatorFactory

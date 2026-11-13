@@ -1,6 +1,7 @@
 package me.awabi2048.myworldmanager.service
 
 import me.awabi2048.myworldmanager.MyWorldManager
+import me.awabi2048.myworldmanager.api.MyWorldManagerApi
 import me.awabi2048.myworldmanager.api.service.ApiWorldEnvironmentService
 import me.awabi2048.myworldmanager.model.WorldData
 import org.bukkit.Bukkit
@@ -106,7 +107,7 @@ class WorldEnvironmentService(private val plugin: MyWorldManager) : ApiWorldEnvi
 
     fun applyFlight(player: Player, worldName: String): Boolean {
         val worldData = plugin.worldConfigRepository.findByWorldName(worldName) ?: return false
-        applyFlight(player, worldData.allowFlight)
+        MyWorldManagerApi.syncWorldPlayerState(player, worldData)
         return true
     }
 
@@ -174,7 +175,7 @@ class WorldEnvironmentService(private val plugin: MyWorldManager) : ApiWorldEnvi
     }
 
     private fun applyFlight(world: World, worldData: WorldData) {
-        world.players.forEach { player -> applyFlight(player, worldData.allowFlight) }
+        world.players.forEach { player -> MyWorldManagerApi.syncWorldPlayerState(player, worldData) }
     }
 
     private fun applyWorldSettings(world: World, worldData: WorldData) {
@@ -217,16 +218,6 @@ class WorldEnvironmentService(private val plugin: MyWorldManager) : ApiWorldEnvi
         entity.getAttribute(Attribute.SCALE)?.let { attr ->
             attr.modifiers.filter { it.key == scaleKey }.forEach { attr.removeModifier(it.key) }
         }
-    }
-
-    private fun applyFlight(player: Player, allowFlight: Boolean) {
-        val gameModeAllowsFlight = player.gameMode == GameMode.CREATIVE || player.gameMode == GameMode.SPECTATOR
-        if (allowFlight || gameModeAllowsFlight) {
-            player.allowFlight = true
-            return
-        }
-        if (player.isFlying) player.isFlying = false
-        player.allowFlight = false
     }
 
     private fun resolveWorld(worldData: WorldData): World? {

@@ -51,6 +51,7 @@ class PlayerDataListener : Listener {
     fun onQuit(event: PlayerQuitEvent) {
         val player = event.player
         val plugin = JavaPlugin.getPlugin(MyWorldManager::class.java)
+        plugin.teleportFailureNotifier.clear(player.uniqueId)
         
         // 最終オンライン情報はMWMのプレイヤー統計へ秒精度で集約し、GUIも同じ値を参照する。
         val stats = plugin.playerStatsRepository.findByUuid(player.uniqueId)
