@@ -60,6 +60,9 @@ commands:
     permission: myworldmanager.command.mwm_internal
     permission-message: ''
 permissions:
+  myworldmanager.spawn-egg.use:
+    description: Allows ordinary spawn eggs in checked worlds (spawner edits require OP)
+    default: op
   myworldmanager.admin:
     description: Allows full access to MyWorldManager
     default: op

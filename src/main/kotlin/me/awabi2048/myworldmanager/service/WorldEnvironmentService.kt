@@ -29,7 +29,8 @@ class WorldEnvironmentService(private val plugin: MyWorldManager) : ApiWorldEnvi
     }
 
     fun applyAll(world: World): Boolean {
-        val worldData = plugin.worldConfigRepository.findByWorldName(world.name) ?: return false
+        val worldData = plugin.worldConfigRepository.findByWorldName(world.name)
+            ?: plugin.worldConfigRepository.findByWorldKey(world.key.toString()) ?: return false
         return applyAll(world, worldData)
     }
 
@@ -179,6 +180,9 @@ class WorldEnvironmentService(private val plugin: MyWorldManager) : ApiWorldEnvi
     }
 
     private fun applyWorldSettings(world: World, worldData: WorldData) {
+        // Baseline mob policy is independent of optional environment overrides.
+        world.difficulty = Difficulty.EASY
+        world.setGameRule(GameRules.SPAWN_MOBS, false)
         if (worldData.sourceWorld == "CONVERT" && !world.name.startsWith("my_world.")) return
         val center = worldData.borderCenterPos
         if (center != null) {
@@ -191,8 +195,6 @@ class WorldEnvironmentService(private val plugin: MyWorldManager) : ApiWorldEnvi
         if (restoredBorderSize != null && restoredBorderSize > 0.0) {
             world.worldBorder.size = restoredBorderSize
         }
-        world.difficulty = Difficulty.PEACEFUL
-        world.setGameRule(GameRules.SPAWN_MOBS, false)
     }
 
     private fun applyGravity(entity: LivingEntity, gravity: Double?) {

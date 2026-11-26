@@ -405,6 +405,7 @@ class MyWorldManager : JavaPlugin() {
         discoveryListener = DiscoveryListener(this)
         server.pluginManager.registerEvents(TemplatePreviewListener(), this)
         server.pluginManager.registerEvents(EnvironmentLogicListener(this), this)
+        server.pluginManager.registerEvents(SpawnEggRestrictionListener(this), this)
         server.pluginManager.registerEvents(CustomItemListener(this), this)
         templateWizardListener = TemplateWizardListener()
         server.pluginManager.registerEvents(ItemConversionListener(this), this)
