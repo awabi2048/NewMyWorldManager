@@ -19,6 +19,8 @@ import java.util.UUID
 
 class WorldEnvironmentService(private val plugin: MyWorldManager) : ApiWorldEnvironmentService {
 
+    fun isEnabled(): Boolean = MyWorldManagerApi.getWorldRuntimePolicy().isWorldEnvironmentEnabled()
+
     private val gravityKey = NamespacedKey("myworldmanager", "env_gravity")
     private val scaleKey = NamespacedKey("myworldmanager", "env_scale")
 
@@ -34,15 +36,18 @@ class WorldEnvironmentService(private val plugin: MyWorldManager) : ApiWorldEnvi
     }
 
     fun applyAll(world: World, worldData: WorldData): Boolean {
-        applyWeather(world, worldData)
-        applyTime(world, worldData)
-        applyAttributes(world, worldData)
-        applyFlight(world, worldData)
+        if (isEnabled()) {
+            applyWeather(world, worldData)
+            applyTime(world, worldData)
+            applyAttributes(world, worldData)
+            applyFlight(world, worldData)
+        }
         applyWorldSettings(world, worldData)
         return true
     }
 
     override fun applyWeather(worldUuid: UUID): Boolean {
+        if (!isEnabled()) return false
         val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return false
         val world = resolveWorld(worldData) ?: return false
         applyWeather(world, worldData)
@@ -50,12 +55,14 @@ class WorldEnvironmentService(private val plugin: MyWorldManager) : ApiWorldEnvi
     }
 
     fun applyWeather(world: World): Boolean {
+        if (!isEnabled()) return false
         val worldData = plugin.worldConfigRepository.findByWorldName(world.name) ?: return false
         applyWeather(world, worldData)
         return true
     }
 
     override fun applyTime(worldUuid: UUID): Boolean {
+        if (!isEnabled()) return false
         val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return false
         val world = resolveWorld(worldData) ?: return false
         applyTime(world, worldData)
@@ -63,12 +70,14 @@ class WorldEnvironmentService(private val plugin: MyWorldManager) : ApiWorldEnvi
     }
 
     fun applyTime(world: World): Boolean {
+        if (!isEnabled()) return false
         val worldData = plugin.worldConfigRepository.findByWorldName(world.name) ?: return false
         applyTime(world, worldData)
         return true
     }
 
     override fun applyAttributes(worldUuid: UUID): Boolean {
+        if (!isEnabled()) return false
         val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return false
         val world = resolveWorld(worldData) ?: return false
         applyAttributes(world, worldData)
@@ -76,6 +85,7 @@ class WorldEnvironmentService(private val plugin: MyWorldManager) : ApiWorldEnvi
     }
 
     override fun applyFlight(worldUuid: UUID): Boolean {
+        if (!isEnabled()) return false
         val worldData = plugin.worldConfigRepository.findByUuid(worldUuid) ?: return false
         val world = resolveWorld(worldData) ?: return false
         applyFlight(world, worldData)
@@ -92,6 +102,7 @@ class WorldEnvironmentService(private val plugin: MyWorldManager) : ApiWorldEnvi
     }
 
     fun applyAttributes(entity: Entity, worldName: String) {
+        if (!isEnabled()) return
         if (entity !is LivingEntity) return
         val worldData = plugin.worldConfigRepository.findByWorldName(worldName) ?: return
         // 重力はワールド物理として全LivingEntityへ適用する。
@@ -106,12 +117,14 @@ class WorldEnvironmentService(private val plugin: MyWorldManager) : ApiWorldEnvi
     }
 
     fun applyFlight(player: Player, worldName: String): Boolean {
+        if (!isEnabled()) return false
         val worldData = plugin.worldConfigRepository.findByWorldName(worldName) ?: return false
         MyWorldManagerApi.syncWorldPlayerState(player, worldData)
         return true
     }
 
     fun computeFlightAllowed(player: Player, worldName: String): Boolean? {
+        if (!isEnabled()) return null
         if (player.gameMode == GameMode.CREATIVE || player.gameMode == GameMode.SPECTATOR) return true
         return plugin.worldConfigRepository.findByWorldName(worldName)?.allowFlight
     }

@@ -38,6 +38,8 @@ val providedDeps = listOf(
     "com.sk89q.worldguard:worldguard-bukkit:7.0.14",
 )
 
+val mockitoAgent = configurations.create("mockitoAgent")
+
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib:2.3.20")
     implementation("com.github.bea4dev:ChiyogamiLib:793983cef1")
@@ -46,11 +48,14 @@ dependencies {
         testImplementation(it)
     }
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
+    testImplementation("org.mockito:mockito-core:5.20.0")
+    mockitoAgent("org.mockito:mockito-core:5.20.0") { isTransitive = false }
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.10.2")
 }
 
 tasks.test {
     useJUnitPlatform()
+    jvmArgs("-javaagent:${mockitoAgent.singleFile.absolutePath}")
 }
 
 // pom.xml の resources filtering 相当（${project.version} を展開）
