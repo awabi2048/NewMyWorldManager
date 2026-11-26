@@ -175,9 +175,7 @@ internal class WorldServiceAdapter(private val plugin: MyWorldManager) : ApiWorl
                 BlockFace.SOUTH_EAST -> radius to radius
                 else -> 0.0 to 0.0
             }
-            val newCenter = oldCenter.clone().add(shiftX, 0.0, shiftZ)
-            newCenter.x = Math.round(newCenter.x).toDouble()
-            newCenter.z = Math.round(newCenter.z).toDouble()
+            val newCenter = me.awabi2048.myworldmanager.util.WorldBorderCoordinates.shift(oldCenter, shiftX, shiftZ)
             border.setCenter(newCenter)
             worldData.borderCenterPos = newCenter
         }

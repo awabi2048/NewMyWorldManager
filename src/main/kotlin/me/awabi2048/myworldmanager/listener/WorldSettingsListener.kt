@@ -2410,9 +2410,7 @@ player.sendMessage(
                                 }
                                 else -> {}
                         }
-                        val newCenter = oldCenter.clone().add(shiftX, 0.0, shiftZ)
-                        newCenter.x = Math.round(newCenter.x).toDouble()
-                        newCenter.z = Math.round(newCenter.z).toDouble()
+                        val newCenter = me.awabi2048.myworldmanager.util.WorldBorderCoordinates.shift(oldCenter, shiftX, shiftZ)
 
                         border.setCenter(newCenter)
                         worldData.borderCenterPos = newCenter
@@ -2540,9 +2538,7 @@ player.sendMessage(
                         }
                         else -> {}
                 }
-                val newCenter = currentCenter.clone().add(shiftX, 0.0, shiftZ)
-                newCenter.x = Math.round(newCenter.x).toDouble()
-                newCenter.z = Math.round(newCenter.z).toDouble()
+                val newCenter = me.awabi2048.myworldmanager.util.WorldBorderCoordinates.shift(currentCenter, shiftX, shiftZ)
 
                 val border = Bukkit.createWorldBorder()
                 border.center = newCenter
@@ -2950,8 +2946,8 @@ player.sendMessage(
 
         private fun worldDataResetTarget(worldData: WorldData): Pair<Location, Double>? {
                 val world = resolveWorld(worldData) ?: return null
-                // スポーン基準のボーダー中心はブロック中央(x.5, z.5)で統一する。
-                val center = world.spawnLocation.clone().add(0.5, 0.0, 0.5)
+                // ボーダー中心はスポーンの整数座標を使い、着地用の0.5補正を加えない。
+                val center = me.awabi2048.myworldmanager.util.WorldBorderCoordinates.fromSpawn(world.spawnLocation)
                 val size = plugin.config.getDouble(expansionInitialSizeConfigKey, 500.0)
                 return center to size
         }
@@ -3058,8 +3054,8 @@ player.sendMessage(
 
                 if (world != null) {
                         val initialSize = plugin.config.getDouble(expansionInitialSizeConfigKey, 500.0)
-                        // スポーン基準のボーダー中心はブロック中央(x.5, z.5)で統一する。
-                        val spawnLocation = world.spawnLocation.clone().add(0.5, 0.0, 0.5)
+                        // ボーダー中心はスポーンの整数座標を使い、着地用の0.5補正を加えない。
+                        val spawnLocation = me.awabi2048.myworldmanager.util.WorldBorderCoordinates.fromSpawn(world.spawnLocation)
                         world.worldBorder.size = initialSize
                         world.worldBorder.center = spawnLocation
                         worldData.borderCenterPos = spawnLocation
