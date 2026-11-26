@@ -776,7 +776,7 @@ object MyWorldManagerApi {
         return resolveFlightPermission(
             localRequest = localFlightRequest(player),
             gameMode = player.gameMode,
-            worldAllowsFlight = worldData.allowFlight,
+            worldAllowsFlight = if (getWorldRuntimePolicy().isWorldEnvironmentEnabled()) worldData.allowFlight else true,
             policyAllowsFlight = { worldPlayerStatePolicies.all { it.evaluate(player, worldData).flightAllowed != false } },
         )
     }
@@ -786,8 +786,13 @@ object MyWorldManagerApi {
         // スペクテイター中の飛行は一時セッションが管理します。
         if (player.gameMode == org.bukkit.GameMode.SPECTATOR) return
         val allowed = isFlightAllowed(player, worldData)
+        // 単体運用では外部プラグインの飛行状態を維持する。明示的な要求・制限は引き続き反映する。
+        val ownsFlight = getWorldRuntimePolicy().isWorldEnvironmentEnabled() ||
+            localFlightRequest(player) != null ||
+            player.gameMode == org.bukkit.GameMode.CREATIVE ||
+            worldPlayerStatePolicies.any { it.evaluate(player, worldData).flightAllowed != null }
         if (!allowed && player.isFlying) player.isFlying = false
-        player.allowFlight = allowed
+        if (ownsFlight || !allowed) player.allowFlight = allowed
     }
 
     @JvmStatic

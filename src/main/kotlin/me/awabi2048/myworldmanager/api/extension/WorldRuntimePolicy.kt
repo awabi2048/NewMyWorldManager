@@ -3,6 +3,9 @@ package me.awabi2048.myworldmanager.api.extension
 interface WorldRuntimePolicy {
     fun getId(): String
 
+    /** 環境設定は拡張が明示的に有効化した場合のみ適用する。 */
+    fun isWorldEnvironmentEnabled(): Boolean = false
+
     /** ワールドポイントの表示・決済・付与を運用上利用できるか。 */
     fun isWorldPointEconomyEnabled(): Boolean = true
 

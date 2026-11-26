@@ -25,6 +25,7 @@ class EnvironmentLogicListener(private val plugin: MyWorldManager) : Listener {
 
     @EventHandler
     fun onPlayerChangedWorld(event: PlayerChangedWorldEvent) {
+        if (!plugin.worldEnvironmentService.isEnabled()) return
         val player = event.player
         if (MyWorldManagerApi.isLogoutRelocation(player)) return
         val previousAllow = plugin.worldEnvironmentService.computeFlightAllowed(player, event.from.name)
@@ -40,6 +41,7 @@ class EnvironmentLogicListener(private val plugin: MyWorldManager) : Listener {
 
     @EventHandler
     fun onPlayerJoin(event: PlayerJoinEvent) {
+        if (!plugin.worldEnvironmentService.isEnabled()) return
         plugin.worldEnvironmentService.resetAttributes(event.player)
         if (!plugin.worldEnvironmentService.applyAll(event.player.world)) {
             plugin.worldEnvironmentService.applyFlight(event.player, event.player.world.name)
@@ -100,6 +102,7 @@ class EnvironmentLogicListener(private val plugin: MyWorldManager) : Listener {
 
     @EventHandler
     fun onChunkLoad(event: ChunkLoadEvent) {
+        if (!plugin.worldEnvironmentService.isEnabled()) return
         val worldName = event.world.name
         val worldData = plugin.worldConfigRepository.findByWorldName(worldName) ?: return
 

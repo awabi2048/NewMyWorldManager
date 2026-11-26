@@ -86,6 +86,8 @@ class CustomItemListener(private val plugin: MyWorldManager) : Listener {
             if ((event.action == Action.RIGHT_CLICK_AIR || event.action == Action.RIGHT_CLICK_BLOCK) && player.isSneaking) {
                 event.isCancelled = true
 
+                if (!plugin.worldEnvironmentService.isEnabled()) return
+
                 // Correct World Check
                 val worldName = player.world.name
                 if (!worldName.startsWith("my_world.")) {
