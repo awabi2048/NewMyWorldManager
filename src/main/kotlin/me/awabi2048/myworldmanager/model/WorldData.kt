@@ -77,7 +77,8 @@ data class WorldData(
             "publish_level" to publishLevel.name,
             "spawn_pos_guest" to spawnPosGuest?.let { serializeLocation(it) },
             "spawn_pos_member" to spawnPosMember?.let { serializeLocation(it) },
-            "border_center_pos" to borderCenterPos?.let { serializeLocation(it) },
+            "border_center_coordinates_version" to 1,
+            "border_center_pos" to borderCenterPos?.let { serializeLocation(it, preserveCoordinates = true) },
             "border_expansion_level" to borderExpansionLevel,
             "is_archived" to isArchived,
             "favorite" to favorite,
@@ -115,6 +116,12 @@ data class WorldData(
 
         @JvmStatic
         fun deserialize(args: Map<String, Any>): WorldData {
+            val borderVersionValue = args["border_center_coordinates_version"]
+            require(borderVersionValue == null ||
+                borderVersionValue is Number && borderVersionValue.toDouble() in setOf(0.0, 1.0)) {
+                "Unsupported border center coordinates version"
+            }
+            val borderCoordinatesVersion = (borderVersionValue as? Number)?.toInt() ?: 0
             val schemaVersion = (args["schema_version"] as? Number)?.toInt()
             require(schemaVersion == CURRENT_SCHEMA_VERSION) {
                 "Unsupported WorldData schema_version: ${schemaVersion ?: "missing"}"
@@ -162,7 +169,7 @@ data class WorldData(
                 publishLevel = PublishLevel.valueOf(args["publish_level"] as String),
                 spawnPosGuest = deserializeLocation(args["spawn_pos_guest"]),
                 spawnPosMember = deserializeLocation(args["spawn_pos_member"]),
-                borderCenterPos = deserializeLocation(args["border_center_pos"]),
+                borderCenterPos = deserializeLocation(args["border_center_pos"], preserveCoordinates = true),
                 borderExpansionLevel = args["border_expansion_level"] as Int,
                 isArchived = args["is_archived"] as Boolean,
                 favorite = args["favorite"] as Int,
@@ -193,6 +200,14 @@ data class WorldData(
                 seedSpawnValidated = args["seed_spawn_validated"] as? Boolean ?: true,
                 borderExpansionHistory = (args["border_expansion_history"] as? List<*>)
                     ?.mapNotNull { BorderExpansionRecord.deserialize(it as? Map<*, *>) }
+                    ?.map { record ->
+                        if (borderCoordinatesVersion != 0) record else record.copy(
+                            oldCenterX = me.awabi2048.myworldmanager.util.WorldBorderCoordinates.legacyHistoryCoordinate(record.oldCenterX),
+                            oldCenterZ = me.awabi2048.myworldmanager.util.WorldBorderCoordinates.legacyHistoryCoordinate(record.oldCenterZ),
+                            newCenterX = me.awabi2048.myworldmanager.util.WorldBorderCoordinates.legacyHistoryCoordinate(record.newCenterX),
+                            newCenterZ = me.awabi2048.myworldmanager.util.WorldBorderCoordinates.legacyHistoryCoordinate(record.newCenterZ),
+                        )
+                    }
                     ?.toMutableList()
                     ?: mutableListOf(),
                 partialBiomes = (args["partial_biomes"] as? List<*>)?.mapNotNull {
@@ -222,32 +237,34 @@ data class WorldData(
             )
         }
 
-        private fun serializeLocation(loc: Location): Map<String, Any?> {
+        private fun serializeLocation(loc: Location, preserveCoordinates: Boolean = false): Map<String, Any?> {
             return mapOf(
                 "world_key" to loc.world?.key?.toString(),
-                "x" to loc.blockX,
-                "y" to loc.blockY,
-                "z" to loc.blockZ,
+                "x" to if (preserveCoordinates) loc.x else loc.blockX,
+                "y" to if (preserveCoordinates) loc.y else loc.blockY,
+                "z" to if (preserveCoordinates) loc.z else loc.blockZ,
                 "yaw" to loc.yaw,
                 "pitch" to loc.pitch
             )
         }
 
-        private fun deserializeLocation(obj: Any?): Location? {
+        private fun deserializeLocation(obj: Any?, preserveCoordinates: Boolean = false): Location? {
             if (obj == null) return null
             if (obj is Map<*, *>) {
                 try {
                     val worldKey = obj["world_key"] as? String
-                    val x = (obj["x"] as Number).toInt()
-                    val y = (obj["y"] as Number).toInt()
-                    val z = (obj["z"] as Number).toInt()
+                    val x = (obj["x"] as Number).toDouble()
+                    val y = (obj["y"] as Number).toDouble()
+                    val z = (obj["z"] as Number).toDouble()
+                    require(x.isFinite() && y.isFinite() && z.isFinite())
                     val yaw = (obj["yaw"] as? Number)?.toFloat() ?: 0.0f
                     val pitch = (obj["pitch"] as? Number)?.toFloat() ?: 0.0f
                     
                     val world = worldKey
                         ?.let(org.bukkit.NamespacedKey::fromString)
                         ?.let(org.bukkit.Bukkit::getWorld)
-                    return Location(world, x + 0.5, y.toDouble(), z + 0.5, yaw, pitch)
+                    return if (preserveCoordinates) Location(world, x, y, z, yaw, pitch)
+                        else Location(world, x.toInt() + 0.5, y.toInt().toDouble(), z.toInt() + 0.5, yaw, pitch)
                 } catch (e: Exception) {
                     return null
                 }

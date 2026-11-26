@@ -527,13 +527,12 @@ class WorldService(
         // 初期ワールドボーダーの設定
         val initialSize = plugin.config.getDouble(expansionInitialSizeConfigKey, 500.0)
         val initialCenter = world.spawnLocation
-        // スポーン位置とボーダー中心はブロック中央(x.5, z.5)で統一する。
-        // setSpawnLocationは整数APIのため標準スポーン自体は整数のまま、MWM管理値とボーダー中心だけを中央化する。
-        // これにより作成直後の初回ワープ・再起動後の読込・リスポーンで着地位置が変わらない。
+        // プレイヤーの着地点だけをブロック中央に置く。ボーダーへ0.5を加えない。
         val centeredSpawn = Location(world, initialCenter.x + 0.5, initialCenter.y, initialCenter.z + 0.5)
+        val borderCenter = me.awabi2048.myworldmanager.util.WorldBorderCoordinates.fromSpawn(initialCenter)
 
         val border = world.worldBorder
-        border.center = centeredSpawn
+        border.center = borderCenter
         border.size = initialSize
 
         val worldData =
@@ -550,7 +549,7 @@ class WorldService(
                         moderators = mutableListOf(),
                         publishLevel = me.awabi2048.myworldmanager.model.PublishLevel.PRIVATE,
                         spawnPosMember = centeredSpawn,
-                        borderCenterPos = centeredSpawn,
+                        borderCenterPos = borderCenter,
                         borderExpansionLevel = 0,
                         cumulativePoints = cost,
                         isArchived = false,

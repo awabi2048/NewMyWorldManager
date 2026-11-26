@@ -3971,8 +3971,8 @@ class WorldSettingsGui(private val plugin: MyWorldManager) {
 
         private fun borderResetTargetForReset(worldData: WorldData): Pair<Location, Double>? {
                 val world = resolveWorld(worldData) ?: return null
-                // スポーン基準のボーダー中心はブロック中央(x.5, z.5)で統一する。
-                val center = world.spawnLocation.clone().add(0.5, 0.0, 0.5)
+                // ボーダー中心はスポーンの整数座標を使い、着地用の0.5補正を加えない。
+                val center = me.awabi2048.myworldmanager.util.WorldBorderCoordinates.fromSpawn(world.spawnLocation)
                 val size = plugin.config.getDouble("expansion.initial_size", 500.0)
                 return center to size
         }
